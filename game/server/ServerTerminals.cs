@@ -68,6 +68,7 @@ public class ServerTerminals
 
         _onPhone.Add(session.Record.PlayerId);
         session.Body!.IsOnline = true;
+        session.Body.OnPhone = true;
         _network.SendOpened(session.PeerId, (int)TerminalType.Phone, "Phone");
         SendRoster(session);
         Opened?.Invoke(session);
@@ -140,6 +141,7 @@ public class ServerTerminals
         if (session.Body != null)
         {
             session.Body.IsOnline = false;
+            session.Body.OnPhone = false;
         }
 
         return true;

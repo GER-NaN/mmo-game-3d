@@ -89,6 +89,10 @@ public partial class Player : CharacterBody3D
     [Export]
     public string DisplayName { get; set; } = "";
 
+    // Online by phone: others see the phone in hand, its screen flickering (world.md 7).
+    [Export]
+    public bool OnPhone { get; set; }
+
     // HP (see Health). Set by the server; below 50 the walk is slower, on both sides.
     [Export]
     public int Health { get; set; } = Rules.Players.Health.Max;
@@ -425,6 +429,8 @@ public partial class Player : CharacterBody3D
         _seenRise = Mathf.Lerp(_seenRise, moved.Y / delta, blend);
 
         Gesture? gesture = GestureId.Length > 0 ? Gestures.Find(GestureId) : null;
+
+        _model.ShowPhone(OnPhone);
 
         if (IsOnline)
         {

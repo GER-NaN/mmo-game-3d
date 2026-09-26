@@ -65,6 +65,11 @@ public partial class CharacterModel : Node3D
 
     private static AnimationLibrary? _library;
 
+    // The phone the character holds while online on it; made on first use.
+    private Node3D? _phone;
+    private OmniLight3D? _glow;
+    private double _flicker;
+
     private AnimationPlayer? _animations;
     private string _playing = "";
 
@@ -256,6 +261,52 @@ public partial class CharacterModel : Node3D
 
         CellLightness[key] = lightness;
         return lightness;
+    }
+
+    // The phone in the right hand, its screen light shifting colour like a TV on a wall.
+    // The flicker means nothing; it only shows the player is on their phone.
+    public void ShowPhone(bool on)
+    {
+        if (_phone == null && on)
+        {
+            Skeleton3D? skeleton = FindChild("Skeleton3D", true, false) as Skeleton3D;
+
+            if (skeleton == null)
+            {
+                return;
+            }
+
+            BoneAttachment3D hand = new BoneAttachment3D { BoneName = "handslot.r" };
+            skeleton.AddChild(hand);
+            _phone = new Node3D { Name = "Phone" };
+            hand.AddChild(_phone);
+            _phone.AddChild(new MeshInstance3D
+            {
+                Mesh = new BoxMesh { Size = new Vector3(0.09f, 0.17f, 0.015f), Material = new StandardMaterial3D { AlbedoColor = new Color(0.1f, 0.1f, 0.12f) } },
+            });
+            _phone.AddChild(new MeshInstance3D
+            {
+                Mesh = new QuadMesh { Size = new Vector2(0.075f, 0.14f), Material = new StandardMaterial3D { ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, AlbedoColor = new Color(0.6f, 0.85f, 1f) } },
+                Position = new Vector3(0f, 0f, 0.009f),
+            });
+            _glow = new OmniLight3D { LightEnergy = 0.8f, OmniRange = 1.2f, Position = new Vector3(0f, 0f, 0.15f) };
+            _phone.AddChild(_glow);
+        }
+
+        if (_phone == null)
+        {
+            return;
+        }
+
+        _phone.Visible = on;
+
+        if (on && _glow != null)
+        {
+            _flicker += GetProcessDeltaTime();
+            float hue = (float)((Mathf.Sin(_flicker * 0.9) * 0.5) + 0.5) * 0.35f + 0.5f;
+            _glow.LightColor = Color.FromHsv(hue, 0.5f, 1f);
+            _glow.LightEnergy = 0.6f + (0.4f * Mathf.Abs(Mathf.Sin((float)_flicker * 7f)));
+        }
     }
 
     public void Play(string animation)
