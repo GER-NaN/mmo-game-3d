@@ -14,6 +14,9 @@ using MmoGame3d.Rules.Town;
 /// </summary>
 public partial class Townsperson : Interactable
 {
+    // Past this many metres behind or ahead of the server, a client puts them there at once.
+    private const float SnapGap = 4f;
+
     private Stroll? _stroll;
     private CharacterModel? _model;
     private float _shown;
@@ -111,6 +114,14 @@ public partial class Townsperson : Interactable
         else if (gap < -length / 2f)
         {
             gap += length;
+        }
+
+        // Far out (the first update after the zone loaded, which starts everyone at the
+        // loop's start): jump there, rather than glide across town.
+        if (Mathf.Abs(gap) > SnapGap)
+        {
+            _shown = Along;
+            return;
         }
 
         _shown = Mathf.PosMod(_shown + (gap * 0.05f), length);
