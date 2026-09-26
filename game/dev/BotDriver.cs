@@ -3,6 +3,7 @@ namespace MmoGame3d.Dev;
 using System;
 using Godot;
 using MmoGame3d.Players;
+using MmoGame3d.Rules.Terminals;
 using MmoGame3d.Ui;
 
 /// <summary>
@@ -17,7 +18,8 @@ using MmoGame3d.Ui;
 /// the first thing a shopkeeper offers, opens chests, equips its phone and goes online on it, and at a
 /// workbench takes the battery out and puts one in. It drops a stack once, and gives one
 /// thing to a party member it clicks on, and adds the first player it clicks on as a
-/// friend. Now and then it glances at the map. Once, as it
+/// friend. At a public terminal it cracks one code, guessing only codes that still fit
+/// every answer so far, and types each guess. Now and then it glances at the map. Once, as it
 /// arrives, it looks at the settings and closes them unchanged (the settings file is the
 /// machine's, shared with the person who plays on it), then at its friends list.
 /// </summary>
@@ -59,6 +61,9 @@ public partial class BotDriver : Node
     private double _giveClickIn = -1;
     private bool _dropped;
     private bool _befriended;
+    private int _crackStep;
+    private double _crackIn;
+    private int _crackSeen;
     private double _interactHeldFor = -1;
     private double _nextInteract;
     private double _nextMap = 1;
@@ -242,9 +247,15 @@ public partial class BotDriver : Node
             _onlineFor += delta;
             TakeJob();
 
+            if (CrackCode(delta))
+            {
+                return;
+            }
+
             if (_onlineFor >= OnlineSeconds && goOffline.IsVisibleInTree())
             {
                 _onlineFor = 0;
+                _crackStep = 0;
                 GD.Print("Bot: clicking Go Offline");
                 Click(goOffline.GetGlobalRect().GetCenter());
             }
@@ -267,6 +278,122 @@ public partial class BotDriver : Node
             _interactHeldFor = 0;
             _nextInteract = 2;
         }
+    }
+
+    // True while it is still cracking. Steps: open the app, start a code, then guess
+    // each time a new answer is on the screen, until the code is cracked or locked.
+    private bool CrackCode(double delta)
+    {
+        Button? app = GetTree().GetFirstNodeInGroup(TerminalScreen.AppGroupPrefix + TerminalApps.CodeCracker) as Button;
+        TerminalScreen? screen = GetTree().GetFirstNodeInGroup(TerminalScreen.GoOfflineGroup)?.Owner as TerminalScreen;
+
+        // Town repairs goes first; it opens its app in the first moments online.
+        if (app == null || screen == null || _crackStep < 0 || _onlineFor < ReadDelay * 3)
+        {
+            return false;
+        }
+
+        _crackIn -= delta;
+
+        if (_crackIn > 0)
+        {
+            return true;
+        }
+
+        _crackIn = ReadDelay;
+
+        switch (_crackStep)
+        {
+            case 0:
+                GD.Print("Bot: opening the code cracker");
+                Click(app.GetGlobalRect().GetCenter());
+                _crackStep = 1;
+                return true;
+            case 1:
+                Button? start = GetTree().GetFirstNodeInGroup(TerminalScreen.CrackStartGroup) as Button;
+
+                if (start != null && start.IsVisibleInTree())
+                {
+                    Click(start.GetGlobalRect().GetCenter());
+                    _crackSeen = -1;
+                    _crackStep = 2;
+                }
+
+                return true;
+            default:
+                string[]? guesses = screen.CrackGuesses;
+
+                if (guesses == null || guesses.Length == _crackSeen)
+                {
+                    return true;
+                }
+
+                if (screen.CrackStatus != 0)
+                {
+                    GD.Print("Bot: code " + (screen.CrackStatus == 1 ? "cracked" : "locked out") + " in " + guesses.Length + " guesses");
+                    _crackStep = -1;
+                    _onlineFor = 0;
+                    return false;
+                }
+
+                _crackSeen = guesses.Length;
+                Type(NextGuess(guesses, screen.CrackExact, screen.CrackPartial));
+                return true;
+        }
+    }
+
+    // The first code, in order, that would have given every answer seen so far.
+    private static string NextGuess(string[] guesses, int[] exact, int[] partial)
+    {
+        int count = 1;
+
+        for (int i = 0; i < CodeCracker.Length; i++)
+        {
+            count *= CodeCracker.Digits;
+        }
+
+        for (int n = 0; n < count; n++)
+        {
+            char[] digits = new char[CodeCracker.Length];
+            int rest = n;
+
+            for (int i = CodeCracker.Length - 1; i >= 0; i--)
+            {
+                digits[i] = (char)('0' + (rest % CodeCracker.Digits));
+                rest /= CodeCracker.Digits;
+            }
+
+            string candidate = new string(digits);
+            bool fits = true;
+
+            for (int g = 0; g < guesses.Length && fits; g++)
+            {
+                CodeCracker check = new CodeCracker(candidate);
+                check.Guess(guesses[g]);
+                fits = check.Exact[0] == exact[g] && check.Partial[0] == partial[g];
+            }
+
+            if (fits)
+            {
+                return candidate;
+            }
+        }
+
+        return "0000";
+    }
+
+    // Key by key into whatever has the focus, then Enter.
+    private static void Type(string text)
+    {
+        foreach (char c in text)
+        {
+            Key key = Key.Key0 + (c - '0');
+            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = c, Pressed = true });
+            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = c, Pressed = false });
+        }
+
+        Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, PhysicalKeycode = Key.Enter, Pressed = true });
+        Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, PhysicalKeycode = Key.Enter, Pressed = false });
     }
 
     // Online: open Town repairs, and take the job if it is offered.

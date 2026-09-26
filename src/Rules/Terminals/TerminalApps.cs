@@ -57,6 +57,7 @@ public static class TerminalApps
     public const string ExchangeRate = "exchange";
     public const string TodoList = "todo";
     public const string TownLog = "townlog";
+    public const string CodeCracker = "crack";
 
     private static readonly TerminalApp[] All =
     {
@@ -64,6 +65,7 @@ public static class TerminalApps
         new TerminalApp(Online, "Who's online", ""),
         new TerminalApp(TodoList, "Town repairs", ""),
         new TerminalApp(TownLog, "Town log", ""),
+        new TerminalApp(CodeCracker, "Code cracker", ""),
         new TerminalApp(StatusBoard, "Status board", ""),
         new TerminalApp(ExchangeRate, "Exchange rate", ""),
         new TerminalApp("defense", "Defense Objectives", "Locked. Defense Objectives open when the first one is ready."),

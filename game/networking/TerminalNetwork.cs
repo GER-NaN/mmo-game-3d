@@ -14,6 +14,62 @@ public partial class TerminalNetwork : NetworkNode
 {
     // Server side.
     public event Action<long>? LeaveRequested;
+    public event Action<long>? CrackStartRequested;
+    public event Action<long, string>? CrackGuessRequested;
+
+    // Client side: the code cracker: guesses so far, right-in-place and right-elsewhere
+    // counts, the places that were right ("" unless the player may see them), guesses
+    // left, and 0 playing / 1 cracked / 2 locked out.
+    public event Action<string[], int[], int[], string[], int, int>? CrackReceived;
+
+    public void SendCrackStart()
+    {
+        RpcId(1, MethodName.CrackStart);
+    }
+
+    public void SendCrackGuess(string guess)
+    {
+        RpcId(1, MethodName.CrackGuess, guess);
+    }
+
+    public void SendCrack(long peer, string[] guesses, int[] exact, int[] partial, string[] positions, int left, int status)
+    {
+        SendTo(peer, MethodName.ReceiveCrack, guesses, exact, partial, positions, left, status);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void CrackStart()
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.CrackStart, sender))
+            {
+                CrackStartRequested?.Invoke(sender);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void CrackGuess(string guess)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.CrackGuess, sender, guess))
+            {
+                CrackGuessRequested?.Invoke(sender, guess);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveCrack(string[] guesses, int[] exact, int[] partial, string[] positions, int left, int status)
+    {
+        CrackReceived?.Invoke(guesses, exact, partial, positions, left, status);
+    }
     public event Action<long, string>? TakeJobRequested;
 
     // Client side: the town for the Town repairs and Town log apps: whether the street

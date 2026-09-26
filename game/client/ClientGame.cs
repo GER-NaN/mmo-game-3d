@@ -156,6 +156,7 @@ public partial class ClientGame : Node
         _terminalNetwork.Closed += CloseTerminal;
         _terminalNetwork.RosterReceived += (names, zones, online) => _terminal?.ShowRoster(names, zones, online);
         _terminalNetwork.TownReceived += (working, taken, log) => _terminal?.ShowTown(working, taken, log);
+        _terminalNetwork.CrackReceived += (guesses, exact, partial, positions, left, status) => _terminal?.ShowCrack(guesses, exact, partial, positions, left, status);
         // Deferred, like the login answers above: these fire inside the engine's network
         // poll, and closing the peer or freeing the world is better done after it.
         Multiplayer.ConnectedToServer += () => Callable.From(OnConnected).CallDeferred();
@@ -627,6 +628,8 @@ public partial class ClientGame : Node
         _terminal.GoOfflinePressed += _terminalNetwork.SendLeave;
         _terminal.ChatSubmitted += _network.SendChat;
         _terminal.TakeJobPressed += () => _terminalNetwork.SendTakeJob(StreetLights.JobId);
+        _terminal.CrackStartPressed += _terminalNetwork.SendCrackStart;
+        _terminal.CrackGuessSubmitted += _terminalNetwork.SendCrackGuess;
 
         if (_finder != null)
         {

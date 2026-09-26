@@ -75,6 +75,7 @@ public partial class ServerGame : Node
     private ServerSocial _social = null!;
     private ServerProgress _progress = null!;
     private ServerFixables _fixables = null!;
+    private ServerHacking _hacking = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -181,6 +182,9 @@ public partial class ServerGame : Node
 
         _fixables = new ServerFixables(fixables, network, _progress);
         _interactions.Fixables = _fixables;
+        _hacking = new ServerHacking(networks.Terminal, network, _terminals, _progress);
+        networks.Terminal.CrackStartRequested += peer => WithSession(peer, session => _hacking.Start(session));
+        networks.Terminal.CrackGuessRequested += (peer, guess) => WithSession(peer, session => _hacking.Guess(session, guess));
         _terminals.Opened += _town.SendTown;
 
         // Things standing in the zones sync their state (a terminal in use) only to the
@@ -410,6 +414,7 @@ public partial class ServerGame : Node
             _parties.LeftWorld(session);
             _social.WentOffline(session);
             _progress.Forget(session);
+            _hacking.Forget(session);
             _chat.Announce(session.Record!.DisplayName + " left.");
         }
 

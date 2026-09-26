@@ -40,6 +40,44 @@ public partial class TerminalScreen : Control
     public event Action? GoOfflinePressed;
     public event Action<string>? ChatSubmitted;
     public event Action? TakeJobPressed;
+    public event Action? CrackStartPressed;
+    public event Action<string>? CrackGuessSubmitted;
+
+    // Bots find the code cracker's parts by these groups.
+    public const string CrackStartGroup = "terminal_crack_start";
+    public const string CrackInputGroup = "terminal_crack_input";
+
+    // Each app's button is in the group AppGroupPrefix + its id, for bots.
+    public const string AppGroupPrefix = "terminal_app_";
+
+    // What the screen shows of the code cracker, read by bots as a person reads it.
+    public string[]? CrackGuesses
+    {
+        get { return _crackGuesses; }
+    }
+
+    public int[] CrackExact
+    {
+        get { return _crackExact; }
+    }
+
+    public int[] CrackPartial
+    {
+        get { return _crackPartial; }
+    }
+
+    public int CrackStatus
+    {
+        get { return _crackStatus; }
+    }
+
+    // The code cracker as the server last told it; null before the first code.
+    private string[]? _crackGuesses;
+    private int[] _crackExact = Array.Empty<int>();
+    private int[] _crackPartial = Array.Empty<int>();
+    private string[] _crackPositions = Array.Empty<string>();
+    private int _crackLeft;
+    private int _crackStatus;
 
     public override void _Ready()
     {
@@ -83,6 +121,7 @@ public partial class TerminalScreen : Control
             button.AddThemeColorOverride("font_color", app.State == AppState.Locked ? Locked : Text);
             TerminalApp chosen = app;
             button.Pressed += () => ShowApp(chosen);
+            button.AddToGroup(AppGroupPrefix + app.Id);
             apps.AddChild(button);
         }
 
@@ -134,6 +173,21 @@ public partial class TerminalScreen : Control
         if (_openApp == TerminalApps.TodoList || _openApp == TerminalApps.TownLog)
         {
             ShowApp(new TerminalApp(_openApp, _openApp == TerminalApps.TodoList ? "Town repairs" : "Town log", ""));
+        }
+    }
+
+    public void ShowCrack(string[] guesses, int[] exact, int[] partial, string[] positions, int left, int status)
+    {
+        _crackGuesses = guesses;
+        _crackExact = exact;
+        _crackPartial = partial;
+        _crackPositions = positions;
+        _crackLeft = left;
+        _crackStatus = status;
+
+        if (_openApp == TerminalApps.CodeCracker)
+        {
+            ShowApp(new TerminalApp(TerminalApps.CodeCracker, "Code cracker", ""));
         }
     }
 
@@ -190,6 +244,9 @@ public partial class TerminalScreen : Control
                     AddLine(content, entry, Text, 16);
                 }
 
+                break;
+            case TerminalApps.CodeCracker:
+                ShowCrack(content);
                 break;
             case TerminalApps.StatusBoard:
                 AddLine(content, "Data centre raid in progress: Ashford", Text, 17);
@@ -251,6 +308,47 @@ public partial class TerminalScreen : Control
         take.AddToGroup(TakeJobGroup);
         take.Pressed += () => TakeJobPressed?.Invoke();
         content.AddChild(take);
+    }
+
+    // Four digits, 0 to 5, eight guesses. Each answer: right and in place, right but
+    // elsewhere. The Hacking skill's practice ground.
+    private void ShowCrack(VBoxContainer content)
+    {
+        AddLine(content, "Crack the 4-digit code (digits 0 to 5). After each guess: how many digits are in the right place, and how many are right but elsewhere.", Dim, 15);
+
+        if (_crackGuesses != null)
+        {
+            for (int i = 0; i < _crackGuesses.Length && i < _crackExact.Length && i < _crackPartial.Length; i++)
+            {
+                string places = i < _crackPositions.Length && _crackPositions[i].Length > 0 ? "   " + _crackPositions[i] : "";
+                AddLine(content, _crackGuesses[i] + "   in place " + _crackExact[i] + "   elsewhere " + _crackPartial[i] + places, Text, 17);
+            }
+        }
+
+        if (_crackGuesses != null && _crackStatus == 0)
+        {
+            AddLine(content, _crackLeft + " guesses left", Dim, 15);
+            LineEdit input = new LineEdit { PlaceholderText = "Guess, then Enter", MaxLength = 4 };
+            input.AddToGroup(CrackInputGroup);
+            input.TextSubmitted += text =>
+            {
+                CrackGuessSubmitted?.Invoke(text);
+                input.Text = "";
+            };
+            content.AddChild(input);
+            input.CallDeferred(Control.MethodName.GrabFocus);
+            return;
+        }
+
+        if (_crackGuesses != null)
+        {
+            AddLine(content, _crackStatus == 1 ? "Cracked." : "Locked out. The code was not found.", _crackStatus == 1 ? Text : Locked, 17);
+        }
+
+        Button start = new Button { Text = "New code", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        start.AddToGroup(CrackStartGroup);
+        start.Pressed += () => CrackStartPressed?.Invoke();
+        content.AddChild(start);
     }
 
     private void ShowOnline(VBoxContainer content)
