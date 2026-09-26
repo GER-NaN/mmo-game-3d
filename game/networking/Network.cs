@@ -20,6 +20,58 @@ public partial class Network : Node
     public event Action<long, int, string, string>? LoginRequested;
     public event Action<long>? WorldReadyReceived;
 
+    // Server side: walking, sent here rather than to the body, because a body leaves its
+    // zone at once when its player goes through a door, and a walk still on its way would
+    // arrive for a node that is gone. The server hands it to the session's body, if any.
+    public event Action<long, Vector2, float>? WalkRequested;
+    public event Action<long, float>? StopRequested;
+    public event Action<long>? JumpRequested;
+
+    public void SendWalk(Vector2 direction, float heading)
+    {
+        RpcId(1, MethodName.Walk, direction, heading);
+    }
+
+    public void SendStop(float heading)
+    {
+        RpcId(1, MethodName.StopWalking, heading);
+    }
+
+    public void SendJump()
+    {
+        RpcId(1, MethodName.Jump);
+    }
+
+    // Unreliable but ordered: a lost walk is replaced by the next one 50 ms later, and an
+    // old one never overtakes a newer one.
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.UnreliableOrdered)]
+    private void Walk(Vector2 direction, float heading)
+    {
+        if (Multiplayer.IsServer())
+        {
+            WalkRequested?.Invoke(Multiplayer.GetRemoteSenderId(), direction, heading);
+        }
+    }
+
+    // Reliable, so a lost packet cannot leave the body walking.
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void StopWalking(float heading)
+    {
+        if (Multiplayer.IsServer())
+        {
+            StopRequested?.Invoke(Multiplayer.GetRemoteSenderId(), heading);
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Jump()
+    {
+        if (Multiplayer.IsServer())
+        {
+            JumpRequested?.Invoke(Multiplayer.GetRemoteSenderId());
+        }
+    }
+
     // Server side: (peer, name of the interactable) the player wants to use.
     public event Action<long, string>? InteractRequested;
 

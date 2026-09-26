@@ -65,6 +65,9 @@ public partial class ServerGame : Node
     private bool _stocked;
     private double _sinceSave;
     private double _sinceClock;
+    private double _sinceStats;
+    private ulong _physicsFramesAtStats;
+    private ENetMultiplayerPeer? _peer;
 
     public void Start(LaunchOptions options, Networks networks, World world)
     {
@@ -155,11 +158,15 @@ public partial class ServerGame : Node
         }
 
         Multiplayer.MultiplayerPeer = peer;
+        _peer = peer;
         Multiplayer.PeerConnected += OnPeerConnected;
         Multiplayer.PeerDisconnected += OnPeerDisconnected;
         _network.LoginRequested += OnLoginRequested;
         _network.WorldReadyReceived += OnWorldReady;
         _network.ChatRequested += OnChatRequested;
+        _network.WalkRequested += (peer, direction, heading) => WithSession(peer, session => session.Body?.ApplyWalk(direction, heading));
+        _network.StopRequested += (peer, heading) => WithSession(peer, session => session.Body?.ApplyStop(heading));
+        _network.JumpRequested += peer => WithSession(peer, session => session.Body?.ApplyJump());
         partyNetwork.InviteRequested += (peer, target) => WithSession(peer, session => _parties.Invite(session, FindSession(target)));
         partyNetwork.ResponseReceived += (peer, inviter, accept) => WithSession(peer, session => _parties.Respond(session, inviter, accept));
         partyNetwork.LeaveRequested += peer => WithSession(peer, session => _parties.Leave(session));
@@ -210,6 +217,17 @@ public partial class ServerGame : Node
                 {
                     SendClock(session);
                 }
+            }
+        }
+
+        if (_options.StatsEverySeconds > 0)
+        {
+            _sinceStats += delta;
+
+            if (_sinceStats >= _options.StatsEverySeconds)
+            {
+                PrintStats(_sinceStats);
+                _sinceStats = 0;
             }
         }
 
@@ -554,6 +572,48 @@ public partial class ServerGame : Node
         session.Inventory.Add(item.Type, item.Tier, item.Quantity);
         SendInventory(session);
         _network.SendNotice(session.PeerId, "Picked up " + item.Quantity + " " + ItemCatalog.Describe(item.Type, item.Tier));
+    }
+
+    // One line for load tests: who is here, how long a frame takes, and the traffic.
+    // ENet counts bytes since the last time it was asked, so each line is its own span.
+    private void PrintStats(double seconds)
+    {
+        int inWorld = 0;
+
+        foreach (Session session in _sessions.Values)
+        {
+            if (session.State == SessionState.InWorld)
+            {
+                inWorld++;
+            }
+        }
+
+        double sent = 0;
+        double received = 0;
+
+        if (_peer != null)
+        {
+            sent = _peer.Host.PopStatistic(ENetConnection.HostStatistic.SentData);
+            received = _peer.Host.PopStatistic(ENetConnection.HostStatistic.ReceivedData);
+        }
+
+        ulong physicsFrames = Engine.GetPhysicsFrames();
+        double steps = (physicsFrames - _physicsFramesAtStats) / seconds;
+        _physicsFramesAtStats = physicsFrames;
+        double process = Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000.0;
+        double physics = Performance.GetMonitor(Performance.Monitor.TimePhysicsProcess) * 1000.0;
+
+        GD.Print(string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "Stats: {0} connected, {1} in world, {2} fps, {7:F0} physics steps/s, frame {3:F1} ms, physics {4:F1} ms, out {5:F0} KB/s, in {6:F0} KB/s",
+            _sessions.Count,
+            inWorld,
+            Engine.GetFramesPerSecond(),
+            process,
+            physics,
+            sent / seconds / 1024.0,
+            received / seconds / 1024.0,
+            steps));
     }
 
     private void SendClock(Session session)

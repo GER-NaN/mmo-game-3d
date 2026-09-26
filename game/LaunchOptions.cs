@@ -22,6 +22,9 @@ using MmoGame3d.Rules.Time;
 ///   --screenshot x.png  save the window to a PNG a few seconds in, then quit
 ///   --overview          with --screenshot: look down on the whole zone
 ///   --screenshot-after 4  seconds in the world before the screenshot (default 4)
+///   --load-test 50      run 50 bot clients in this one process (profiles load-0...)
+///   --load-first 0      the first load bot's number, so processes do not share bots
+///   --stats-every 10    the server prints players, frame times and traffic this often
 /// </summary>
 public class LaunchOptions
 {
@@ -42,6 +45,24 @@ public class LaunchOptions
     public string? ScreenshotPath { get; private set; }
     public bool Overview { get; private set; }
     public double ScreenshotAfterSeconds { get; private set; } = 4;
+    public int LoadTestBots { get; private set; }
+    public int LoadFirst { get; private set; }
+    public bool LoadBot { get; private set; }
+    public double StatsEverySeconds { get; private set; }
+
+    // One load-test bot: its own player, connecting at once, walking by itself.
+    public LaunchOptions ForLoadBot(int number)
+    {
+        return new LaunchOptions
+        {
+            Port = Port,
+            Address = Address,
+            Profile = "load-" + number,
+            DisplayName = "Load" + number,
+            AutoConnect = true,
+            LoadBot = true,
+        };
+    }
 
     public static LaunchOptions Parse(string[] args)
     {
@@ -102,6 +123,18 @@ public class LaunchOptions
                     break;
                 case "--screenshot-after":
                     options.ScreenshotAfterSeconds = double.Parse(next, System.Globalization.CultureInfo.InvariantCulture);
+                    i++;
+                    break;
+                case "--load-test":
+                    options.LoadTestBots = int.Parse(next);
+                    i++;
+                    break;
+                case "--load-first":
+                    options.LoadFirst = int.Parse(next);
+                    i++;
+                    break;
+                case "--stats-every":
+                    options.StatsEverySeconds = double.Parse(next, System.Globalization.CultureInfo.InvariantCulture);
                     i++;
                     break;
                 case "--overview":

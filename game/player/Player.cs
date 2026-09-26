@@ -1,6 +1,7 @@
 namespace MmoGame3d.Players;
 
 using Godot;
+using MmoGame3d.Networking;
 using MmoGame3d.Rules.Movement;
 
 /// <summary>
@@ -82,6 +83,16 @@ public partial class Player : CharacterBody3D
         get { return _sentDirection != Vector2.Zero; }
     }
 
+    // False in a load-test process: dozens of clients there would each animate every body
+    // they see, thousands of skeletons, and nobody looks. Process-wide, set before any
+    // body spawns.
+    public static bool DrawModels { get; set; } = true;
+
+    // Load-test bots walk from this instead of the keyboard; null for a person.
+    public IPlayerInput? InputSource { get; set; }
+
+    private Network? _network;
+
     // The node is named after the peer id of the client that owns it.
     public long OwnerPeerId
     {
@@ -113,8 +124,11 @@ public partial class Player : CharacterBody3D
         Position = NetPosition;
         Rotation = new Vector3(0f, NetYaw, 0f);
 
-        _model = new CharacterModel { Name = "Model" };
-        AddChild(_model);
+        if (DrawModels)
+        {
+            _model = new CharacterModel { Name = "Model" };
+            AddChild(_model);
+        }
 
         if (IsOwnedHere)
         {
@@ -220,13 +234,42 @@ public partial class Player : CharacterBody3D
         }
     }
 
+    // The session's Network node, under this client's Main. Found by walking up, since in
+    // a load test many Mains share the tree.
+    private Network? SessionNetwork()
+    {
+        if (_network != null)
+        {
+            return _network;
+        }
+
+        Node? node = GetParent();
+
+        while (node != null && node.GetNodeOrNull("Network") == null)
+        {
+            node = node.GetParent();
+        }
+
+        _network = node?.GetNodeOrNull<Network>("Network");
+        return _network;
+    }
+
     // While a text field or a menu has focus, the keys belong to it, not to walking.
     private void ReadInput(double delta)
     {
-        bool keysFree = GetViewport().GuiGetFocusOwner() == null;
+        bool keysFree = InputSource == null && GetViewport().GuiGetFocusOwner() == null;
         float turn = keysFree ? Input.GetAxis("turn_right", "turn_left") : 0f;
         float forward = keysFree ? Input.GetAxis("move_back", "move_forward") : 0f;
         float strafe = keysFree ? Input.GetAxis("strafe_left", "strafe_right") : 0f;
+        bool jump = keysFree && Input.IsActionJustPressed("jump");
+
+        if (InputSource != null)
+        {
+            turn = InputSource.Turn;
+            forward = InputSource.Forward;
+            strafe = InputSource.Strafe;
+            jump = InputSource.TakeJump();
+        }
 
         Heading = Walking.Turn(Heading, turn, (float)delta);
 
@@ -235,65 +278,58 @@ public partial class Player : CharacterBody3D
         Walking.Direction(Heading, forward, strafe, out x, out z);
         Vector2 direction = new Vector2(x, z);
 
-        if (keysFree && Input.IsActionJustPressed("jump"))
+        Network? network = SessionNetwork();
+
+        if (network == null)
         {
-            RpcId(1, MethodName.Jump);
+            return;
+        }
+
+        if (jump)
+        {
+            network.SendJump();
         }
 
         _sinceSend += delta;
 
         if (direction == Vector2.Zero && _sentDirection != Vector2.Zero)
         {
-            // Reliable, so a lost packet cannot leave the body walking.
-            RpcId(1, MethodName.StopWalking, Heading);
+            network.SendStop(Heading);
             _sentDirection = Vector2.Zero;
             _sentHeading = Heading;
             _sinceSend = 0;
         }
         else if ((direction != _sentDirection || !Mathf.IsEqualApprox(Heading, _sentHeading)) && _sinceSend >= InputSendInterval)
         {
-            RpcId(1, MethodName.Walk, direction, Heading);
+            network.SendWalk(direction, Heading);
             _sentDirection = direction;
             _sentHeading = Heading;
             _sinceSend = 0;
         }
     }
 
-    // Unreliable but ordered: a lost walk is replaced by the next one 50 ms later, and an
-    // old one never overtakes a newer one.
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.UnreliableOrdered)]
-    private void Walk(Vector2 direction, float heading)
+    // Server only, from Network: what the owner asked for, checked here.
+    public void ApplyWalk(Vector2 direction, float heading)
     {
-        if (IsFromOwner() && Walking.IsValid(direction.X, direction.Y, heading))
+        if (Walking.IsValid(direction.X, direction.Y, heading))
         {
             _moveDirection = direction.LimitLength(1f);
             _moveHeading = Walking.WrapAngle(heading);
         }
     }
 
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void StopWalking(float heading)
+    public void ApplyStop(float heading)
     {
-        if (IsFromOwner() && Walking.IsValid(0f, 0f, heading))
+        if (Walking.IsValid(0f, 0f, heading))
         {
             _moveDirection = Vector2.Zero;
             _moveHeading = Walking.WrapAngle(heading);
         }
     }
 
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void Jump()
+    public void ApplyJump()
     {
-        if (IsFromOwner())
-        {
-            _jumpRequested = true;
-        }
-    }
-
-    // Closed by default: only the server acts on these, and only for the body's owner.
-    private bool IsFromOwner()
-    {
-        return Multiplayer.IsServer() && Multiplayer.GetRemoteSenderId() == OwnerPeerId;
+        _jumpRequested = true;
     }
 
     private void Simulate(float delta)

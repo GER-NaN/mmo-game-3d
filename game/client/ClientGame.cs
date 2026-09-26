@@ -355,6 +355,12 @@ public partial class ClientGame : Node
             shot.Start(_options.ScreenshotPath, _options.Overview, _options.ScreenshotAfterSeconds);
         }
 
+        if (_options.LoadBot)
+        {
+            LoadBot legs = new LoadBot(Name.GetHashCode() ^ _options.Profile.GetHashCode()) { Name = "LoadBot", Say = _network.SendChat };
+            AddChild(legs);
+        }
+
         if (_options.Bot)
         {
             _bot = new BotDriver { Name = "Bot", Say = _network.SendChat };
