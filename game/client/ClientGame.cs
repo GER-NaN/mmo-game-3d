@@ -44,7 +44,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene CollegeScene = GD.Load<PackedScene>("res://game/ui/CollegePanel.tscn");
 
     // Walking this far from where a shop or a workbench was opened closes it.
-    private const float PanelWalkAway = 4f;
+    private const float PanelWalkAway = 3f;
 
     // How much chat the client keeps, for a screen opened later.
     private const int ChatKept = 100;
@@ -673,6 +673,7 @@ public partial class ClientGame : Node
     private void OpenGarden()
     {
         CloseGarden();
+        ClosePanels();
         _garden = GardenScene.Instantiate<GardenScreen>();
         _ui.AddChild(_garden);
         _garden.CompletePressed += (design, name) => _intents?.Start("plant", id => _gardenNetwork.SendComplete(id, design, name));
@@ -704,7 +705,7 @@ public partial class ClientGame : Node
 
     private void ShowPlantCard(long plantId, string name, string creator, string madeOn, string design, string[] history)
     {
-        ClosePlantCard();
+        ClosePanels();
         GD.Print("Plant card: #" + plantId + ", created by " + creator + ", " + history.Length + " history lines");
         _panelOpenedAt = SelfPosition();
         _plantCard = new PlantCard();
@@ -724,7 +725,7 @@ public partial class ClientGame : Node
 
     private void OnRecyclerOpened()
     {
-        CloseRecycler();
+        ClosePanels();
         _panelOpenedAt = SelfPosition();
         _recycler = RecyclerScene.Instantiate<RecyclerPanel>();
         _ui.AddChild(_recycler);
@@ -787,8 +788,7 @@ public partial class ClientGame : Node
 
     private void OnWorkbenchOpened()
     {
-        CloseWorkbench();
-        CloseShop();
+        ClosePanels();
         _panelOpenedAt = SelfPosition();
         _workbench = WorkbenchScene.Instantiate<WorkbenchPanel>();
         _ui.AddChild(_workbench);
@@ -800,7 +800,7 @@ public partial class ClientGame : Node
 
     private void OpenGive(Players.Player target)
     {
-        CloseGive();
+        ClosePanels();
         _giveTo = target;
         _panelOpenedAt = SelfPosition();
         _give = GiveScene.Instantiate<GivePanel>();
@@ -842,8 +842,7 @@ public partial class ClientGame : Node
 
     private void OnShopOpened(string shopId)
     {
-        CloseShop();
-        CloseWorkbench();
+        ClosePanels();
         _panelOpenedAt = SelfPosition();
         _shopId = shopId;
         _shop = ShopScene.Instantiate<ShopPanel>();
@@ -1032,6 +1031,7 @@ public partial class ClientGame : Node
     {
         GD.Print("Online at " + terminalName);
         CloseTerminal();
+        ClosePanels();
 
         _terminal = TerminalScene.Instantiate<TerminalScreen>();
         _ui.AddChild(_terminal);
@@ -1093,17 +1093,18 @@ public partial class ClientGame : Node
     {
         GD.Print("Notice: " + text);
         _hud?.ShowNotice(text);
+
     }
 
     private void ToggleInventory()
     {
         if (_inventoryPanel != null)
         {
-            _inventoryPanel.QueueFree();
-            _inventoryPanel = null;
+            CloseInventory();
             return;
         }
 
+        ClosePanels();
         _inventoryPanel = InventoryScene.Instantiate<InventoryPanel>();
         _ui.AddChild(_inventoryPanel);
         _inventoryPanel.ShowBag(_stacks, _dollars, _instances);
@@ -1147,7 +1148,7 @@ public partial class ClientGame : Node
 
     private void OnCollegeOpened(string role)
     {
-        CloseCollege();
+        ClosePanels();
         Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
         _panelOpenedAt = self != null ? self.GlobalPosition : Vector3.Zero;
         _college = CollegeScene.Instantiate<CollegePanel>();
@@ -1177,7 +1178,7 @@ public partial class ClientGame : Node
             return;
         }
 
-        CloseSocial();
+        ClosePanels();
         _skills = SkillsScene.Instantiate<SkillsPanel>();
         _ui.AddChild(_skills);
         _skills.ShowProgress(_skillIds, _skillXp, _career, _careerXp, _careerRank, _classTaken, _level);
@@ -1210,7 +1211,7 @@ public partial class ClientGame : Node
             return;
         }
 
-        CloseSkills();
+        ClosePanels();
         _social = SocialScene.Instantiate<SocialPanel>();
         _ui.AddChild(_social);
         _social.ShowContacts(_contacts[0], _contacts[1], _contacts[2], _contacts[3], _contacts[4]);
@@ -1234,11 +1235,36 @@ public partial class ClientGame : Node
             return;
         }
 
+        ClosePanels();
         byte[]? cells;
         _maps.TryGetValue(_zoneId, out cells);
         _map = MapScene.Instantiate<MapPanel>();
         _ui.AddChild(_map);
         _map.Open(ZoneIds.SceneOf(_zoneId).Capitalize(), zone.MapSize, cells);
+    }
+
+    // One panel at a time: opening one closes whichever was open.
+    private void ClosePanels()
+    {
+        CloseInventory();
+        CloseShop();
+        CloseWorkbench();
+        CloseGive();
+        CloseRecycler();
+        CloseCollege();
+        CloseSkills();
+        CloseSocial();
+        CloseMap();
+        ClosePlantCard();
+    }
+
+    private void CloseInventory()
+    {
+        if (_inventoryPanel != null)
+        {
+            _inventoryPanel.QueueFree();
+            _inventoryPanel = null;
+        }
     }
 
     private void CloseMap()
