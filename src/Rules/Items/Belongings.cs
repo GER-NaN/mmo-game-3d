@@ -187,6 +187,58 @@ public class Belongings
     // At a workbench: the fullest battery the player has goes in, where one still in its
     // pack (a stack) counts as full. A battery from the stack gains its identity, with a
     // full charge, the moment it goes into something. A dead battery never goes in.
+    // The choice of battery at a workbench: a new one from its pack, or a loose one by id.
+    public const string NewBattery = "new";
+
+    // Puts the chosen battery in: NewBattery, a loose battery's id, or "" for the
+    // fullest there is.
+    public string? InsertBattery(Guid phoneId, string choice)
+    {
+        if (choice.Length == 0)
+        {
+            return InsertBattery(phoneId);
+        }
+
+        ItemInstance? phone = Find(phoneId);
+
+        if (phone == null || phone.Type != ItemType.Phone)
+        {
+            return "That is not a phone you have.";
+        }
+
+        if (Inside(phone, SlotType.Battery) != null)
+        {
+            return "That phone already has a battery. Take it out first.";
+        }
+
+        ItemInstance? battery;
+
+        if (choice == NewBattery)
+        {
+            if (!Stacks.TryRemove(ItemType.Battery, ItemTier.Standard, 1))
+            {
+                return "You have no new battery. The electronics shop sells them.";
+            }
+
+            battery = new ItemInstance(Guid.NewGuid(), ItemType.Battery, ItemTier.Standard) { Charge = 1f };
+            Instances.Add(battery);
+        }
+        else
+        {
+            Guid id;
+            battery = Guid.TryParse(choice, out id) ? Find(id) : null;
+
+            if (battery == null || battery.Type != ItemType.Battery || !battery.IsLoose)
+            {
+                return "That is not a loose battery you have.";
+            }
+        }
+
+        battery.ParentId = phone.Id;
+        battery.Slot = SlotType.Battery;
+        return null;
+    }
+
     public string? InsertBattery(Guid phoneId)
     {
         ItemInstance? phone = Find(phoneId);

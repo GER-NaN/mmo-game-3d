@@ -302,7 +302,7 @@ public partial class ServerGame : Node
         networks.Items.UnequipRequested += (peer, id) => WithSession(peer, session => _equipment.Unequip(session, id));
         networks.Items.PhoneRequested += peer => WithSession(peer, session => _equipment.UsePhone(session));
         networks.Items.RemoveBatteryRequested += (peer, id) => WithSession(peer, session => _equipment.RemoveBattery(session, id));
-        networks.Items.InsertBatteryRequested += (peer, id) => WithSession(peer, session => _equipment.InsertBattery(session, id));
+        networks.Items.InsertBatteryRequested += (peer, id, battery) => WithSession(peer, session => _equipment.InsertBattery(session, id, battery));
         networks.Social.BefriendRequested += (peer, target) => WithSession(peer, session => _social.Befriend(session, target));
         networks.Social.IgnoreRequested += (peer, target) => WithSession(peer, session => _social.Ignore(session, target));
         networks.Social.RemoveRequested += (peer, id) => WithSession(peer, session => _social.Remove(session, id));

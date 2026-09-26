@@ -880,7 +880,7 @@ public partial class ClientGame : Node
         _workbench.ShowBench(_stacks, _instances);
         _workbench.Closed += CloseWorkbench;
         _workbench.RemovePressed += id => _itemNetwork.SendRemoveBattery(id.ToString());
-        _workbench.InsertPressed += id => _itemNetwork.SendInsertBattery(id.ToString());
+        _workbench.InsertPressed += (id, battery) => _itemNetwork.SendInsertBattery(id.ToString(), battery);
     }
 
     private void OpenGive(Players.Player target)

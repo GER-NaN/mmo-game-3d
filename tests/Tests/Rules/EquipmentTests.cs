@@ -58,6 +58,28 @@ public class EquipmentTests
     }
 
     [Fact]
+    public void AChosenBatteryGoesInEvenIfAFullerOneIsThere()
+    {
+        Inventory stacks = new Inventory();
+        stacks.Add(ItemType.Battery, ItemTier.Standard, 1);
+        Belongings mine = new Belongings(stacks, Belongings.StarterKit());
+        ItemInstance phone = mine.Instances.Single(item => item.Type == ItemType.Phone);
+        ItemInstance old = mine.Inside(phone, SlotType.Battery)!;
+        Assert.Null(mine.RemoveBattery(phone.Id));
+
+        // The 10% one, chosen over the new one in its pack.
+        Assert.Null(mine.InsertBattery(phone.Id, old.Id.ToString()));
+        Assert.Same(old, mine.Inside(phone, SlotType.Battery));
+        Assert.Equal(1, stacks.Count(ItemType.Battery, ItemTier.Standard));
+
+        // Then the new one, from its pack.
+        Assert.Null(mine.RemoveBattery(phone.Id));
+        Assert.Null(mine.InsertBattery(phone.Id, Belongings.NewBattery));
+        Assert.Equal(1f, mine.Inside(phone, SlotType.Battery)!.Charge);
+        Assert.Equal(0, stacks.Count(ItemType.Battery, ItemTier.Standard));
+    }
+
+    [Fact]
     public void WithNoBatteryAnywhereNothingGoesIn()
     {
         Belongings mine = new Belongings(new Inventory(), Belongings.StarterKit());

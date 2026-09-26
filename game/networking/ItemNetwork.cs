@@ -18,7 +18,7 @@ public partial class ItemNetwork : NetworkNode
     public event Action<long, string>? UnequipRequested;
     public event Action<long>? PhoneRequested;
     public event Action<long, string>? RemoveBatteryRequested;
-    public event Action<long, string>? InsertBatteryRequested;
+    public event Action<long, string, string>? InsertBatteryRequested;
 
     // Server side, intents: (peer, intent id, type, tier, quantity), and for a gift also
     // the target's peer and any dollars.
@@ -165,9 +165,10 @@ public partial class ItemNetwork : NetworkNode
         RpcId(1, MethodName.RemoveBattery, phoneId);
     }
 
-    public void SendInsertBattery(string phoneId)
+    // battery: Belongings.NewBattery, a loose battery's id, or "" for the fullest.
+    public void SendInsertBattery(string phoneId, string battery)
     {
-        RpcId(1, MethodName.InsertBattery, phoneId);
+        RpcId(1, MethodName.InsertBattery, phoneId, battery);
     }
 
     public void SendWorkbenchOpened(long peer)
@@ -232,7 +233,7 @@ public partial class ItemNetwork : NetworkNode
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void InsertBattery(string phoneId)
+    private void InsertBattery(string phoneId, string battery)
     {
         if (Multiplayer.IsServer())
         {
@@ -240,7 +241,7 @@ public partial class ItemNetwork : NetworkNode
 
             using (Activity? span = Received(MethodName.InsertBattery, sender, phoneId))
             {
-                InsertBatteryRequested?.Invoke(sender, phoneId);
+                InsertBatteryRequested?.Invoke(sender, phoneId, battery);
             }
         }
     }

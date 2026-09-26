@@ -90,11 +90,11 @@ public class ServerEquipment
         }
     }
 
-    public void InsertBattery(Session session, string phoneId)
+    public void InsertBattery(Session session, string phoneId, string battery)
     {
         if (AtWorkbench(session))
         {
-            if (Apply(session, phoneId, (mine, id) => mine.InsertBattery(id)))
+            if (Apply(session, phoneId, (mine, id) => mine.InsertBattery(id, battery)))
             {
                 session.Body?.Show(Gestures.Work);
                 WorkDone?.Invoke(session, session.UsingRepairPack);

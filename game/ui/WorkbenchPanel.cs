@@ -6,8 +6,7 @@ using Godot;
 using MmoGame3d.Rules.Items;
 
 // At a workbench: each phone you have, its battery, and the swap. Take the old battery
-// out, then put one in; the fullest you have goes in, and one still in its pack counts
-// as full.
+// out, then choose which goes in: a new one from its pack, or one of the loose ones.
 public partial class WorkbenchPanel : PanelContainer
 {
     // Bots find the buttons by these groups, then click them like a person.
@@ -15,7 +14,8 @@ public partial class WorkbenchPanel : PanelContainer
     public const string InsertGroup = "workbench_insert";
 
     public event Action<Guid>? RemovePressed;
-    public event Action<Guid>? InsertPressed;
+    // The phone, and the battery: Belongings.NewBattery or a loose battery's id.
+    public event Action<Guid, string>? InsertPressed;
     public event Action? Closed;
 
     public override void _Ready()
@@ -70,25 +70,73 @@ public partial class WorkbenchPanel : PanelContainer
             });
 
             Guid id = phone.Id;
-            Button button = new Button { Text = battery == null ? "Put in a battery" : "Take battery out", FocusMode = FocusModeEnum.None };
-            button.AddToGroup(battery == null ? InsertGroup : RemoveGroup);
 
-            if (battery == null)
+            if (battery != null)
             {
-                button.Pressed += () => InsertPressed?.Invoke(id);
-            }
-            else
-            {
-                button.Pressed += () => RemovePressed?.Invoke(id);
+                Button remove = new Button { Text = "Take battery out", FocusMode = FocusModeEnum.None };
+                remove.AddToGroup(RemoveGroup);
+                remove.Pressed += () => RemovePressed?.Invoke(id);
+                row.AddChild(remove);
+                phones.AddChild(row);
+                continue;
             }
 
-            row.AddChild(button);
             phones.AddChild(row);
+
+            // No battery in: a button for each one that could go in, fullest first.
+            if (packed > 0)
+            {
+                phones.AddChild(InsertButton(id, Belongings.NewBattery, "Put in a new battery (100%)"));
+            }
+
+            List<ItemInstance> choices = new List<ItemInstance>();
+
+            foreach (ItemInstance item in instances)
+            {
+                if (item.IsLoose && item.Type == ItemType.Battery)
+                {
+                    choices.Add(item);
+                }
+            }
+
+            choices.Sort((a, b) => (b.Charge ?? 0f).CompareTo(a.Charge ?? 0f));
+
+            foreach (ItemInstance choice in choices)
+            {
+                phones.AddChild(InsertButton(id, choice.Id.ToString(), "Put in the loose battery at " + Power.Percent(choice.Charge) + "%"));
+            }
+
+            if (packed == 0 && choices.Count == 0)
+            {
+                phones.AddChild(new Label { Text = "    No battery to put in. The electronics shop sells them." });
+            }
         }
 
-        if (phones.GetChildCount() == 0)
+        // Checked before the frees above land: nothing but freed rows means no phones.
+        if (!HasPhone(instances))
         {
             phones.AddChild(new Label { Text = "You have nothing to work on here." });
         }
+    }
+
+    private Button InsertButton(Guid phone, string battery, string text)
+    {
+        Button button = new Button { Text = text, FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkEnd };
+        button.AddToGroup(InsertGroup);
+        button.Pressed += () => InsertPressed?.Invoke(phone, battery);
+        return button;
+    }
+
+    private static bool HasPhone(List<ItemInstance> instances)
+    {
+        foreach (ItemInstance item in instances)
+        {
+            if (item.Type == ItemType.Phone)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
