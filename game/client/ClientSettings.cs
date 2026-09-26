@@ -90,6 +90,13 @@ public class ClientSettings
             return "-";
         }
 
+        // A headless client (a bot) has no keyboard layout to ask; the physical key's own
+        // name is the US one.
+        if (DisplayServer.GetName() == "headless")
+        {
+            return OS.GetKeycodeString(key);
+        }
+
         return OS.GetKeycodeString(DisplayServer.KeyboardGetKeycodeFromPhysical(key));
     }
 
