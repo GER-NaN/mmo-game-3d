@@ -95,4 +95,19 @@ public class EquipmentTests
         Assert.True(online < carried);
         Assert.Equal(0f, Power.Drain(0.01f, 3600f, true));
     }
+
+    [Fact]
+    public void AnEmitterGoesInTheToolSlotBesideThePhone()
+    {
+        List<ItemInstance> instances = Belongings.StarterKit();
+        ItemInstance emitter = new ItemInstance(Guid.NewGuid(), ItemType.EmpEmitter, ItemTier.Standard);
+        instances.Add(emitter);
+        Belongings mine = new Belongings(new Inventory(), instances);
+        ItemInstance phone = instances[0];
+
+        Assert.Null(mine.Equip(phone.Id));
+        Assert.Null(mine.Equip(emitter.Id));
+        Assert.Equal(emitter, mine.Equipped(SlotType.Tool));
+        Assert.Equal(phone, mine.Equipped(SlotType.Device));
+    }
 }

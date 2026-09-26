@@ -127,7 +127,7 @@ public partial class InventoryPanel : PanelContainer
 
             row.AddChild(new Label { Text = text, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = ItemCatalog.Get(item.Type).Description, MouseFilter = MouseFilterEnum.Pass });
 
-            if (item.Type == ItemType.Phone)
+            if (Belongings.SlotFor(item.Type) != null)
             {
                 Guid id = item.Id;
                 Button button = new Button { Text = item.Slot == null ? "Equip" : "Unequip", FocusMode = FocusModeEnum.None };

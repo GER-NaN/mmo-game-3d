@@ -24,6 +24,10 @@ public static class ItemCatalog
             ItemType.Battery,
             new ItemDefinition(ItemType.Battery, "Battery", "Fits a phone. Swap it at a workbench.", true)
         },
+        {
+            ItemType.EmpEmitter,
+            new ItemDefinition(ItemType.EmpEmitter, "EMP Emitter", "A pulse that knocks drones out of the sky. Equip it, then press R near one.", false)
+        },
     };
 
     public static ItemDefinition Get(ItemType type)

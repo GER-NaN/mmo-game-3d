@@ -79,6 +79,7 @@ public partial class ServerGame : Node
     private ServerCollege _college = null!;
     private WhoisStore _whoisStore = null!;
     private ServerWhois _whois = null!;
+    private ServerDrones _drones = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -199,6 +200,8 @@ public partial class ServerGame : Node
         _college = new ServerCollege(networks.Progress, network, _progress);
         _whois = new ServerWhois(networks.Social, network, _worker, _whoisStore, _terminals, () => _sessions.Values);
         _whois.HasJob = _town.HasJob;
+        _drones = new ServerDrones(_world.GetZone(ZoneIds.Town)!, _gate, network, () => _sessions.Values);
+        network.EmpRequested += peer => WithSession(peer, session => _drones.Fire(session));
         networks.Social.WhoisSearchRequested += (peer, text) => WithSession(peer, session => _whois.Search(session, text));
         networks.Social.WhoisOpenRequested += (peer, id) => WithSession(peer, session => _whois.Open(session, id));
         networks.Social.WhoisPropsRequested += (peer, id) => WithSession(peer, session => _whois.ToggleProps(session, id));
@@ -310,6 +313,7 @@ public partial class ServerGame : Node
         _maps.Tick(delta);
         _progress.Tick(delta);
         _fixables.Tick(delta);
+        _drones.Tick(delta);
         _packetLog?.Drain();
         _diagnostics?.Tick(delta);
 
@@ -448,6 +452,7 @@ public partial class ServerGame : Node
             _social.WentOffline(session);
             _progress.Forget(session);
             _hacking.Forget(session);
+            _drones.Forget(session);
             _chat.Announce(session.Record!.DisplayName + " left.");
         }
 

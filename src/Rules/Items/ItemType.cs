@@ -8,6 +8,7 @@ public enum ItemType
     RamStick,
     Phone,
     Battery,
+    EmpEmitter,
 }
 
 // Quality, low to high. Placeholder names.

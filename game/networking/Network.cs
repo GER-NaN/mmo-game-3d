@@ -239,6 +239,42 @@ public partial class Network : NetworkNode
         DirectReceived?.Invoke(partnerId, partnerName, text, incoming);
     }
 
+    // Server side: a player fires their EMP Emitter.
+    public event Action<long>? EmpRequested;
+
+    // Client side: an EMP pulse went off here (zone-local), to draw.
+    public event Action<Vector3>? EmpPulseReceived;
+
+    public void SendFireEmp()
+    {
+        RpcId(1, MethodName.FireEmp);
+    }
+
+    public void SendEmpPulse(long peer, Vector3 at)
+    {
+        SendTo(peer, MethodName.ReceiveEmpPulse, at);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void FireEmp()
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.FireEmp, sender))
+            {
+                EmpRequested?.Invoke(sender);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveEmpPulse(Vector3 at)
+    {
+        EmpPulseReceived?.Invoke(at);
+    }
+
     // Server side: (peer, text) a player typed.
     public event Action<long, string>? ChatRequested;
 

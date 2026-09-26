@@ -19,7 +19,7 @@ public class ClientSettings
     public static readonly string[] Rebindable =
     {
         "move_forward", "move_back", "turn_left", "turn_right", "strafe_left", "strafe_right",
-        "jump", "interact", "phone", "inventory", "map", "social", "skills",
+        "jump", "interact", "phone", "inventory", "map", "social", "skills", "emp",
     };
 
     private readonly ConfigFile _file = new ConfigFile();

@@ -18,7 +18,7 @@ using MmoGame3d.Ui;
 /// the first thing a shopkeeper offers, opens chests, equips its phone and goes online on it, and at a
 /// workbench takes the battery out and puts one in. It drops a stack once, and gives one
 /// thing to a party member it clicks on, and adds the first player it clicks on as a
-/// friend. At a public terminal it cracks one code, guessing only codes that still fit
+/// friend. It presses R (the EMP) every few seconds. At a public terminal it cracks one code, guessing only codes that still fit
 /// every answer so far, and types each guess. Now and then it glances at the map. Once, as it
 /// arrives, it looks at the settings and closes them unchanged (the settings file is the
 /// machine's, shared with the person who plays on it), then at its friends list.
@@ -63,6 +63,7 @@ public partial class BotDriver : Node
     private bool _befriended;
     private bool _packOpened;
     private bool _messaged;
+    private double _nextEmp = 1;
     private double _typeIn = -1;
     private int _crackStep;
     private int _whoisStep;
@@ -117,6 +118,7 @@ public partial class BotDriver : Node
 
         UsePhone(delta);
         GlanceAtMap(delta);
+        FireEmp(delta);
         Recruit(delta);
         Talk(delta);
         Wander(delta);
@@ -699,6 +701,18 @@ public partial class BotDriver : Node
 
         _settingsStep++;
         return true;
+    }
+
+    // Presses R now and then: with an emitter equipped, drones in range come down.
+    private void FireEmp(double delta)
+    {
+        _nextEmp -= delta;
+
+        if (_nextEmp <= 0)
+        {
+            _nextEmp = 5;
+            Press("emp");
+        }
     }
 
     // Open for a few seconds, then shut, before the phone takes the keys.

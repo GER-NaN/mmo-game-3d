@@ -38,6 +38,7 @@ public static class Shops
             new List<ShopOffer>
             {
                 new ShopOffer(ItemType.Battery, ItemTier.Standard, 8),
+                new ShopOffer(ItemType.EmpEmitter, ItemTier.Standard, 10),
                 new ShopOffer(ItemType.RamStick, ItemTier.Enhanced, 25),
                 new ShopOffer(ItemType.GpuCore, ItemTier.Advanced, 60),
                 new ShopOffer(ItemType.Phone, ItemTier.Standard, 120),

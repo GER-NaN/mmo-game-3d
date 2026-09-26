@@ -70,7 +70,18 @@ public class ServerShops
         }
 
         session.Dollars -= offer.Price;
-        session.Inventory!.Add(offer.Type, offer.Tier, 1);
+
+        // A thing with an identity (a phone, an emitter) is bought as itself, not as a
+        // stack: only then can it be equipped.
+        if (ItemCatalog.Get(offer.Type).Stackable)
+        {
+            session.Inventory!.Add(offer.Type, offer.Tier, 1);
+        }
+        else
+        {
+            session.Instances.Add(new ItemInstance(Guid.NewGuid(), offer.Type, offer.Tier));
+        }
+
         _bagChanged(session);
         _session.SendNotice(session.PeerId, "Bought " + ItemCatalog.Describe(offer.Type, offer.Tier) + " for $" + offer.Price + ".");
         return "";

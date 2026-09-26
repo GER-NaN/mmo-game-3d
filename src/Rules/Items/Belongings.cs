@@ -6,6 +6,7 @@ public enum SlotType
 {
     Device,
     Battery,
+    Tool,
 }
 
 /// <summary>
@@ -119,18 +120,34 @@ public class Belongings
             return "That is not in your bag.";
         }
 
-        if (item.Type != ItemType.Phone)
+        SlotType? slot = SlotFor(item.Type);
+
+        if (slot == null)
         {
             return "That cannot be equipped.";
         }
 
-        if (Equipped(SlotType.Device) != null)
+        if (Equipped(slot.Value) != null)
         {
-            return "You already have a device equipped. Unequip it first.";
+            return "You already have " + (slot == SlotType.Tool ? "a tool" : "a device") + " equipped. Unequip it first.";
         }
 
-        item.Slot = SlotType.Device;
+        item.Slot = slot;
         return null;
+    }
+
+    // Where a kind of item is worn: a phone is the device, an emitter the tool.
+    public static SlotType? SlotFor(ItemType type)
+    {
+        switch (type)
+        {
+            case ItemType.Phone:
+                return SlotType.Device;
+            case ItemType.EmpEmitter:
+                return SlotType.Tool;
+            default:
+                return null;
+        }
     }
 
     public string? Unequip(Guid id)

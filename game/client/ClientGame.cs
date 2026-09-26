@@ -147,6 +147,7 @@ public partial class ClientGame : Node
         _network.NoticeReceived += OnNoticeReceived;
         _network.ChatReceived += OnChatReceived;
         _network.DirectReceived += OnDirectReceived;
+        _network.EmpPulseReceived += ShowEmpPulse;
         _network.ClockReceived += OnClockReceived;
         _network.MapReceived += OnMapReceived;
         _socialNetwork.ContactsReceived += OnContactsReceived;
@@ -276,6 +277,11 @@ public partial class ClientGame : Node
         {
             GetViewport().SetInputAsHandled();
             ToggleSkills();
+        }
+        else if (@event.IsActionPressed("emp"))
+        {
+            GetViewport().SetInputAsHandled();
+            _network.SendFireEmp();
         }
         else if (@event.IsActionPressed("chat") && _chat != null)
         {
@@ -616,6 +622,36 @@ public partial class ClientGame : Node
         }
     }
 
+    // An expanding, fading shell where the pulse went off. A placeholder look.
+    private void ShowEmpPulse(Vector3 at)
+    {
+        if (_world == null)
+        {
+            return;
+        }
+
+        StandardMaterial3D material = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = new Color(0.4f, 0.8f, 1f, 0.45f),
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+        };
+        MeshInstance3D shell = new MeshInstance3D
+        {
+            Mesh = new SphereMesh { Radius = 1f, Height = 2f, Material = material },
+            Position = at + new Vector3(0f, 1f, 0f),
+            Scale = Vector3.One * 0.3f,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        _world.AddChild(shell);
+
+        Tween tween = shell.CreateTween().SetParallel(true);
+        tween.TweenProperty(shell, "scale", Vector3.One * 10f, 0.45f);
+        tween.TweenProperty(material, "albedo_color:a", 0f, 0.45f);
+        tween.Chain().TweenCallback(Callable.From(shell.QueueFree));
+    }
+
     private void OnDirectReceived(string partnerId, string partnerName, string text, bool incoming)
     {
         GD.Print("Chat: " + (incoming ? "[From " : "[To ") + partnerName + "] " + text);
@@ -918,7 +954,8 @@ public partial class ClientGame : Node
             + ClientSettings.KeyName("inventory") + " inventory   "
             + ClientSettings.KeyName("map") + " map   "
             + ClientSettings.KeyName("social") + " friends   "
-            + ClientSettings.KeyName("skills") + " skills   Enter chat   Esc menu");
+            + ClientSettings.KeyName("skills") + " skills   "
+            + ClientSettings.KeyName("emp") + " EMP   Enter chat   Esc menu");
     }
 
     private void Leave()

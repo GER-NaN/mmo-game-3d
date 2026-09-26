@@ -442,6 +442,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 8)
 _spawnable_scenes = PackedStringArray("res://game/player/Player.tscn")
 spawn_path = NodePath("../Players")
 
+[node name="Drones" type="Node3D" parent="."]
+
+[node name="DroneSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/drones/Drone.tscn")
+spawn_path = NodePath("../Drones")
+
 [node name="Items" type="Node3D" parent="."]
 
 [node name="ItemSpawner" type="MultiplayerSpawner" parent="."]
