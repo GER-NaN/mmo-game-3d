@@ -95,6 +95,10 @@ public partial class Player : CharacterBody3D
     [Export]
     public string GestureId { get; set; } = "";
 
+    // Which model the body wears (see Looks), synced once at spawn.
+    [Export]
+    public string Look { get; set; } = "a";
+
     // The persistent player id, public: party rosters on clients name members by it.
     [Export]
     public string PlayerIdText { get; set; } = "";
@@ -181,7 +185,7 @@ public partial class Player : CharacterBody3D
 
         if (DrawModels)
         {
-            _model = new CharacterModel { Name = "Model" };
+            _model = new CharacterModel { Name = "Model", ModelPath = CharacterModel.PathFor(Look) };
             AddChild(_model);
         }
 

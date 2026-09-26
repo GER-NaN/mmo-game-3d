@@ -2,12 +2,14 @@ namespace MmoGame3d.Ui;
 
 using System;
 using Godot;
+using MmoGame3d.Rules.Players;
 
 // The first screen: who you are, which server, and Play. It only reports what was
 // pressed; ClientGame acts on it.
 public partial class MainMenu : Control
 {
-    public event Action<string, string>? PlayPressed;
+    // (name, address, look).
+    public event Action<string, string, string>? PlayPressed;
     public event Action? SettingsPressed;
     public event Action? QuitPressed;
 
@@ -19,6 +21,14 @@ public partial class MainMenu : Control
     public override void _Ready()
     {
         _name = GetNode<LineEdit>("%Name");
+        OptionButton look = GetNode<OptionButton>("%Look");
+
+        foreach (string id in Looks.Ids)
+        {
+            look.AddItem(Looks.NameOf(id));
+            look.SetItemMetadata(look.ItemCount - 1, id);
+        }
+
         _address = GetNode<LineEdit>("%Address");
         _status = GetNode<Label>("%Status");
         _play = GetNode<Button>("%Play");
@@ -51,7 +61,9 @@ public partial class MainMenu : Control
     {
         if (!_play.Disabled)
         {
-            PlayPressed?.Invoke(_name.Text, _address.Text.Trim());
+            OptionButton look = GetNode<OptionButton>("%Look");
+            string id = look.Selected >= 0 ? (string)look.GetItemMetadata(look.Selected) : Looks.Default;
+            PlayPressed?.Invoke(_name.Text, _address.Text.Trim(), id);
         }
     }
 }

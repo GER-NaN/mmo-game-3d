@@ -9,7 +9,7 @@ public class PlayerStore
     private const string SelectColumns =
         @"id as PlayerId, account_id as AccountId, display_name as DisplayName, zone as Zone,
           position_x as PositionX, position_y as PositionY, position_z as PositionZ, yaw as Yaw,
-          dollars as Dollars";
+          dollars as Dollars, look as Look";
 
     private readonly Database _database;
 
@@ -28,8 +28,8 @@ public class PlayerStore
         using IDbConnection connection = _database.Open();
 
         int inserted = connection.Execute(
-            @"insert into players (id, account_id, display_name, zone, position_x, position_y, position_z, yaw, dollars)
-              values (@PlayerId, @AccountId, @DisplayName, @Zone, @PositionX, @PositionY, @PositionZ, @Yaw, @Dollars)
+            @"insert into players (id, account_id, display_name, zone, position_x, position_y, position_z, yaw, dollars, look)
+              values (@PlayerId, @AccountId, @DisplayName, @Zone, @PositionX, @PositionY, @PositionZ, @Yaw, @Dollars, @Look)
               on conflict (account_id) do nothing;",
             newPlayer);
 

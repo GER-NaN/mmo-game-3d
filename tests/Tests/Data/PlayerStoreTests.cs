@@ -39,11 +39,14 @@ public class PlayerStoreTests
         first.Dollars = 3;
         _players.Save(first);
 
-        PlayerRecord again = _players.GetOrCreate(NewPlayer(accountId, "Renamed"), out bool createdAgain);
+        PlayerRecord changed = NewPlayer(accountId, "Renamed");
+        changed.Look = "b";
+        PlayerRecord again = _players.GetOrCreate(changed, out bool createdAgain);
 
         Assert.False(createdAgain);
         Assert.Equal(first.PlayerId, again.PlayerId);
         Assert.Equal("First", again.DisplayName);
+        Assert.Equal("a", again.Look);
         Assert.Equal(7f, again.PositionX);
         Assert.Equal(3, again.Dollars);
     }

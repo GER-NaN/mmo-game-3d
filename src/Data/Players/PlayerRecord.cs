@@ -24,4 +24,7 @@ public class PlayerRecord
     public float PositionZ { get; set; }
     public float Yaw { get; set; }
     public int Dollars { get; set; }
+
+    // Chosen once, at creation; see Looks.
+    public string Look { get; set; } = "a";
 }

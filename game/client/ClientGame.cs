@@ -76,6 +76,7 @@ public partial class ClientGame : Node
     // What the server last said this player carries.
     private List<ItemStack> _stacks = new List<ItemStack>();
     private string _pendingName = "";
+    private string _pendingLook = Looks.Default;
     private string _zoneId = "";
     private string _displayName = "";
     private string _address = "";
@@ -135,7 +136,7 @@ public partial class ClientGame : Node
 
         if (options.AutoConnect)
         {
-            Connect(DefaultName(), options.Address ?? _settings.Address);
+            Connect(DefaultName(), options.Address ?? _settings.Address, options.Look);
         }
         else
         {
@@ -253,8 +254,9 @@ public partial class ClientGame : Node
         _menu.SetBusy(false);
     }
 
-    private void Connect(string name, string address)
+    private void Connect(string name, string address, string look)
     {
+        _pendingLook = look;
         string? problem = DisplayName.Problem(name);
 
         if (problem != null)
@@ -286,7 +288,7 @@ public partial class ClientGame : Node
     private void OnConnected()
     {
         GD.Print("Connected as peer " + Multiplayer.GetUniqueId() + "; logging in");
-        _network.SendLogin(GameVersion.Protocol, _profile.LicenseKey().ToString(), _pendingName);
+        _network.SendLogin(GameVersion.Protocol, _profile.LicenseKey().ToString(), _pendingName, _pendingLook);
     }
 
     private void OnConnectionFailed()

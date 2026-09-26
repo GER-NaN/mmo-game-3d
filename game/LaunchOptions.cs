@@ -15,6 +15,7 @@ using MmoGame3d.Rules.Time;
 ///   --profile name      which player this client is (default "default"; "fresh" is a
 ///                       new player every launch)
 ///   --name Gerald       the display name for a new player
+///   --look b            the look for a new player (see Looks)
 ///   --address 1.2.3.4   the server to connect to
 ///   --autoconnect       skip the main menu and connect at once
 ///   --bot               the client plays by itself (implies --autoconnect)
@@ -41,6 +42,7 @@ public class LaunchOptions
     public double TimeOffsetHours { get; private set; }
     public string Profile { get; private set; } = "default";
     public string? DisplayName { get; private set; }
+    public string Look { get; private set; } = Rules.Players.Looks.Default;
     public string? Address { get; private set; }
     public bool AutoConnect { get; private set; }
     public bool Bot { get; private set; }
@@ -108,6 +110,10 @@ public class LaunchOptions
                     break;
                 case "--name":
                     options.DisplayName = next;
+                    i++;
+                    break;
+                case "--look":
+                    options.Look = next;
                     i++;
                     break;
                 case "--address":

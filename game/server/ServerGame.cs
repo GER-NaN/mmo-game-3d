@@ -332,7 +332,7 @@ public partial class ServerGame : Node
         GD.Print("Peer " + peer + " left" + (session.Record != null ? " (" + session.Record.DisplayName + ")" : ""));
     }
 
-    private void OnLoginRequested(long peer, int protocol, string licenseKeyText, string displayName)
+    private void OnLoginRequested(long peer, int protocol, string licenseKeyText, string displayName, string look)
     {
         if (!_sessions.TryGetValue(peer, out Session? session) || session.State != SessionState.Connected)
         {
@@ -381,6 +381,7 @@ public partial class ServerGame : Node
                     PositionY = spawn.Y,
                     PositionZ = spawn.Z,
                     Dollars = Shops.StartingDollars,
+                    Look = Looks.OrDefault(look),
                 };
                 return _players.GetOrCreate(newPlayer, out _);
             },
@@ -458,6 +459,7 @@ public partial class ServerGame : Node
         body.Name = peer.ToString();
         body.DisplayName = record.DisplayName;
         body.PlayerIdText = record.PlayerId.ToString();
+        body.Look = Looks.OrDefault(record.Look);
         body.Position = SpaceQueries.FreeSpotNear(zone, new Vector3(record.PositionX, record.PositionY, record.PositionZ));
         body.Rotation = new Vector3(0f, record.Yaw, 0f);
         body.RespawnPoint = zone.SpawnPoint;

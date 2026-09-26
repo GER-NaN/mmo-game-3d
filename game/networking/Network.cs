@@ -16,8 +16,9 @@ using Godot;
 /// </summary>
 public partial class Network : Node
 {
-    // Server side: (peer, protocol, license key, display name).
-    public event Action<long, int, string, string>? LoginRequested;
+    // Server side: (peer, protocol, license key, display name, look). The name and look
+    // matter only for a new player; a returning one keeps theirs.
+    public event Action<long, int, string, string, string>? LoginRequested;
     public event Action<long>? WorldReadyReceived;
 
     // Server side: walking, sent here rather than to the body, because a body leaves its
@@ -215,9 +216,9 @@ public partial class Network : Node
         NoticeReceived?.Invoke(text);
     }
 
-    public void SendLogin(int protocol, string licenseKey, string displayName)
+    public void SendLogin(int protocol, string licenseKey, string displayName, string look)
     {
-        RpcId(1, MethodName.Login, protocol, licenseKey, displayName);
+        RpcId(1, MethodName.Login, protocol, licenseKey, displayName, look);
     }
 
     public void SendWorldReady()
@@ -236,11 +237,11 @@ public partial class Network : Node
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void Login(int protocol, string licenseKey, string displayName)
+    private void Login(int protocol, string licenseKey, string displayName, string look)
     {
         if (Multiplayer.IsServer())
         {
-            LoginRequested?.Invoke(Multiplayer.GetRemoteSenderId(), protocol, licenseKey, displayName);
+            LoginRequested?.Invoke(Multiplayer.GetRemoteSenderId(), protocol, licenseKey, displayName, look);
         }
     }
 

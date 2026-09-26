@@ -46,6 +46,18 @@ public partial class CharacterModel : Node3D
     // Set before the node enters the tree.
     public string ModelPath { get; set; } = PlayerModel;
 
+    // The model for a player's look. Placeholders until character creation is designed.
+    public static string PathFor(string look)
+    {
+        switch (look)
+        {
+            case "b":
+                return "res://assets/kaykit/characters/Protagonist_B.glb";
+            default:
+                return PlayerModel;
+        }
+    }
+
     public override void _Ready()
     {
         PackedScene? scene = ResourceLoader.Exists(ModelPath) ? GD.Load<PackedScene>(ModelPath) : null;
