@@ -4,13 +4,16 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Rules.Gardening;
+using MmoGame3d.Ui;
 
 /// <summary>
-/// The potting table, first person: a table, a pot on it, the pieces in a list beside.
-/// Drag a piece onto the soil; while held, the wheel turns it, Shift+wheel leans it out
-/// and Ctrl+wheel sizes it. Click a placed piece to move it again; drop it off the soil
-/// to put it back. Right-drag walks round the table and the wheel moves in and out when
-/// nothing is held. The plant is only a design until Complete sends it to the server.
+/// The potting table, first person: a table, a pot on it, the pots to choose from along
+/// the top and the pieces in a tray beside, each as a picture. Press a piece and it is in
+/// the pot; drag it where it should go. While held, the wheel turns it, Shift+wheel leans
+/// it out and Ctrl+wheel sizes it. Click a placed piece to move it again; drop it off the
+/// soil to put it back. Right-drag walks round the table and the wheel moves in and out
+/// when nothing is held; a key in the corner says so. The plant is only a design until
+/// Complete sends it to the server.
 /// </summary>
 public partial class GardenScreen : Control
 {
@@ -38,7 +41,9 @@ public partial class GardenScreen : Control
     private Node3D? _pot;
     private Label _status = null!;
     private Label _count = null!;
-    private VBoxContainer _pieceList = null!;
+    private GridContainer _pieceList = null!;
+    private Control _banner = null!;
+    private Control _help = null!;
     private Control _naming = null!;
     private Control _done = null!;
     private Button _complete = null!;
@@ -64,8 +69,11 @@ public partial class GardenScreen : Control
 
         // Holding the focus keeps the walking keys off the body while at the table.
         FocusMode = FocusModeEnum.All;
+        _design.Pot = PlantParts.Pots[1];
         BuildStage();
         BuildPanel();
+        BuildPotBanner();
+        BuildHelp();
         ChangePot(PlantParts.Pots[1]);
         CallDeferred(Control.MethodName.GrabFocus);
     }
@@ -235,15 +243,18 @@ public partial class GardenScreen : Control
             return;
         }
 
+        // Into the middle of the pot at once: released over the tray, it is planted there.
         _held = new PlantPiece { Id = id, Yaw = (float)GD.RandRange(-Mathf.Pi, Mathf.Pi) };
         _heldModel = PlantBuilder.Model(id);
+        _heldOnSoil = true;
 
         if (_heldModel != null)
         {
             _plant.AddChild(_heldModel);
+            PlantBuilder.Place(_heldModel, _design.Pot, _held);
         }
 
-        FollowMouse(GetViewport().GetMousePosition());
+        _status.Text = "Release to plant it in the middle, or drag it where it should go.";
     }
 
     private void PickUpPlaced(Vector2 mouse)
@@ -284,7 +295,8 @@ public partial class GardenScreen : Control
 
     private void FollowMouse(Vector2 mouse)
     {
-        if (_held == null)
+        // Over the tray or the pots it stays where it was.
+        if (_held == null || !OverPicture(mouse))
         {
             return;
         }
@@ -360,9 +372,12 @@ public partial class GardenScreen : Control
         return new Vector2(hit.X / radius, hit.Z / radius);
     }
 
+    // Over the table itself, not the tray, the pots along the top or the key.
     private bool OverPicture(Vector2 mouse)
     {
-        return mouse.X < GetNode<Control>("Panel").GlobalPosition.X;
+        return mouse.X < GetNode<Control>("Panel").GlobalPosition.X
+            && !_banner.GetGlobalRect().HasPoint(mouse)
+            && !_help.GetGlobalRect().HasPoint(mouse);
     }
 
     private void ChangePot(string pot)
@@ -472,34 +487,27 @@ public partial class GardenScreen : Control
         Label title = new Label { Text = "Potting table" };
         title.AddThemeFontSizeOverride("font_size", 22);
         column.AddChild(title);
-        column.AddChild(new Label { Text = "Drag pieces from the list onto the soil. Up to five.", AutowrapMode = TextServer.AutowrapMode.WordSmart, Modulate = new Color(1f, 1f, 1f, 0.7f) });
-
-        column.AddChild(new Label { Text = "Pot" });
-        OptionButton pots = new OptionButton { FocusMode = FocusModeEnum.None };
-
-        foreach (string pot in PlantParts.Pots)
-        {
-            pots.AddItem(PlantParts.Describe(pot));
-        }
-
-        pots.Select(1);
-        pots.ItemSelected += index => ChangePot(PlantParts.Pots[index]);
-        column.AddChild(pots);
+        column.AddChild(new Label { Text = "Choose a pot along the top, then up to five pieces from the tray.", AutowrapMode = TextServer.AutowrapMode.WordSmart, Modulate = new Color(1f, 1f, 1f, 0.7f) });
 
         column.AddChild(new Label { Text = "Pieces" });
-        OptionButton families = new OptionButton { FocusMode = FocusModeEnum.None };
+        HFlowContainer tabs = new HFlowContainer();
+        column.AddChild(tabs);
+        ButtonGroup tabGroup = new ButtonGroup();
 
-        foreach (string[] family in PlantParts.PieceFamilies)
+        for (int i = 0; i < PlantParts.PieceFamilies.Length; i++)
         {
-            families.AddItem(family[0]);
+            int family = i;
+            Button tab = new Button { Text = PlantParts.PieceFamilies[i][0], ToggleMode = true, ButtonGroup = tabGroup, ButtonPressed = i == 0, FocusMode = FocusModeEnum.None };
+            tab.Pressed += () => ShowFamily(family);
+            tabs.AddChild(tab);
         }
 
-        column.AddChild(families);
         ScrollContainer scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         column.AddChild(scroll);
-        _pieceList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _pieceList = new GridContainer { Columns = 3, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _pieceList.AddThemeConstantOverride("h_separation", 6);
+        _pieceList.AddThemeConstantOverride("v_separation", 6);
         scroll.AddChild(_pieceList);
-        families.ItemSelected += index => ShowFamily((int)index);
         ShowFamily(0);
 
         _count = new Label();
@@ -564,9 +572,19 @@ public partial class GardenScreen : Control
         for (int i = 1; i < family.Length; i++)
         {
             string id = family[i];
-            Button piece = new Button { Text = PlantParts.Describe(id), Alignment = HorizontalAlignment.Left, FocusMode = FocusModeEnum.None };
+            Button piece = PictureButton(id, new Vector2(92, 92));
             piece.AddToGroup(PieceGroup);
             piece.ButtonDown += () => Take(id);
+
+            // "monstera_leaf_large_A" is shown as "large A": the tab says what it is.
+            string[] words = id.Split('_');
+            string shortName = words.Length >= 2 ? words[words.Length - 2] + " " + words[words.Length - 1] : id;
+            Label caption = new Label { Text = shortName, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
+            caption.AddThemeFontSizeOverride("font_size", 12);
+            caption.AddThemeConstantOverride("outline_size", 4);
+            caption.SetAnchorsPreset(LayoutPreset.BottomWide);
+            caption.OffsetTop = -18;
+            piece.AddChild(caption);
             _pieceList.AddChild(piece);
         }
 
@@ -574,6 +592,109 @@ public partial class GardenScreen : Control
         {
             Refresh();
         }
+    }
+
+    // A button showing a picture of a model, named in its tooltip.
+    private static Button PictureButton(string id, Vector2 size)
+    {
+        Button button = new Button { CustomMinimumSize = size, TooltipText = PlantParts.Describe(id), FocusMode = FocusModeEnum.None };
+        Node3D? model = PlantBuilder.Model(id);
+
+        if (model != null)
+        {
+            ModelThumb thumb = new ModelThumb { Model = model };
+            thumb.SetAnchorsPreset(LayoutPreset.FullRect);
+            thumb.OffsetLeft = 4;
+            thumb.OffsetTop = 4;
+            thumb.OffsetRight = -4;
+            thumb.OffsetBottom = -4;
+            button.AddChild(thumb);
+        }
+
+        return button;
+    }
+
+    // The pots along the top, a picture each, the chosen one pressed.
+    private void BuildPotBanner()
+    {
+        PanelContainer banner = new PanelContainer { Name = "Pots" };
+        banner.Position = new Vector2(16, 12);
+        AddChild(banner);
+        _banner = banner;
+        MarginContainer margin = new MarginContainer();
+
+        foreach (string side in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
+        {
+            margin.AddThemeConstantOverride(side, 6);
+        }
+
+        banner.AddChild(margin);
+        HBoxContainer row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 4);
+        margin.AddChild(row);
+        ButtonGroup group = new ButtonGroup();
+
+        for (int i = 0; i < PlantParts.Pots.Length; i++)
+        {
+            string pot = PlantParts.Pots[i];
+
+            // A gap between the styles; each comes in three sizes.
+            if (i > 0 && i % 3 == 0)
+            {
+                row.AddChild(new Control { CustomMinimumSize = new Vector2(10, 0) });
+            }
+
+            Button button = PictureButton(pot, new Vector2(54, 62));
+            Label size = new Label { Text = pot.Substring(pot.LastIndexOf('_') + 1), HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
+            size.AddThemeFontSizeOverride("font_size", 11);
+            size.AddThemeConstantOverride("outline_size", 4);
+            size.SetAnchorsPreset(LayoutPreset.BottomWide);
+            size.OffsetTop = -16;
+            button.AddChild(size);
+            button.ToggleMode = true;
+            button.ButtonGroup = group;
+            button.ButtonPressed = pot == _design.Pot;
+            button.Pressed += () => ChangePot(pot);
+            row.AddChild(button);
+        }
+    }
+
+    // What the mouse does, in the bottom left: a drawn mouse and a line per part.
+    private void BuildHelp()
+    {
+        PanelContainer help = new PanelContainer { Name = "Help", MouseFilter = MouseFilterEnum.Ignore };
+        help.SetAnchorsPreset(LayoutPreset.BottomLeft);
+        help.GrowVertical = GrowDirection.Begin;
+        help.OffsetLeft = 16;
+        help.OffsetBottom = -16;
+        AddChild(help);
+        _help = help;
+        MarginContainer margin = new MarginContainer { MouseFilter = MouseFilterEnum.Ignore };
+
+        foreach (string side in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
+        {
+            margin.AddThemeConstantOverride(side, 10);
+        }
+
+        help.AddChild(margin);
+        HBoxContainer row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        row.AddThemeConstantOverride("separation", 12);
+        margin.AddChild(row);
+        row.AddChild(new MouseSketch());
+        VBoxContainer lines = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center };
+        row.AddChild(lines);
+        lines.AddChild(HelpLine("Left: press a piece to put it in the pot; drag it to move it.", MouseSketch.LeftColor));
+        lines.AddChild(HelpLine("Wheel, holding a piece: turn it. Shift leans it, Ctrl sizes it.", MouseSketch.WheelColor));
+        lines.AddChild(HelpLine("Wheel, hand empty: closer or farther.", MouseSketch.WheelColor));
+        lines.AddChild(HelpLine("Right: drag to walk round the table.", MouseSketch.RightColor));
+    }
+
+    private static Label HelpLine(string text, Color color)
+    {
+        Label line = new Label { Text = text, MouseFilter = MouseFilterEnum.Ignore };
+        line.AddThemeColorOverride("font_color", color);
+        line.AddThemeFontSizeOverride("font_size", 14);
+        return line;
     }
 
     // A centred panel over the table, hidden until needed.

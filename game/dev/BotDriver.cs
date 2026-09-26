@@ -677,7 +677,7 @@ public partial class BotDriver : Node
                 case 0:
                     Godot.Collections.Array<Node> pieces = GetTree().GetNodesInGroup(Gardening.GardenScreen.PieceGroup);
                     Button button = (Button)pieces[(piece * 4) % pieces.Count];
-                    GD.Print("Bot: taking " + button.Text);
+                    GD.Print("Bot: taking " + button.TooltipText);
                     Vector2 at = button.GetGlobalRect().GetCenter();
                     Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = at, GlobalPosition = at });
                     break;

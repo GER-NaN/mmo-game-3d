@@ -80,9 +80,37 @@ public static class PlantParts
         return PotSizes[pot][1] * 0.88f;
     }
 
-    // "monstera_leaf_large_A" reads "Monstera leaf, large A".
+    // The pot styles by the letter in their ids, named for how they look.
+    private static readonly Dictionary<string, string> PotStyles = new Dictionary<string, string>
+    {
+        { "A", "Terracotta" },
+        { "B", "Slate glaze" },
+        { "C", "Rustic clay" },
+        { "D", "Chalk white" },
+    };
+
+    // "pot_A_medium" reads "Terracotta pot, medium".
+    public static string DescribePot(string pot)
+    {
+        string[] words = pot.Split('_');
+        string? style;
+
+        if (words.Length < 3 || !PotStyles.TryGetValue(words[1], out style))
+        {
+            return pot;
+        }
+
+        return style + " pot, " + words[2];
+    }
+
+    // "monstera_leaf_large_A" reads "Monstera leaf large A".
     public static string Describe(string id)
     {
+        if (IsPot(id))
+        {
+            return DescribePot(id);
+        }
+
         string[] words = id.Replace("sansevieria", "snake plant").Replace("zzplant", "ZZ plant").Split('_');
         StringBuilder text = new StringBuilder();
 
