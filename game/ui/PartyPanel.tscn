@@ -4,9 +4,9 @@
 
 [node name="PartyPanel" type="PanelContainer"]
 offset_left = 16.0
-offset_top = 48.0
+offset_top = 72.0
 offset_right = 216.0
-offset_bottom = 88.0
+offset_bottom = 112.0
 script = ExtResource("1_party")
 
 [node name="Margin" type="MarginContainer" parent="."]
