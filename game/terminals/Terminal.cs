@@ -57,6 +57,9 @@ public partial class Terminal : Interactable
         {
             _screen = new StandardMaterial3D { EmissionEnabled = true };
             GetNode<MeshInstance3D>("Screen").MaterialOverride = _screen;
+
+            // A computer hums, close up.
+            Audio.AudioDirector.Current?.Attach("fx.terminal", this);
         }
     }
 
