@@ -37,11 +37,14 @@ public partial class TerminalScreen : Control
 
     private bool _lightsWorking;
     private bool _jobTaken;
+    private bool _taxisClean = true;
+    private bool _taxiJobTaken;
     private string[] _townLog = Array.Empty<string>();
 
     public event Action? GoOfflinePressed;
     public event Action<string>? ChatSubmitted;
-    public event Action? TakeJobPressed;
+    // The job's id.
+    public event Action<string>? TakeJobPressed;
     public event Action? CrackStartPressed;
 
     // Whois: search text, open a page by player id, your own page, props, your own
@@ -192,8 +195,10 @@ public partial class TerminalScreen : Control
         }
     }
 
-    public void ShowTown(bool lightsWorking, bool jobTaken, string[] log)
+    public void ShowTown(bool lightsWorking, bool jobTaken, bool taxisClean, bool taxiJobTaken, string[] log)
     {
+        _taxisClean = taxisClean;
+        _taxiJobTaken = taxiJobTaken;
         _lightsWorking = lightsWorking;
         _jobTaken = jobTaken;
         _townLog = log;
@@ -376,25 +381,40 @@ public partial class TerminalScreen : Control
     // The town's TODO list: the one job there is, and what state it is in.
     private void ShowRepairs(VBoxContainer content)
     {
-        if (_lightsWorking)
+        if (_lightsWorking && _taxisClean)
         {
             AddLine(content, "Nothing needs repairing right now.", Text, 17);
-            AddLine(content, "The street lights on Main Street are working.", Dim, 15);
+            AddLine(content, "The street lights on Main Street are working, and the robo taxis are clean.", Dim, 15);
             return;
         }
 
-        AddLine(content, StreetLights.JobTitle, Text, 18);
-        AddLine(content, StreetLights.JobText, Dim, 15);
-
-        if (_jobTaken)
+        if (!_lightsWorking)
         {
-            AddLine(content, "You have this job. The junction box is on Main Street, west of the crossing.", Locked, 16);
+            ShowJob(content, StreetLights.JobId, StreetLights.JobTitle, StreetLights.JobText, _jobTaken,
+                "You have this job. The junction box is on Main Street, west of the crossing.");
+        }
+
+        if (!_taxisClean)
+        {
+            ShowJob(content, TaxiRootkit.JobId, TaxiRootkit.JobTitle, TaxiRootkit.JobText, _taxiJobTaken,
+                "You have this job. Open the code cracker at a public terminal and crack a code.");
+        }
+    }
+
+    private void ShowJob(VBoxContainer content, string id, string title, string text, bool taken, string takenText)
+    {
+        AddLine(content, title, Text, 18);
+        AddLine(content, text, Dim, 15);
+
+        if (taken)
+        {
+            AddLine(content, takenText, Locked, 16);
             return;
         }
 
         Button take = new Button { Text = "Take the job", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
         take.AddToGroup(TakeJobGroup);
-        take.Pressed += () => TakeJobPressed?.Invoke();
+        take.Pressed += () => TakeJobPressed?.Invoke(id);
         content.AddChild(take);
     }
 

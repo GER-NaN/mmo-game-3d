@@ -16,6 +16,8 @@ using MmoGame3d.Rules.Terminals;
 /// </summary>
 public class ServerHacking
 {
+    // A code cracked: the town checks whether it was the taxis' rootkit.
+    public Action<Session>? CodeCracked { get; set; }
 
     // Tells the achievements when one is earned here; set by ServerGame.
     public Action<Session, string>? Achieved { get; set; }
@@ -80,6 +82,7 @@ public class ServerHacking
             _progress.Award(session, SkillId.Hacking, SkillAwards.HackingPerCode);
             Record(session, code.Guesses.Count);
             Achieved?.Invoke(session, Rules.Achievements.Achievements.CrackACode);
+            CodeCracked?.Invoke(session);
         }
 
         Send(session, code);

@@ -13,16 +13,17 @@ using MmoGame3d.Rules.Town;
 using MmoGame3d.Town;
 
 /// <summary>
-/// The town's shared state and its one job: the street lights. It keeps the lights'
-/// state (saved, so it survives a restart), who has taken the job, and the town log;
-/// it shows the lights to everyone through the synced TownState, and it feeds the
-/// terminal's Town repairs and Town log apps.
+/// The town's shared state and its jobs: the street lights and the robo taxis' rootkit.
+/// It keeps their state (saved, so it survives a restart), who has taken each job, and
+/// the town log; it shows them to everyone through the synced TownState, and it feeds
+/// the terminal's Town repairs and Town log apps.
 /// </summary>
 public class ServerTown
 {
     public const string ZoneId = "town";
 
     private const string LightsKey = "town.streetlights";
+    private const string TaxisKey = "town.taxirootkit";
     private const double CheckSeconds = 30;
     private const int LogKept = 20;
 
@@ -36,6 +37,8 @@ public class ServerTown
     private readonly Action<Session> _bagChanged;
     private readonly TownState _state;
     private readonly HashSet<Guid> _jobTakers = new HashSet<Guid>();
+    private readonly HashSet<Guid> _taxiJobTakers = new HashSet<Guid>();
+    private TaxiRootkit _taxis = TaxiRootkit.Infected();
     private readonly List<string> _log = new List<string>();
     private StreetLights _lights = StreetLights.Broken();
     private double _sinceCheck;
@@ -60,17 +63,38 @@ public class ServerTown
     {
         _lights = Parse(_store.Get(LightsKey));
         _state.LightsWorking = _lights.Working;
+        _taxis = ParseTaxis(_store.Get(TaxisKey));
+        _state.TaxisClean = _taxis.Clean;
 
         foreach (TownLogEntry entry in _store.RecentLog(ZoneId, LogKept))
         {
             _log.Add(entry.Entry);
         }
 
-        GD.Print("Town: the street lights are " + (_lights.Working ? "working" : "out"));
+        GD.Print("Town: the street lights are " + (_lights.Working ? "working" : "out") + "; the robo taxis are " + (_taxis.Clean ? "clean" : "rootkitted"));
     }
 
-    public void TakeJob(Session session)
+    public bool TaxisClean
     {
+        get { return _taxis.Clean; }
+    }
+
+    public void TakeJob(Session session, string jobId)
+    {
+        if (jobId == TaxiRootkit.JobId)
+        {
+            if (_taxis.Clean)
+            {
+                _session.SendNotice(session.PeerId, "The robo taxis are clean right now.");
+                return;
+            }
+
+            _taxiJobTakers.Add(session.Record!.PlayerId);
+            _session.SendNotice(session.PeerId, "Job taken: " + TaxiRootkit.JobTitle + ". " + TaxiRootkit.JobText);
+            SendTown(session);
+            return;
+        }
+
         if (_lights.Working)
         {
             _session.SendNotice(session.PeerId, "Nothing needs repairing right now.");
@@ -85,12 +109,32 @@ public class ServerTown
     // Raised when the AI takes the lights out, for the phones.
     public event Action? LightsBroke;
 
+    // Raised when the AI gets a rootkit into the taxis, for the phones; and for the one
+    // who cleaned it out.
+    public event Action? TaxisInfected;
+    public event Action<Session>? TaxisCleaned;
+
     // Raised for the one who repaired the lights: experience and a mission.
     public event Action<Session>? Repaired;
 
     public bool HasJob(Guid playerId)
     {
-        return _jobTakers.Contains(playerId);
+        return _jobTakers.Contains(playerId) || _taxiJobTakers.Contains(playerId);
+    }
+
+    // A code cracked at a public terminal: with the rootkit job, it is the rootkit's.
+    public void CodeCracked(Session session)
+    {
+        if (_taxis.CannotClean(_taxiJobTakers.Contains(session.Record!.PlayerId)) != null)
+        {
+            return;
+        }
+
+        string name = session.Record.DisplayName;
+        _taxis.CleanOut(name, DateTime.UtcNow);
+        _taxiJobTakers.Clear();
+        TaxisCleaned?.Invoke(session);
+        Changed(name + " cleaned the rootkit out of the robo taxis.");
     }
 
     public void Repair(Session session)
@@ -128,17 +172,25 @@ public class ServerTown
             Changed("The street lights on Main Street went dark again. The AI is at the grid.");
             LightsBroke?.Invoke();
         }
+
+        if (_taxis.InfectIfDue(DateTime.UtcNow))
+        {
+            Changed("The AI slipped a rootkit into the robo taxis. No rides until it is cleaned out.");
+            TaxisInfected?.Invoke();
+        }
     }
 
     public void SendTown(Session session)
     {
         bool taken = session.Record != null && _jobTakers.Contains(session.Record.PlayerId);
-        _terminal.SendTown(session.PeerId, _lights.Working, taken, _log.ToArray());
+        bool taxiTaken = session.Record != null && _taxiJobTakers.Contains(session.Record.PlayerId);
+        _terminal.SendTown(session.PeerId, _lights.Working, taken, _taxis.Clean, taxiTaken, _log.ToArray());
     }
 
     private void Changed(string what)
     {
         _state.LightsWorking = _lights.Working;
+        _state.TaxisClean = _taxis.Clean;
 
         TimeSpan now = TimeSpan.FromSeconds(_clock.SecondsOfDay(DateTime.UtcNow));
         string entry = now.ToString(@"hh\:mm", CultureInfo.InvariantCulture) + "  " + what;
@@ -150,9 +202,11 @@ public class ServerTown
         }
 
         string saved = Format(_lights);
+        string savedTaxis = Format(_taxis.Clean, _taxis.CleanedAtUtc, _taxis.CleanedBy);
         _worker.Enqueue(() =>
         {
             _store.Set(LightsKey, saved);
+            _store.Set(TaxisKey, savedTaxis);
             _store.AddLog(ZoneId, entry);
         }, e => GD.PrintErr("Saving the town failed: " + e.Message));
 
@@ -170,8 +224,26 @@ public class ServerTown
     // "1|2026-09-26T12:00:00Z|Alice": working, when repaired, by whom.
     private static string Format(StreetLights lights)
     {
-        string at = lights.RepairedAtUtc == null ? "" : lights.RepairedAtUtc.Value.ToString("o", CultureInfo.InvariantCulture);
-        return (lights.Working ? "1" : "0") + "|" + at + "|" + lights.RepairedBy;
+        return Format(lights.Working, lights.RepairedAtUtc, lights.RepairedBy);
+    }
+
+    private static string Format(bool good, DateTime? when, string by)
+    {
+        string at = when == null ? "" : when.Value.ToString("o", CultureInfo.InvariantCulture);
+        return (good ? "1" : "0") + "|" + at + "|" + by;
+    }
+
+    private static TaxiRootkit ParseTaxis(string? saved)
+    {
+        if (saved == null)
+        {
+            return TaxiRootkit.Infected();
+        }
+
+        string[] parts = saved.Split('|', 3);
+        DateTime at;
+        DateTime? cleanedAt = parts.Length > 1 && DateTime.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out at) ? at : null;
+        return TaxiRootkit.Restore(parts[0] == "1", cleanedAt, parts.Length > 2 ? parts[2] : "");
     }
 
     private static StreetLights Parse(string? saved)

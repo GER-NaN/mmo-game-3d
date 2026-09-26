@@ -123,6 +123,7 @@ public partial class ClientGame : Node
 
     // The street lights job, taken in a terminal: shown on the HUD until done.
     private bool _hasLightsJob;
+    private bool _hasTaxiJob;
     private string _displayName = "";
     private string _address = "";
 
@@ -203,9 +204,10 @@ public partial class ClientGame : Node
         _terminalNetwork.Opened += OnTerminalOpened;
         _terminalNetwork.Closed += CloseTerminal;
         _terminalNetwork.RosterReceived += (names, zones, online) => _terminal?.ShowRoster(names, zones, online);
-        _terminalNetwork.TownReceived += (working, taken, log) =>
+        _terminalNetwork.TownReceived += (working, taken, taxisClean, taxiTaken, log) =>
         {
-            _terminal?.ShowTown(working, taken, log);
+            _terminal?.ShowTown(working, taken, taxisClean, taxiTaken, log);
+            _hasTaxiJob = taxiTaken && !taxisClean;
 
             if (taken && !working && !_hasLightsJob)
             {
@@ -314,6 +316,11 @@ public partial class ClientGame : Node
             _hasLightsJob = false;
         }
 
+        if (town != null && town.TaxisClean)
+        {
+            _hasTaxiJob = false;
+        }
+
         Town.JunctionBox.Marked = _hasLightsJob;
 
         if (_hud == null)
@@ -321,9 +328,11 @@ public partial class ClientGame : Node
             return;
         }
 
+        string taxiJob = _hasTaxiJob ? "Job: crack a code at a public terminal to clean the robo taxis' rootkit" : "";
+
         if (!_hasLightsJob)
         {
-            _hud.ShowJob("");
+            _hud.ShowJob(taxiJob);
             return;
         }
 
@@ -340,7 +349,7 @@ public partial class ClientGame : Node
             text = "Job: repair the junction box, " + Mathf.RoundToInt(to.Length()) + " m " + Direction(ahead, to);
         }
 
-        _hud.ShowJob(text);
+        _hud.ShowJob(taxiJob.Length > 0 ? text + "\n" + taxiJob : text);
     }
 
     // Which way a spot is from where the camera looks, in words.
@@ -1145,7 +1154,7 @@ public partial class ClientGame : Node
         _terminal.Open((TerminalType)terminalType, terminalName, _chatLog);
         _terminal.GoOfflinePressed += _terminalNetwork.SendLeave;
         _terminal.ChatSubmitted += _network.SendChat;
-        _terminal.TakeJobPressed += () => _terminalNetwork.SendTakeJob(StreetLights.JobId);
+        _terminal.TakeJobPressed += _terminalNetwork.SendTakeJob;
         _terminal.CrackStartPressed += _terminalNetwork.SendCrackStart;
         _terminal.CrackGuessSubmitted += _terminalNetwork.SendCrackGuess;
         _terminal.WhoisSearchSubmitted += _socialNetwork.SendWhoisSearch;

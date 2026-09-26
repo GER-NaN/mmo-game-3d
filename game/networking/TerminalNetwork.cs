@@ -74,16 +74,17 @@ public partial class TerminalNetwork : NetworkNode
 
     // Client side: the town for the Town repairs and Town log apps: whether the street
     // lights work, whether this player has the job, and the log, newest first.
-    public event Action<bool, bool, string[]>? TownReceived;
+    // Then the same for the robo taxis' rootkit: clean, and whether this player has it.
+    public event Action<bool, bool, bool, bool, string[]>? TownReceived;
 
     public void SendTakeJob(string jobId)
     {
         RpcId(1, MethodName.TakeJob, jobId);
     }
 
-    public void SendTown(long peer, bool lightsWorking, bool jobTaken, string[] log)
+    public void SendTown(long peer, bool lightsWorking, bool lightsTaken, bool taxisClean, bool taxisTaken, string[] log)
     {
-        SendTo(peer, MethodName.ReceiveTown, lightsWorking, jobTaken, log);
+        SendTo(peer, MethodName.ReceiveTown, lightsWorking, lightsTaken, taxisClean, taxisTaken, log);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -101,9 +102,9 @@ public partial class TerminalNetwork : NetworkNode
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void ReceiveTown(bool lightsWorking, bool jobTaken, string[] log)
+    private void ReceiveTown(bool lightsWorking, bool lightsTaken, bool taxisClean, bool taxisTaken, string[] log)
     {
-        TownReceived?.Invoke(lightsWorking, jobTaken, log);
+        TownReceived?.Invoke(lightsWorking, lightsTaken, taxisClean, taxisTaken, log);
     }
 
     // Client side: an objective's leaderboard: the top lines, then "Your best: ...".

@@ -241,6 +241,19 @@ public partial class ServerGame : Node
         _rides.Achieved = _achievements.Grant;
         _social.Achieved = _achievements.Grant;
         _maps.Achieved = _achievements.Grant;
+        _hacking.CodeCracked = _town.CodeCracked;
+        _rides.TaxisClean = () => _town.TaxisClean;
+        _town.TaxisInfected += () =>
+        {
+            _equipment.PushToPhones("Alert: the AI put a rootkit in the robo taxis. Town repairs has a job.");
+            _terminals.Post("The AI put a rootkit in the robo taxis.");
+        };
+        _town.TaxisCleaned += session =>
+        {
+            _progress.Award(session, Rules.Skills.SkillId.Hacking, Rules.Skills.SkillAwards.HackingPerCode);
+            _progress.MissionDone(session);
+            _terminals.Post(session.Record!.DisplayName + " cleaned the rootkit out of the robo taxis.");
+        };
         _progress.CareerChanged += session =>
         {
             if (session.Progress.Career.Career.HasValue)
@@ -331,7 +344,7 @@ public partial class ServerGame : Node
         partyNetwork.ChatRequested += (peer, text) => WithSession(peer, session => _parties.Chat(session, text));
         _network.InteractRequested += (peer, name) => WithSession(peer, session => _interactions.Use(session, name));
         networks.Terminal.LeaveRequested += peer => WithSession(peer, session => _terminals.Leave(session));
-        networks.Terminal.TakeJobRequested += (peer, job) => WithSession(peer, session => _town.TakeJob(session));
+        networks.Terminal.TakeJobRequested += (peer, job) => WithSession(peer, session => _town.TakeJob(session, job));
         networks.Shop.BuyRequested += (peer, intent, shop, offer) => WithSession(peer, session => _shops.Buy(session, intent, shop, offer));
         networks.Items.EquipRequested += (peer, id) => WithSession(peer, session => _equipment.Equip(session, id));
         networks.Items.UnequipRequested += (peer, id) => WithSession(peer, session => _equipment.Unequip(session, id));

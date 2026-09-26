@@ -48,8 +48,17 @@ public class ServerRides
         _travel = travel;
     }
 
+    // False while the AI's rootkit is in the taxis; set by ServerGame.
+    public Func<bool> TaxisClean { get; set; } = () => true;
+
     public void Call(Session caller, TaxiStand stand)
     {
+        if (!TaxisClean())
+        {
+            _session.SendNotice(caller.PeerId, "The robo taxis are out of service: the AI put a rootkit in them. Town repairs in a terminal has the job.");
+            return;
+        }
+
         Zone town = _world.GetZone(ZoneIds.Town)!;
         int number = _nextRide++;
         string cabinId = ZoneIds.Instance(ZoneIds.Taxi, number);
