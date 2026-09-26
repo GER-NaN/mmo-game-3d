@@ -10,8 +10,9 @@ using MmoGame3d.Rules.Items;
 // takes keyboard focus, so walking goes on while it is open.
 public partial class InventoryPanel : PanelContainer
 {
-    // Bots find the Equip buttons by this group, then click them like a person.
+    // Bots find the Equip and Drop buttons by these groups, then click them like a person.
     public const string EquipGroup = "inventory_equip";
+    public const string DropGroup = "inventory_drop";
 
     private static readonly Color[] TierColors =
     {
@@ -24,18 +25,41 @@ public partial class InventoryPanel : PanelContainer
     public event Action<Guid>? EquipPressed;
     public event Action<Guid>? UnequipPressed;
 
+    // (type, tier, quantity): the whole stack.
+    public event Action<ItemType, ItemTier, int>? DropPressed;
+
     public void ShowBag(IReadOnlyList<ItemStack> stacks, int dollars, List<ItemInstance> instances)
     {
         GetNode<Label>("%Dollars").Text = "Pocket change: $" + dollars;
 
-        ItemList list = GetNode<ItemList>("%Items");
-        list.Clear();
+        VBoxContainer list = GetNode<VBoxContainer>("%Items");
+
+        foreach (Node old in list.GetChildren())
+        {
+            old.QueueFree();
+        }
 
         foreach (ItemStack stack in stacks)
         {
-            int row = list.AddItem(stack.Quantity + " x " + ItemCatalog.Describe(stack.Type, stack.Tier));
-            list.SetItemCustomFgColor(row, TierColors[(int)stack.Tier]);
-            list.SetItemTooltip(row, ItemCatalog.Get(stack.Type).Description);
+            HBoxContainer row = new HBoxContainer();
+            Label name = new Label
+            {
+                Text = stack.Quantity + " x " + ItemCatalog.Describe(stack.Type, stack.Tier),
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                TooltipText = ItemCatalog.Get(stack.Type).Description,
+                MouseFilter = MouseFilterEnum.Pass,
+            };
+            name.AddThemeColorOverride("font_color", TierColors[(int)stack.Tier]);
+            row.AddChild(name);
+
+            ItemType type = stack.Type;
+            ItemTier tier = stack.Tier;
+            int quantity = stack.Quantity;
+            Button drop = new Button { Text = "Drop", FocusMode = FocusModeEnum.None };
+            drop.AddToGroup(DropGroup);
+            drop.Pressed += () => DropPressed?.Invoke(type, tier, quantity);
+            row.AddChild(drop);
+            list.AddChild(row);
         }
 
         list.Visible = stacks.Count > 0;

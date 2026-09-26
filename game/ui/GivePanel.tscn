@@ -1,0 +1,64 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/ui/GivePanel.cs" id="1_give"]
+
+[node name="GivePanel" type="PanelContainer"]
+custom_minimum_size = Vector2(380, 0)
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 20.0
+offset_top = -160.0
+offset_right = 400.0
+offset_bottom = 160.0
+grow_vertical = 2
+script = ExtResource("1_give")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Rows" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="Stacks" type="VBoxContainer" parent="Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Money" type="HBoxContainer" parent="Margin/Rows"]
+layout_mode = 2
+
+[node name="MoneyLabel" type="Label" parent="Margin/Rows/Money"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Amount" type="SpinBox" parent="Margin/Rows/Money"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 1000000.0
+value = 1.0
+prefix = "$"
+
+[node name="GiveMoney" type="Button" parent="Margin/Rows/Money"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "Give"
+
+[node name="Close" type="Button" parent="Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "Close"

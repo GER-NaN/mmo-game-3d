@@ -4,10 +4,11 @@ using System;
 using Godot;
 
 /// <summary>
-/// The equipment RPCs: equip and unequip, going online by phone, and the workbench.
-/// Instances are named by their id, which only their owner ever sees. None of these
-/// spend anything, so they carry no intent id; the server answers a refusal with a
-/// notice and a change with the new bag.
+/// The item RPCs: equip and unequip, going online by phone, the workbench, and dropping
+/// and giving. Instances are named by their id, which only their owner ever sees. The
+/// equipment ones spend nothing and carry no intent id: the server answers a refusal
+/// with a notice and a change with the new bag. Drop and give take things away, so they
+/// are intents, answered on Network.
 /// </summary>
 public partial class ItemNetwork : Node
 {
@@ -17,6 +18,39 @@ public partial class ItemNetwork : Node
     public event Action<long>? PhoneRequested;
     public event Action<long, string>? RemoveBatteryRequested;
     public event Action<long, string>? InsertBatteryRequested;
+
+    // Server side, intents: (peer, intent id, type, tier, quantity), and for a gift also
+    // the target's peer and any dollars.
+    public event Action<long, uint, int, int, int>? DropRequested;
+    public event Action<long, uint, long, int, int, int, int>? GiveRequested;
+
+    public void SendDrop(uint intentId, int type, int tier, int quantity)
+    {
+        RpcId(1, MethodName.Drop, intentId, type, tier, quantity);
+    }
+
+    public void SendGive(uint intentId, long targetPeer, int type, int tier, int quantity, int dollars)
+    {
+        RpcId(1, MethodName.Give, intentId, targetPeer, type, tier, quantity, dollars);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Drop(uint intentId, int type, int tier, int quantity)
+    {
+        if (Multiplayer.IsServer())
+        {
+            DropRequested?.Invoke(Multiplayer.GetRemoteSenderId(), intentId, type, tier, quantity);
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Give(uint intentId, long targetPeer, int type, int tier, int quantity, int dollars)
+    {
+        if (Multiplayer.IsServer())
+        {
+            GiveRequested?.Invoke(Multiplayer.GetRemoteSenderId(), intentId, targetPeer, type, tier, quantity, dollars);
+        }
+    }
 
     // Client side: a workbench was used.
     public event Action? WorkbenchOpened;

@@ -32,6 +32,9 @@ public partial class ClientParty : Node
     private Player? _target;
     private double _sinceMark;
 
+    // Raised when Give is pressed for the selected player.
+    public event System.Action<Player>? GiveRequested;
+
     public void Start(PartyNetwork network, CanvasLayer ui, Node world)
     {
         _network = network;
@@ -93,6 +96,13 @@ public partial class ClientParty : Node
                 _frame = TargetScene.Instantiate<TargetFrame>();
                 _ui.AddChild(_frame);
                 _frame.InvitePressed += OnInvitePressed;
+                _frame.GivePressed += () =>
+                {
+                    if (_target != null && IsInstanceValid(_target))
+                    {
+                        GiveRequested?.Invoke(_target);
+                    }
+                };
             }
 
             _frame.ShowTarget(player.DisplayName, !_memberIds.Contains(player.PlayerIdText));

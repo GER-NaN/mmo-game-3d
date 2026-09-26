@@ -37,11 +37,9 @@ text = "Inventory"
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Items" type="ItemList" parent="Margin/Rows"]
+[node name="Items" type="VBoxContainer" parent="Margin/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
-focus_mode = 0
 
 [node name="Things" type="VBoxContainer" parent="Margin/Rows"]
 unique_name_in_owner = true

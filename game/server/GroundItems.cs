@@ -65,6 +65,22 @@ public class GroundItems
         }
     }
 
+    // Something a player dropped: it lies where it fell until someone picks it up. The
+    // zone's refill counts it like any other item on the ground.
+    public void DropAt(Zone zone, Vector3 spot, ItemType type, ItemTier tier, int quantity)
+    {
+        GroundItem item = ItemScene.Instantiate<GroundItem>();
+        item.Name = Guid.NewGuid().ToString("N");
+        item.TypeId = (int)type;
+        item.TierId = (int)tier;
+        item.Quantity = quantity;
+        item.Position = spot;
+        item.Touched += OnTouched;
+
+        _gate.Watch(item.Synchronizer, zone.ZoneId);
+        zone.Items.AddChild(item, true);
+    }
+
     private void SpawnOne(Zone zone)
     {
         Vector3 spot;

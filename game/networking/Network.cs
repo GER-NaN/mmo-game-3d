@@ -72,6 +72,21 @@ public partial class Network : Node
         }
     }
 
+    // Client side: (intent id, "" when approved or the refusal). Every intent, whatever
+    // sent it (a buy, a drop, a gift), is answered here.
+    public event Action<uint, string>? IntentAnswered;
+
+    public void SendIntentAnswer(long peer, uint intentId, string refusal)
+    {
+        RpcId(peer, MethodName.ReceiveIntentAnswer, intentId, refusal);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveIntentAnswer(uint intentId, string refusal)
+    {
+        IntentAnswered?.Invoke(intentId, refusal);
+    }
+
     // Server side: (peer, emote id) typed as a chat command.
     public event Action<long, string>? EmoteRequested;
 

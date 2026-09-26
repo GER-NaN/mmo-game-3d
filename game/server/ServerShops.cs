@@ -21,11 +21,13 @@ public class ServerShops
     private readonly ShopNetwork _network;
     private readonly Network _session;
     private readonly Action<Session> _bagChanged;
+    private readonly ServerIntents _intents;
 
-    public ServerShops(ShopNetwork network, Network session, Action<Session> bagChanged)
+    public ServerShops(ShopNetwork network, Network session, ServerIntents intents, Action<Session> bagChanged)
     {
         _network = network;
         _session = session;
+        _intents = intents;
         _bagChanged = bagChanged;
     }
 
@@ -37,17 +39,7 @@ public class ServerShops
 
     public void Buy(Session session, uint intentId, string shopId, int offerIndex)
     {
-        string? earlier = session.Intents.AnswerFor(intentId);
-
-        if (earlier != null)
-        {
-            _network.SendIntentAnswer(session.PeerId, intentId, earlier);
-            return;
-        }
-
-        string answer = Decide(session, shopId, offerIndex);
-        session.Intents.Record(intentId, answer);
-        _network.SendIntentAnswer(session.PeerId, intentId, answer);
+        _intents.Run(session, intentId, () => Decide(session, shopId, offerIndex));
     }
 
     // "" when bought, else the refusal. Only an approved buy changes anything.

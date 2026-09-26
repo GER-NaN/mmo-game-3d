@@ -122,7 +122,11 @@ public partial class ServerGame : Node
         _chat = new ServerChat(network, () => _sessions.Values);
         _parties = new ServerParties(partyNetwork, network, _chat, () => _sessions.Values);
         _terminals = new ServerTerminals(networks.Terminal, network, () => _sessions.Values);
-        _shops = new ServerShops(networks.Shop, network, SendInventory);
+        ServerIntents intents = new ServerIntents(network);
+        _shops = new ServerShops(networks.Shop, network, intents, SendInventory);
+        ServerHandover handover = new ServerHandover(intents, network, _groundItems, world, FindSession, SendInventory);
+        networks.Items.DropRequested += (peer, intent, type, tier, quantity) => WithSession(peer, session => handover.Drop(session, intent, type, tier, quantity));
+        networks.Items.GiveRequested += (peer, intent, target, type, tier, quantity, dollars) => WithSession(peer, session => handover.Give(session, intent, target, type, tier, quantity, dollars));
         _equipment = new ServerEquipment(networks.Items, network, _terminals, () => _sessions.Values, SendInventory);
         _chests = new ServerChests(network, SendInventory);
         _interactions = new ServerInteractions(world, network, _terminals, _shops, _equipment, _chests);

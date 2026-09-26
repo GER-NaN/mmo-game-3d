@@ -32,6 +32,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene TerminalScene = GD.Load<PackedScene>("res://game/ui/TerminalScreen.tscn");
     private static readonly PackedScene ShopScene = GD.Load<PackedScene>("res://game/ui/ShopPanel.tscn");
     private static readonly PackedScene WorkbenchScene = GD.Load<PackedScene>("res://game/ui/WorkbenchPanel.tscn");
+    private static readonly PackedScene GiveScene = GD.Load<PackedScene>("res://game/ui/GivePanel.tscn");
 
     // Walking this far from where a shop or a workbench was opened closes it.
     private const float PanelWalkAway = 4f;
@@ -63,6 +64,8 @@ public partial class ClientGame : Node
     private ShopPanel? _shop;
     private string _shopId = "";
     private WorkbenchPanel? _workbench;
+    private GivePanel? _give;
+    private Players.Player? _giveTo;
     private Vector3 _panelOpenedAt;
     private List<ItemInstance> _instances = new List<ItemInstance>();
     private ClientIntents? _intents;
@@ -119,7 +122,7 @@ public partial class ClientGame : Node
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
         _shopNetwork.ShopOpened += OnShopOpened;
         _itemNetwork.WorkbenchOpened += OnWorkbenchOpened;
-        _shopNetwork.IntentAnswered += (id, refusal) => _intents?.Answer(id, refusal);
+        _network.IntentAnswered += (id, refusal) => _intents?.Answer(id, refusal);
         _terminalNetwork.Opened += OnTerminalOpened;
         _terminalNetwork.Closed += CloseTerminal;
         _terminalNetwork.RosterReceived += (names, zones, online) => _terminal?.ShowRoster(names, zones, online);
@@ -149,10 +152,17 @@ public partial class ClientGame : Node
 
         Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
 
-        if ((_shop != null || _workbench != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
+        if ((_shop != null || _workbench != null || _give != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
             CloseShop();
             CloseWorkbench();
+            CloseGive();
+        }
+
+        // The one being given to walked off, left, or changed zone.
+        if (_give != null && (_giveTo == null || !IsInstanceValid(_giveTo)))
+        {
+            CloseGive();
         }
     }
 
@@ -175,11 +185,12 @@ public partial class ClientGame : Node
             return;
         }
 
-        if ((_shop != null || _workbench != null) && @event.IsActionPressed("ui_cancel"))
+        if ((_shop != null || _workbench != null || _give != null) && @event.IsActionPressed("ui_cancel"))
         {
             GetViewport().SetInputAsHandled();
             CloseShop();
             CloseWorkbench();
+            CloseGive();
             return;
         }
 
@@ -332,6 +343,7 @@ public partial class ClientGame : Node
         _party = new ClientParty { Name = "Party" };
         AddChild(_party);
         _party.Start(_partyNetwork, _ui, _world);
+        _party.GiveRequested += OpenGive;
 
         _intents = new ClientIntents { Name = "Intents" };
         AddChild(_intents);
@@ -382,6 +394,11 @@ public partial class ClientGame : Node
         _instances = InstanceWire.Unpack(ids, meta, charges);
         _inventoryPanel?.ShowBag(_stacks, _dollars, _instances);
         _workbench?.ShowBench(_stacks, _instances);
+
+        if (_give != null && _giveTo != null && IsInstanceValid(_giveTo))
+        {
+            _give.ShowFor(_giveTo.DisplayName, _stacks, _dollars);
+        }
         _hud?.ShowDollars(dollars);
         _shop?.ShowDollars(dollars);
     }
@@ -397,6 +414,33 @@ public partial class ClientGame : Node
         _workbench.Closed += CloseWorkbench;
         _workbench.RemovePressed += id => _itemNetwork.SendRemoveBattery(id.ToString());
         _workbench.InsertPressed += id => _itemNetwork.SendInsertBattery(id.ToString());
+    }
+
+    private void OpenGive(Players.Player target)
+    {
+        CloseGive();
+        _giveTo = target;
+        _panelOpenedAt = SelfPosition();
+        _give = GiveScene.Instantiate<GivePanel>();
+        _ui.AddChild(_give);
+        _give.ShowFor(target.DisplayName, _stacks, _dollars);
+        _give.Closed += CloseGive;
+        long peer = target.OwnerPeerId;
+        _give.GivePressed += (type, tier, quantity) =>
+            _intents?.Start("give", id => _itemNetwork.SendGive(id, peer, (int)type, (int)tier, quantity, 0));
+        _give.GiveDollarsPressed += amount =>
+            _intents?.Start("give", id => _itemNetwork.SendGive(id, peer, 0, 0, 0, amount));
+    }
+
+    private void CloseGive()
+    {
+        if (_give != null)
+        {
+            _give.QueueFree();
+            _give = null;
+        }
+
+        _giveTo = null;
     }
 
     private void CloseWorkbench()
@@ -577,6 +621,8 @@ public partial class ClientGame : Node
         _ui.AddChild(_inventoryPanel);
         _inventoryPanel.ShowBag(_stacks, _dollars, _instances);
         _inventoryPanel.EquipPressed += id => _itemNetwork.SendEquip(id.ToString());
+        _inventoryPanel.DropPressed += (type, tier, quantity) =>
+            _intents?.Start("drop", id => _itemNetwork.SendDrop(id, (int)type, (int)tier, quantity));
         _inventoryPanel.UnequipPressed += id => _itemNetwork.SendUnequip(id.ToString());
     }
 
@@ -667,6 +713,7 @@ public partial class ClientGame : Node
 
         CloseShop();
         CloseWorkbench();
+        CloseGive();
         _instances = new List<ItemInstance>();
         _chatLog.Clear();
 

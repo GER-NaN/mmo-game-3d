@@ -15,7 +15,8 @@ using MmoGame3d.Ui;
 /// and then, clicks on a nearby player and invites them, joins any party it is invited
 /// to, goes online at a terminal it passes (then offline again a little later), buys
 /// the first thing a shopkeeper offers, opens chests, equips its phone and goes online on it, and at a
-/// workbench takes the battery out and puts one in.
+/// workbench takes the battery out and puts one in. It drops a stack once, and gives one
+/// thing to a party member it clicks on.
 /// </summary>
 public partial class BotDriver : Node
 {
@@ -52,6 +53,8 @@ public partial class BotDriver : Node
     private int _phoneStep;
     private double _benchSeenFor;
     private int _benchClicks;
+    private double _giveClickIn = -1;
+    private bool _dropped;
     private double _interactHeldFor = -1;
     private double _nextInteract;
 
@@ -102,9 +105,30 @@ public partial class BotDriver : Node
         }
     }
 
-    // Two steps: click the body, then, once the target frame has shown, click Invite.
+    // Two steps: click the body, then, once the target frame has shown, click Invite, or
+    // Give when already in a party with them, and then the first thing to give.
     private void Recruit(double delta)
     {
+        if (_giveClickIn >= 0)
+        {
+            _giveClickIn -= delta;
+
+            if (_giveClickIn < 0)
+            {
+                Button? giveOne = GetTree().GetFirstNodeInGroup(GivePanel.GiveGroup) as Button;
+
+                if (giveOne != null && giveOne.IsVisibleInTree())
+                {
+                    GD.Print("Bot: clicking Give 1");
+                    Click(giveOne.GetGlobalRect().GetCenter());
+                }
+
+                Press("ui_cancel");
+            }
+
+            return;
+        }
+
         if (_inviteClickIn >= 0)
         {
             _inviteClickIn -= delta;
@@ -116,10 +140,18 @@ public partial class BotDriver : Node
 
             Button? invite = GetTree().GetFirstNodeInGroup(TargetFrame.InviteGroup) as Button;
 
+            Button? give = GetTree().GetFirstNodeInGroup(TargetFrame.GiveGroup) as Button;
+
             if (invite != null && invite.IsVisibleInTree())
             {
                 GD.Print("Bot: clicking Invite");
                 Click(invite.GetGlobalRect().GetCenter());
+            }
+            else if (give != null && give.IsVisibleInTree())
+            {
+                GD.Print("Bot: clicking Give");
+                Click(give.GetGlobalRect().GetCenter());
+                _giveClickIn = ReadDelay;
             }
             else
             {
@@ -312,6 +344,15 @@ public partial class BotDriver : Node
                 _phoneStep = 2;
                 break;
             case 2:
+                Button? drop = GetTree().GetFirstNodeInGroup(InventoryPanel.DropGroup) as Button;
+
+                if (!_dropped && drop != null && drop.IsVisibleInTree())
+                {
+                    _dropped = true;
+                    GD.Print("Bot: clicking Drop");
+                    Click(drop.GetGlobalRect().GetCenter());
+                }
+
                 Press("inventory");
                 _phoneStep = 3;
                 break;
