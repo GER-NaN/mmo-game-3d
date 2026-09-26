@@ -4,6 +4,7 @@ using Godot;
 using MmoGame3d.Chests;
 using MmoGame3d.Interact;
 using MmoGame3d.Networking;
+using MmoGame3d.Rules.Town;
 using MmoGame3d.Taxis;
 using MmoGame3d.Vendors;
 using MmoGame3d.Workbenches;
@@ -21,6 +22,8 @@ public class ServerInteractions
     // A little slack over the reach the client checks, for the body having moved on by
     // the time the request arrives.
     private const float ReachSlack = 0.75f;
+
+    private readonly System.Random _random = new System.Random();
 
     private readonly World _world;
     private readonly Network _session;
@@ -92,6 +95,9 @@ public class ServerInteractions
                 break;
             case TaxiStand stand:
                 _rides?.Call(session, stand);
+                break;
+            case Townsperson person:
+                _session.SendNotice(session.PeerId, person.PersonName + ": " + Chatter.Pick(_random));
                 break;
             default:
                 GD.PrintErr("Nothing handles the interactable " + interactableName + " of type " + thing.GetType().Name);

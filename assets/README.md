@@ -16,7 +16,7 @@ Godot edition at `C:\game-art\3d\kaykit-godot`:
 | `kaykit/furniture_bits/` | `furniture_bits/` |
 | `kaykit/resource_bits/` | `resource_bits/` |
 | `kaykit/character_animations/rig_medium/` | `character_animations/animations/rig_medium/` |
-| `kaykit/characters/` | `mystery_monthly_series_5/10_protagonists/characters/*.glb` |
+| `kaykit/characters/` | `mystery_monthly_series_5/10_protagonists/characters/*.glb`, and the townspeople: `mystery_monthly_series_5/11_hiker/characters/Hiker.glb`, `mystery_monthly_series_6/12_farmers/characters/Farmer_A.glb`, `mystery_monthly_series_4/02_driver/characters/Driver.glb` |
 
 After copying, open the project in the Godot editor once (or run Godot with
 `--headless --import`) so it imports them.

@@ -58,6 +58,14 @@ public partial class WorldReport : Node
 
             line.Append("  items ").Append(items);
 
+            foreach (Node node in world.FindChildren("*", "StaticBody3D", true, false))
+            {
+                if (node is MmoGame3d.Town.Townsperson person)
+                {
+                    line.Append("  ").Append(person.PersonName).Append(' ').Append(person.Position.ToString("F1"));
+                }
+            }
+
             DayNight? dayNight = world.GetNodeOrNull<DayNight>("DayNight");
 
             if (dayNight != null)
