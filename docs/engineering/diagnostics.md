@@ -40,19 +40,34 @@ Measured 2026-09-26 with `scripts/load-test.ps1 -Bots 100`, the same worst case 
 | With the packet log (`-LogPackets`) | 24 to 27 | 37 to 53 |
 
 The default costs nothing measurable. The packet log does, and the cost is not the
-logging: with the packet records switched off but the peer still wrapped, the server
-was just as slow. The wrapper is a C# `MultiplayerPeerExtension`, and every packet
-then crosses from the engine into C# several times (transfer mode, channel, target,
-the packet itself). At 100 players that is about 4,400 packets a second out. The
-packet log also writes about 6 MB a second of JSON at that load.
+logging or the packets.
 
-So the packet log is for small tests (a few players), not for load. Ways to capture
-packets at load without that cost, not decided:
+- With the packet records switched off but the peer still wrapped, the server was
+  just as slow. So the cost is the wrapper, a C# `MultiplayerPeerExtension`.
+- A probe on every overridden method, at 100 players, found `_GetUniqueId` called
+  about 480,000 times a second: about 19,000 times a frame, 110 times per packet.
+  Our code in those calls took 20 ms a second in all; the rest is the call itself,
+  from the engine into C#, about 1.5 microseconds each. 19,000 of those is about
+  30 ms a frame, which is the drop from about 130 frames a second to about 25.
+- Where the calls come from: Godot's replication (`scene_replication_interface.cpp`)
+  checks `_has_authority()` for every synchronizer, for every client, every network
+  frame, and that compares the node's authority with `multiplayer->get_unique_id()`.
+  With the native ENet peer that call costs next to nothing; through a C# extension
+  every one is a crossing.
+- So the cost grows with synchronized nodes times clients times frames, not with
+  packets, and nothing in the C# wrapper (caching the id, say) can remove it: the
+  crossing happens before our code runs.
+- Everything else was small: sending the packets 46 ms a second (4,200 calls), the
+  packet records 5 to 7 ms a second.
+
+The packet log also writes about 6 MB a second of JSON at that load. So it is for
+small tests (a few players), not for load. Ways to capture packets at load without
+that cost, not decided:
 
 - Out of process: a UDP relay or a packet capture on the server's port, which then
   decodes ENet. No cost in the server. It sees ENet frames, not Godot's commands.
-- A native (C++) GDExtension peer wrapper. No C# crossing, but a C++ build in the
-  project.
+- A native (C++) GDExtension peer wrapper. `get_unique_id` stays native, so the
+  19,000 calls a frame cost what they cost today. But a C++ build in the project.
 
 ## The file
 

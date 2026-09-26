@@ -180,9 +180,10 @@ public partial class ServerGame : Node
 
         _peer = peer;
 
-        // The packet log wraps the ENet peer in C#, and every packet then crosses from the
-        // engine into C# several times; at a hundred players that cut the server from
-        // about 130 frames a second to about 25. So it is only there when asked for.
+        // The packet log wraps the ENet peer in C#. Godot's replication then asks the peer
+        // for its id once per synchronizer per client per frame, each time a call into C#:
+        // at a hundred players about 19,000 a frame, which cut the server from about 130
+        // frames a second to about 25. So it is only there when asked for.
         if (_diagnostics != null && _options.LogPackets)
         {
             LoggedPeer logged = new LoggedPeer();
