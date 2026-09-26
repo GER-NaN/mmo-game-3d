@@ -1212,14 +1212,9 @@ public partial class ClientGame : Node
             ClientSettings.KeyName("move_forward") + "/" + ClientSettings.KeyName("move_back") + " walk   "
             + ClientSettings.KeyName("turn_left") + "/" + ClientSettings.KeyName("turn_right") + " turn   "
             + ClientSettings.KeyName("strafe_left") + "/" + ClientSettings.KeyName("strafe_right") + " step   "
-            + ClientSettings.KeyName("jump") + " jump   Right-drag look   Wheel zoom   Click player to select   "
+            + ClientSettings.KeyName("jump") + " jump   Right-drag look   Wheel zoom   Click a player   "
             + ClientSettings.KeyName("interact") + " use   "
-            + ClientSettings.KeyName("phone") + " phone   "
-            + ClientSettings.KeyName("inventory") + " inventory   "
-            + ClientSettings.KeyName("map") + " map   "
-            + ClientSettings.KeyName("social") + " friends   "
-            + ClientSettings.KeyName("skills") + " skills   "
-            + ClientSettings.KeyName("emp") + " EMP   Enter chat   Esc menu");
+            + ClientSettings.KeyName("emp") + " EMP   Enter chat");
     }
 
     private void Leave()

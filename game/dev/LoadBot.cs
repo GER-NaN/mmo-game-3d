@@ -81,6 +81,12 @@ public partial class LoadBot : Node, IPlayerInput
 
     private Player? FindBody()
     {
+        // After the server went away there is no peer to be.
+        if (!Multiplayer.HasMultiplayerPeer())
+        {
+            return null;
+        }
+
         long me = Multiplayer.GetUniqueId();
 
         // This node is under the bot's ClientGame, and the world is next to that.
