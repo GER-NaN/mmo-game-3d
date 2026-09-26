@@ -74,6 +74,7 @@ public partial class ServerGame : Node
     private ServerMaps _maps = null!;
     private ServerSocial _social = null!;
     private ServerProgress _progress = null!;
+    private ServerFixables _fixables = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -164,6 +165,22 @@ public partial class ServerGame : Node
         _interactions.Town = _town;
         _rides = new ServerRides(world, _gate, network, _parties, () => _sessions.Values, Travel);
         _interactions.Rides = _rides;
+
+        List<Fixable> fixables = new List<Fixable>();
+
+        foreach (string zoneId in ZoneIds.All)
+        {
+            foreach (Node node in _world.GetZone(zoneId)!.GetNode(Interactable.ParentName).GetChildren())
+            {
+                if (node is Fixable fixable)
+                {
+                    fixables.Add(fixable);
+                }
+            }
+        }
+
+        _fixables = new ServerFixables(fixables, network, _progress);
+        _interactions.Fixables = _fixables;
         _terminals.Opened += _town.SendTown;
 
         // Things standing in the zones sync their state (a terminal in use) only to the
@@ -255,6 +272,7 @@ public partial class ServerGame : Node
         _rides.Tick(delta);
         _maps.Tick(delta);
         _progress.Tick(delta);
+        _fixables.Tick(delta);
         _packetLog?.Drain();
         _diagnostics?.Tick(delta);
 

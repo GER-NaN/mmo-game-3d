@@ -34,6 +34,8 @@ public class ServerInteractions
     private ServerTown? _town;
     private ServerRides? _rides;
 
+    public ServerFixables? Fixables { get; set; }
+
     public ServerRides? Rides
     {
         set { _rides = value; }
@@ -89,6 +91,9 @@ public class ServerInteractions
                 break;
             case JunctionBox:
                 _town?.Repair(session);
+                break;
+            case Fixable fixable:
+                Fixables?.Fix(session, fixable);
                 break;
             case Chest chest:
                 _chests.Open(session, chest);

@@ -31,6 +31,7 @@
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/Dumpster.tscn" id="23_p"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/Firehydrant.tscn" id="24_p"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TrashA.tscn" id="25_p"]
+[ext_resource type="PackedScene" path="res://game/town/Fixable.tscn" id="95_fixable"]
 
 [sub_resource type="BoxShape3D" id="Shape_Ground"]
 size = Vector3(100, 1, 100)
@@ -281,18 +282,6 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -18, 0, 3.2)
 [node name="Bench0" parent="Street" instance=ExtResource("22_p")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -10, 0, 8)
 
-[node name="Bench1" parent="Street" instance=ExtResource("22_p")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -8)
-
-[node name="Dumpster0" parent="Street" instance=ExtResource("23_p")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -8)
-
-[node name="Hydrant0" parent="Street" instance=ExtResource("24_p")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -6)
-
-[node name="Trash0" parent="Street" instance=ExtResource("25_p")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 6)
-
 [node name="Edges" type="Node3D" parent="."]
 
 [node name="North" type="StaticBody3D" parent="Edges"]
@@ -372,6 +361,30 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 5)
 
 [node name="StreetKiosk" parent="Interactables" instance=ExtResource("2_terminal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -7)
+
+[node name="Bench1" parent="Interactables" instance=ExtResource("95_fixable")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -8)
+FixableName = "bench"
+
+[node name="Prop" parent="Interactables/Bench1" instance=ExtResource("22_p")]
+
+[node name="Dumpster0" parent="Interactables" instance=ExtResource("95_fixable")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -8)
+FixableName = "dumpster lid"
+
+[node name="Prop" parent="Interactables/Dumpster0" instance=ExtResource("23_p")]
+
+[node name="Hydrant0" parent="Interactables" instance=ExtResource("95_fixable")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -6)
+FixableName = "fire hydrant"
+
+[node name="Prop" parent="Interactables/Hydrant0" instance=ExtResource("24_p")]
+
+[node name="Trash0" parent="Interactables" instance=ExtResource("95_fixable")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 6)
+FixableName = "trash can"
+
+[node name="Prop" parent="Interactables/Trash0" instance=ExtResource("25_p")]
 
 [node name="Doors" type="Node3D" parent="."]
 

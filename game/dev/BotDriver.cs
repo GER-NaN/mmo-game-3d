@@ -256,7 +256,7 @@ public partial class BotDriver : Node
         Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
 
         bool usable = prompt != null && prompt.Visible
-            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi"));
+            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi") || prompt.Text.Contains("Fix the"));
 
         // Reading the map, it does not stop to use things.
         if (prompt != null && usable && _nextInteract <= 0 && !_mapOpen)
