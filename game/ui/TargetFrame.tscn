@@ -36,6 +36,18 @@ layout_mode = 2
 focus_mode = 0
 text = "Give"
 
+[node name="Friend" type="Button" parent="Margin/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "Add friend"
+
+[node name="Ignore" type="Button" parent="Margin/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "Ignore"
+
 [node name="Invite" type="Button" parent="Margin/Row"]
 unique_name_in_owner = true
 layout_mode = 2

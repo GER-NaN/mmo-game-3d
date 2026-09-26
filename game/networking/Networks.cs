@@ -12,6 +12,7 @@ public class Networks
         Terminal = main.GetNode<TerminalNetwork>("TerminalNetwork");
         Shop = main.GetNode<ShopNetwork>("ShopNetwork");
         Items = main.GetNode<ItemNetwork>("ItemNetwork");
+        Social = main.GetNode<SocialNetwork>("SocialNetwork");
     }
 
     public Network Session { get; }
@@ -19,6 +20,7 @@ public class Networks
     public TerminalNetwork Terminal { get; }
     public ShopNetwork Shop { get; }
     public ItemNetwork Items { get; }
+    public SocialNetwork Social { get; }
 
     public void SetLog(IRpcLog log)
     {
@@ -27,5 +29,6 @@ public class Networks
         Terminal.Log = log;
         Shop.Log = log;
         Items.Log = log;
+        Social.Log = log;
     }
 }

@@ -34,6 +34,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene WorkbenchScene = GD.Load<PackedScene>("res://game/ui/WorkbenchPanel.tscn");
     private static readonly PackedScene GiveScene = GD.Load<PackedScene>("res://game/ui/GivePanel.tscn");
     private static readonly PackedScene MapScene = GD.Load<PackedScene>("res://game/ui/MapPanel.tscn");
+    private static readonly PackedScene SocialScene = GD.Load<PackedScene>("res://game/ui/SocialPanel.tscn");
 
     // Walking this far from where a shop or a workbench was opened closes it.
     private const float PanelWalkAway = 4f;
@@ -48,6 +49,7 @@ public partial class ClientGame : Node
     private TerminalNetwork _terminalNetwork = null!;
     private ShopNetwork _shopNetwork = null!;
     private ItemNetwork _itemNetwork = null!;
+    private SocialNetwork _socialNetwork = null!;
     private Node _main = null!;
     private ClientSettings _settings = null!;
     private Profile _profile = null!;
@@ -67,6 +69,10 @@ public partial class ClientGame : Node
     private WorkbenchPanel? _workbench;
     private GivePanel? _give;
     private MapPanel? _map;
+    private SocialPanel? _social;
+
+    // What the server last said about friends and ignores; see SocialNetwork.
+    private string[][] _contacts = { new string[0], new string[0], new string[0], new string[0], new string[0] };
 
     // Where the server says this player has been, per zone.
     private readonly Dictionary<string, byte[]> _maps = new Dictionary<string, byte[]>();
@@ -94,6 +100,7 @@ public partial class ClientGame : Node
         _terminalNetwork = networks.Terminal;
         _shopNetwork = networks.Shop;
         _itemNetwork = networks.Items;
+        _socialNetwork = networks.Social;
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load();
@@ -126,6 +133,7 @@ public partial class ClientGame : Node
         _network.ChatReceived += OnChatReceived;
         _network.ClockReceived += OnClockReceived;
         _network.MapReceived += OnMapReceived;
+        _socialNetwork.ContactsReceived += OnContactsReceived;
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
         _shopNetwork.ShopOpened += OnShopOpened;
         _itemNetwork.WorkbenchOpened += OnWorkbenchOpened;
@@ -231,6 +239,11 @@ public partial class ClientGame : Node
         {
             GetViewport().SetInputAsHandled();
             ToggleMap();
+        }
+        else if (@event.IsActionPressed("social"))
+        {
+            GetViewport().SetInputAsHandled();
+            ToggleSocial();
         }
         else if (@event.IsActionPressed("chat") && _chat != null)
         {
@@ -360,6 +373,8 @@ public partial class ClientGame : Node
         AddChild(_party);
         _party.Start(_partyNetwork, _ui, _world);
         _party.GiveRequested += OpenGive;
+        _party.FriendRequested += player => _socialNetwork.SendBefriend(player.OwnerPeerId);
+        _party.IgnoreRequested += player => _socialNetwork.SendIgnore(player.OwnerPeerId);
 
         _intents = new ClientIntents { Name = "Intents" };
         AddChild(_intents);
@@ -653,6 +668,27 @@ public partial class ClientGame : Node
         }
     }
 
+    private void OnContactsReceived(string[] friendIds, string[] friendNames, string[] friendZones, string[] ignoredIds, string[] ignoredNames)
+    {
+        _contacts = new string[][] { friendIds, friendNames, friendZones, ignoredIds, ignoredNames };
+        _social?.ShowContacts(friendIds, friendNames, friendZones, ignoredIds, ignoredNames);
+    }
+
+    private void ToggleSocial()
+    {
+        if (_social != null)
+        {
+            _social.QueueFree();
+            _social = null;
+            return;
+        }
+
+        _social = SocialScene.Instantiate<SocialPanel>();
+        _ui.AddChild(_social);
+        _social.ShowContacts(_contacts[0], _contacts[1], _contacts[2], _contacts[3], _contacts[4]);
+        _social.RemovePressed += _socialNetwork.SendRemove;
+    }
+
     private void ToggleMap()
     {
         if (_map != null)
@@ -732,7 +768,8 @@ public partial class ClientGame : Node
             + ClientSettings.KeyName("interact") + " use   "
             + ClientSettings.KeyName("phone") + " phone   "
             + ClientSettings.KeyName("inventory") + " inventory   "
-            + ClientSettings.KeyName("map") + " map   Enter chat   Esc menu");
+            + ClientSettings.KeyName("map") + " map   "
+            + ClientSettings.KeyName("social") + " friends   Enter chat   Esc menu");
     }
 
     private void Leave()
@@ -802,6 +839,13 @@ public partial class ClientGame : Node
         CloseGive();
         CloseMap();
         _maps.Clear();
+
+        if (_social != null)
+        {
+            _social.QueueFree();
+            _social = null;
+        }
+
         _instances = new List<ItemInstance>();
         _chatLog.Clear();
 

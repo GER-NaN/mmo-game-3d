@@ -16,9 +16,10 @@ using MmoGame3d.Ui;
 /// to, goes online at a terminal it passes (then offline again a little later), buys
 /// the first thing a shopkeeper offers, opens chests, equips its phone and goes online on it, and at a
 /// workbench takes the battery out and puts one in. It drops a stack once, and gives one
-/// thing to a party member it clicks on. Now and then it glances at the map. Once, as it
-/// arrives, it looks at the settings and closes them unchanged: the settings file is the
-/// machine's, shared with the person who plays on it.
+/// thing to a party member it clicks on, and adds the first player it clicks on as a
+/// friend. Now and then it glances at the map. Once, as it
+/// arrives, it looks at the settings and closes them unchanged (the settings file is the
+/// machine's, shared with the person who plays on it), then at its friends list.
 /// </summary>
 public partial class BotDriver : Node
 {
@@ -57,6 +58,7 @@ public partial class BotDriver : Node
     private int _benchClicks;
     private double _giveClickIn = -1;
     private bool _dropped;
+    private bool _befriended;
     private double _interactHeldFor = -1;
     private double _nextInteract;
     private double _nextMap = 1;
@@ -153,8 +155,15 @@ public partial class BotDriver : Node
             Button? invite = GetTree().GetFirstNodeInGroup(TargetFrame.InviteGroup) as Button;
 
             Button? give = GetTree().GetFirstNodeInGroup(TargetFrame.GiveGroup) as Button;
+            Button? friend = GetTree().GetFirstNodeInGroup(TargetFrame.FriendGroup) as Button;
 
-            if (invite != null && invite.IsVisibleInTree())
+            if (!_befriended && friend != null && friend.IsVisibleInTree())
+            {
+                _befriended = true;
+                GD.Print("Bot: clicking Add friend");
+                Click(friend.GetGlobalRect().GetCenter());
+            }
+            else if (invite != null && invite.IsVisibleInTree())
             {
                 GD.Print("Bot: clicking Invite");
                 Click(invite.GetGlobalRect().GetCenter());
@@ -377,10 +386,11 @@ public partial class BotDriver : Node
         }
     }
 
-    // Esc, Settings, a look, Back, Esc. True while it is still at it.
+    // Esc, Settings, a look, Back, Esc; then the friends list open and shut. True while
+    // it is still at it.
     private bool LookAtSettings(double delta)
     {
-        if (_settingsStep > 3)
+        if (_settingsStep > 5)
         {
             return false;
         }
@@ -418,8 +428,16 @@ public partial class BotDriver : Node
 
                 _settingsIn = ReadDelay;
                 break;
-            default:
+            case 3:
                 Press("ui_cancel");
+                _settingsIn = ReadDelay;
+                break;
+            case 4:
+                Press("social");
+                _settingsIn = 2;
+                break;
+            default:
+                Press("social");
                 break;
         }
 

@@ -6,6 +6,7 @@ using MmoGame3d.Players;
 using MmoGame3d.Rules.Intents;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Maps;
+using MmoGame3d.Rules.Social;
 using MmoGame3d.Vendors;
 using MmoGame3d.Workbenches;
 
@@ -45,6 +46,9 @@ public class Session
 
     // The workbench last used; work is taken only while it is in reach.
     public Workbench? OpenWorkbench { get; set; }
+
+    // Friends and ignores, live. Set with the record.
+    public Contacts Contacts { get; set; } = new Contacts();
 
     // Where they have been, per zone with a map, live; and the zones changed since the
     // last save. Set with the record.

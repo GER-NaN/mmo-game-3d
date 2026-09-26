@@ -76,6 +76,11 @@ public class ServerHandover
                 return "Stand next to someone to give them something.";
             }
 
+            if (ServerSocial.Ignores(target, session))
+            {
+                return target.Record!.DisplayName + " cannot take that now.";
+            }
+
             string what;
 
             if (dollars > 0)

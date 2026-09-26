@@ -8,6 +8,7 @@ using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
 using MmoGame3d.Data.Maps;
 using MmoGame3d.Data.Players;
+using MmoGame3d.Data.Social;
 using MmoGame3d.Data.Town;
 using MmoGame3d.Interact;
 using MmoGame3d.Items;
@@ -54,6 +55,7 @@ public partial class ServerGame : Node
     private AccountStore _accounts = null!;
     private PlayerStore _players = null!;
     private DiscoveryStore _discoveries = null!;
+    private ContactStore _contacts = null!;
     private StopSignals? _stopSignals;
     private VisibilityGate _gate = null!;
     private GroundItems _groundItems = null!;
@@ -67,6 +69,7 @@ public partial class ServerGame : Node
     private ServerChests _chests = null!;
     private ServerRides _rides = null!;
     private ServerMaps _maps = null!;
+    private ServerSocial _social = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -121,6 +124,8 @@ public partial class ServerGame : Node
         _discoveries = new DiscoveryStore(database);
         _worker = new PersistenceWorker();
         _maps = new ServerMaps(world, network, _worker, _discoveries, () => _sessions.Values);
+        _contacts = new ContactStore(database);
+        _social = new ServerSocial(networks.Social, network, _worker, _contacts, () => _sessions.Values, FindSession);
         _stopSignals = new StopSignals(options.Port);
         _clock = new WorldClock(options.TimeZone, options.TimeOffsetHours);
         TimeSpan worldTime = TimeSpan.FromSeconds(_clock.SecondsOfDay(DateTime.UtcNow));
@@ -217,6 +222,9 @@ public partial class ServerGame : Node
         networks.Items.PhoneRequested += peer => WithSession(peer, session => _equipment.UsePhone(session));
         networks.Items.RemoveBatteryRequested += (peer, id) => WithSession(peer, session => _equipment.RemoveBattery(session, id));
         networks.Items.InsertBatteryRequested += (peer, id) => WithSession(peer, session => _equipment.InsertBattery(session, id));
+        networks.Social.BefriendRequested += (peer, target) => WithSession(peer, session => _social.Befriend(session, target));
+        networks.Social.IgnoreRequested += (peer, target) => WithSession(peer, session => _social.Ignore(session, target));
+        networks.Social.RemoveRequested += (peer, id) => WithSession(peer, session => _social.Remove(session, id));
 
         GD.Print("Server listening on port " + options.Port + " for up to " + options.MaxPlayers + " players");
     }
@@ -370,6 +378,7 @@ public partial class ServerGame : Node
             Save(session);
             session.Body?.QueueFree();
             _parties.LeftWorld(session);
+            _social.WentOffline(session);
             _chat.Announce(session.Record!.DisplayName + " left.");
         }
 
@@ -429,6 +438,7 @@ public partial class ServerGame : Node
                 };
                 PlayerRecord record = _players.GetOrCreate(newPlayer, out _);
                 record.Discovered = _discoveries.Load(record.PlayerId);
+                record.Contacts = _contacts.Load(record.PlayerId);
                 return record;
             },
             record => OnPlayerLoaded(peer, record),
@@ -468,6 +478,7 @@ public partial class ServerGame : Node
 
         session.Record = record;
         session.Dollars = record.Dollars;
+        session.Contacts = record.Contacts;
         _diagnostics?.Tag(peer, "player.name", record.DisplayName);
         _diagnostics?.Tag(peer, "player.id", record.PlayerId.ToString());
         session.Inventory = new Inventory();
@@ -530,6 +541,11 @@ public partial class ServerGame : Node
         {
             session.HasEnteredWorld = true;
             _chat.Announce(record.DisplayName + " joined.");
+            _social.CameOnline(session);
+        }
+        else
+        {
+            _social.Arrived(session);
         }
     }
 

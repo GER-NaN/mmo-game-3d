@@ -41,7 +41,7 @@ public class ServerParties
             return;
         }
 
-        if (!_roster.Invite(inviter.Record.PlayerId, target.Record.PlayerId))
+        if (ServerSocial.Ignores(target, inviter) || !_roster.Invite(inviter.Record.PlayerId, target.Record.PlayerId))
         {
             _session.SendNotice(inviter.PeerId, target.Record.DisplayName + " cannot join your party now.");
             return;

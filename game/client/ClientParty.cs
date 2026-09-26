@@ -34,6 +34,8 @@ public partial class ClientParty : Node
 
     // Raised when Give is pressed for the selected player.
     public event System.Action<Player>? GiveRequested;
+    public event System.Action<Player>? FriendRequested;
+    public event System.Action<Player>? IgnoreRequested;
 
     public void Start(PartyNetwork network, CanvasLayer ui, Node world)
     {
@@ -101,6 +103,20 @@ public partial class ClientParty : Node
                     if (_target != null && IsInstanceValid(_target))
                     {
                         GiveRequested?.Invoke(_target);
+                    }
+                };
+                _frame.FriendPressed += () =>
+                {
+                    if (_target != null && IsInstanceValid(_target))
+                    {
+                        FriendRequested?.Invoke(_target);
+                    }
+                };
+                _frame.IgnorePressed += () =>
+                {
+                    if (_target != null && IsInstanceValid(_target))
+                    {
+                        IgnoreRequested?.Invoke(_target);
                     }
                 };
             }

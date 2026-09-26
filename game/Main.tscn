@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://game/Main.cs" id="1_main"]
 [ext_resource type="Script" path="res://game/networking/Network.cs" id="2_network"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://game/networking/TerminalNetwork.cs" id="4_terminal"]
 [ext_resource type="Script" path="res://game/networking/ShopNetwork.cs" id="5_shop"]
 [ext_resource type="Script" path="res://game/networking/ItemNetwork.cs" id="6_items"]
+[ext_resource type="Script" path="res://game/networking/SocialNetwork.cs" id="7_social"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -24,3 +25,6 @@ script = ExtResource("5_shop")
 
 [node name="ItemNetwork" type="Node" parent="."]
 script = ExtResource("6_items")
+
+[node name="SocialNetwork" type="Node" parent="."]
+script = ExtResource("7_social")

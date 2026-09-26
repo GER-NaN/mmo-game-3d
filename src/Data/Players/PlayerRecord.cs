@@ -1,6 +1,7 @@
 namespace MmoGame3d.Data.Players;
 
 using MmoGame3d.Rules.Items;
+using MmoGame3d.Rules.Social;
 
 /// <summary>
 /// A player as it is kept between sessions. A record handed to the persistence worker
@@ -15,6 +16,10 @@ public class PlayerRecord
     // Where they have been, per zone (see Discovery). Loaded and saved by DiscoveryStore,
     // not by PlayerStore.
     public Dictionary<string, byte[]> Discovered { get; set; } = new Dictionary<string, byte[]>();
+
+    // Friends and ignores. Loaded by ContactStore, not by PlayerStore, and written by it
+    // on each change rather than with the player.
+    public Contacts Contacts { get; set; } = new Contacts();
 
     // True when GetOrCreate made this player just now. Not stored.
     public bool Created { get; set; }

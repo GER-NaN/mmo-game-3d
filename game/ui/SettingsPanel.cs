@@ -26,6 +26,7 @@ public partial class SettingsPanel : Control
         { "phone", "Phone" },
         { "inventory", "Inventory" },
         { "map", "Map" },
+        { "social", "Friends" },
     };
 
     private readonly Dictionary<string, Button> _keyButtons = new Dictionary<string, Button>();

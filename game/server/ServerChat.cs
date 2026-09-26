@@ -33,7 +33,7 @@ public class ServerChat
 
         if (clean != null)
         {
-            Broadcast(speaker.Record!.DisplayName, clean, ChatKind.Say);
+            Broadcast(speaker, speaker.Record!.DisplayName, clean, ChatKind.Say);
         }
     }
 
@@ -50,7 +50,7 @@ public class ServerChat
 
         foreach (Session listener in listeners)
         {
-            if (listener.State == SessionState.InWorld)
+            if (listener.State == SessionState.InWorld && !ServerSocial.Ignores(listener, speaker))
             {
                 _network.SendChatLine(listener.PeerId, speaker.Record!.DisplayName, clean, (int)kind);
             }
@@ -91,7 +91,7 @@ public class ServerChat
 
     public void Announce(string text)
     {
-        Broadcast("", text, ChatKind.System);
+        Broadcast(null, "", text, ChatKind.System);
     }
 
     public void Forget(long peer)
@@ -99,11 +99,12 @@ public class ServerChat
         _limits.Remove(peer);
     }
 
-    private void Broadcast(string sender, string text, ChatKind kind)
+    // The speaker is null for the server's own lines, which nobody can ignore.
+    private void Broadcast(Session? speaker, string sender, string text, ChatKind kind)
     {
         foreach (Session session in _sessions())
         {
-            if (session.State == SessionState.InWorld)
+            if (session.State == SessionState.InWorld && (speaker == null || !ServerSocial.Ignores(session, speaker)))
             {
                 _network.SendChatLine(session.PeerId, sender, text, (int)kind);
             }
