@@ -33,6 +33,7 @@
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TrashA.tscn" id="25_p"]
 [ext_resource type="PackedScene" path="res://game/town/Fixable.tscn" id="95_fixable"]
 [ext_resource type="PackedScene" path="res://game/town/Recycler.tscn" id="96_recycler"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TrafficlightA.tscn" id="97_signal"]
 
 [sub_resource type="BoxShape3D" id="Shape_Ground"]
 size = Vector3(100, 1, 100)
@@ -269,16 +270,19 @@ transform = Transform3D(-0.342, 0, 0.9397, 0, 1, 0, -0.9397, 0, -0.342, 20, 0, -
 transform = Transform3D(-0.9205, 0, 0.3907, 0, 1, 0, -0.3907, 0, -0.9205, 30, 0, -44)
 
 [node name="Car0" parent="Street" instance=ExtResource("18_p")]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -30, 0, -3.2)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -30, 0.1, -3.2)
 
 [node name="Car1" parent="Street" instance=ExtResource("19_p")]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 24, 0, 3.2)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 24, 0.1, 3.2)
 
 [node name="Car2" parent="Street" instance=ExtResource("20_p")]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 38, 0, -3.2)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 38, 0.1, -3.2)
 
 [node name="Car3" parent="Street" instance=ExtResource("21_p")]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -18, 0, 3.2)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -18, 0.1, 3.2)
+
+[node name="TrashBags0" parent="Street" instance=ExtResource("25_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.6, 0, -7.4)
 
 [node name="Bench0" parent="Street" instance=ExtResource("22_p")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -10, 0, 8)
@@ -364,13 +368,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 5)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -7)
 
 [node name="Bench1" parent="Interactables" instance=ExtResource("95_fixable")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -7.4)
 FixableName = "bench"
 
 [node name="Prop" parent="Interactables/Bench1" instance=ExtResource("22_p")]
 
 [node name="Dumpster0" parent="Interactables" instance=ExtResource("95_fixable")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.5, 0, -6.95)
 FixableName = "dumpster lid"
 
 [node name="Prop" parent="Interactables/Dumpster0" instance=ExtResource("23_p")]
@@ -381,14 +385,14 @@ FixableName = "fire hydrant"
 
 [node name="Prop" parent="Interactables/Hydrant0" instance=ExtResource("24_p")]
 
-[node name="Trash0" parent="Interactables" instance=ExtResource("95_fixable")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 6)
-FixableName = "trash can"
+[node name="Signal0" parent="Interactables" instance=ExtResource("95_fixable")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 6, 0, 6)
+FixableName = "traffic light"
 
-[node name="Prop" parent="Interactables/Trash0" instance=ExtResource("25_p")]
+[node name="Prop" parent="Interactables/Signal0" instance=ExtResource("97_signal")]
 
 [node name="Recycler" parent="Interactables" instance=ExtResource("96_recycler")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 0, -7.45)
 
 [node name="Doors" type="Node3D" parent="."]
 
@@ -398,7 +402,7 @@ TargetZone = "outskirts"
 TargetArrival = "FromTown"
 
 [node name="ToShop" parent="Doors" instance=ExtResource("90_door")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, -8.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, -7.4)
 TargetZone = "shop"
 TargetArrival = "FromTown"
 
@@ -411,7 +415,7 @@ font_size = 64
 pixel_size = 0.01
 
 [node name="ToCollege" parent="Doors" instance=ExtResource("90_door")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, -8.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, -7.4)
 TargetZone = "college"
 TargetArrival = "FromTown"
 
