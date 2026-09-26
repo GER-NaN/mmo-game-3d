@@ -58,11 +58,13 @@ public static class TerminalApps
     public const string TodoList = "todo";
     public const string TownLog = "townlog";
     public const string CodeCracker = "crack";
+    public const string Whois = "whois";
 
     private static readonly TerminalApp[] All =
     {
         new TerminalApp(Chat, "Chat", ""),
         new TerminalApp(Online, "Who's online", ""),
+        new TerminalApp(Whois, "Whois", ""),
         new TerminalApp(TodoList, "Town repairs", ""),
         new TerminalApp(TownLog, "Town log", ""),
         new TerminalApp(CodeCracker, "Code cracker", ""),
@@ -78,7 +80,7 @@ public static class TerminalApps
     };
 
     // What a phone keeps: the simple apps, and it still shows the locked ones.
-    private static readonly HashSet<string> PhoneApps = new HashSet<string> { Chat, Online, TodoList, "defense", "wallet" };
+    private static readonly HashSet<string> PhoneApps = new HashSet<string> { Chat, Online, Whois, TodoList, "defense", "wallet" };
 
     public static List<TerminalApp> For(TerminalType door)
     {

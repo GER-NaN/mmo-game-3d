@@ -77,6 +77,8 @@ public partial class ServerGame : Node
     private ServerFixables _fixables = null!;
     private ServerHacking _hacking = null!;
     private ServerCollege _college = null!;
+    private WhoisStore _whoisStore = null!;
+    private ServerWhois _whois = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -135,6 +137,7 @@ public partial class ServerGame : Node
         _contacts = new ContactStore(database);
         _social = new ServerSocial(networks.Social, network, _worker, _contacts, () => _sessions.Values, FindSession);
         _progressStore = new ProgressStore(database);
+        _whoisStore = new WhoisStore(database);
         _progress = new ServerProgress(networks.Progress, network, () => _sessions.Values);
         _stopSignals = new StopSignals(options.Port);
         _clock = new WorldClock(options.TimeZone, options.TimeOffsetHours);
@@ -194,6 +197,13 @@ public partial class ServerGame : Node
         _interactions.Fixables = _fixables;
         _hacking = new ServerHacking(networks.Terminal, network, _terminals, _progress);
         _college = new ServerCollege(networks.Progress, network, _progress);
+        _whois = new ServerWhois(networks.Social, network, _worker, _whoisStore, _terminals, () => _sessions.Values);
+        _whois.HasJob = _town.HasJob;
+        networks.Social.WhoisSearchRequested += (peer, text) => WithSession(peer, session => _whois.Search(session, text));
+        networks.Social.WhoisOpenRequested += (peer, id) => WithSession(peer, session => _whois.Open(session, id));
+        networks.Social.WhoisPropsRequested += (peer, id) => WithSession(peer, session => _whois.ToggleProps(session, id));
+        networks.Social.WhoisEditRequested += (peer, plan, skills, location) => WithSession(peer, session => _whois.Edit(session, plan, skills, location));
+        networks.Social.BefriendIdRequested += (peer, id) => WithSession(peer, session => _social.BefriendId(session, id));
         _interactions.College = _college;
         networks.Progress.TakeClassRequested += peer => WithSession(peer, session => _college.TakeClass(session));
         networks.Progress.EnrollRequested += (peer, career) => WithSession(peer, session => _college.Enroll(session, career));
@@ -499,6 +509,7 @@ public partial class ServerGame : Node
                 record.Discovered = _discoveries.Load(record.PlayerId);
                 record.Contacts = _contacts.Load(record.PlayerId);
                 record.Progress = _progressStore.Load(record.PlayerId);
+                record.Page = _whoisStore.LoadSettings(record.PlayerId);
                 return record;
             },
             record => OnPlayerLoaded(peer, record),
@@ -540,6 +551,7 @@ public partial class ServerGame : Node
         session.Dollars = record.Dollars;
         session.Contacts = record.Contacts;
         session.Progress = record.Progress;
+        session.Page = record.Page;
         _diagnostics?.Tag(peer, "player.name", record.DisplayName);
         _diagnostics?.Tag(peer, "player.id", record.PlayerId.ToString());
         session.Inventory = new Inventory();

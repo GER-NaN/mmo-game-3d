@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Client;
 using MmoGame3d.Rules.Chat;
+using MmoGame3d.Rules.Skills;
+using MmoGame3d.Rules.Social;
 using MmoGame3d.Rules.Terminals;
 using MmoGame3d.Rules.Town;
 
@@ -41,6 +43,28 @@ public partial class TerminalScreen : Control
     public event Action<string>? ChatSubmitted;
     public event Action? TakeJobPressed;
     public event Action? CrackStartPressed;
+
+    // Whois: search text, open a page by player id, your own page, props, your own
+    // settings (plan, show skills, show location), add friend, message (id, name).
+    public event Action<string>? WhoisSearchSubmitted;
+    public event Action<string>? WhoisOpenPressed;
+    public event Action? WhoisMinePressed;
+    public event Action<string>? WhoisPropsPressed;
+    public event Action<string, bool, bool>? WhoisEditSubmitted;
+    public event Action<string>? WhoisFriendPressed;
+    public event Action<string, string>? WhoisMessagePressed;
+
+    // Bots find Whois's parts by these groups.
+    public const string WhoisMineGroup = "whois_mine";
+    public const string WhoisPropsGroup = "whois_props";
+
+    // What Whois shows: the last results, or a page (null for none).
+    private string[] _whoisIds = Array.Empty<string>();
+    private string[] _whoisNames = Array.Empty<string>();
+    private string[] _whoisTitles = Array.Empty<string>();
+    private int[] _whoisLevels = Array.Empty<int>();
+    private int[] _whoisOnline = Array.Empty<int>();
+    private Godot.Collections.Dictionary? _whoisPage;
     public event Action<string>? CrackGuessSubmitted;
 
     // Bots find the code cracker's parts by these groups.
@@ -191,6 +215,29 @@ public partial class TerminalScreen : Control
         }
     }
 
+    public void ShowWhoisResults(string[] ids, string[] names, string[] titles, int[] levels, int[] online)
+    {
+        _whoisIds = ids;
+        _whoisNames = names;
+        _whoisTitles = titles;
+        _whoisLevels = levels;
+        _whoisOnline = online;
+        _whoisPage = null;
+        RefreshWhois();
+    }
+
+    public void ShowWhoisPage(Godot.Collections.Dictionary page)
+    {
+        _whoisPage = page;
+        RefreshWhois();
+    }
+
+    // Whois may be asked for from outside the app (a page opened for you): show it.
+    private void RefreshWhois()
+    {
+        ShowApp(new TerminalApp(TerminalApps.Whois, "Whois", ""));
+    }
+
     public void ShowRoster(string[] names, string[] zones, int[] online)
     {
         _rosterNames = names;
@@ -247,6 +294,9 @@ public partial class TerminalScreen : Control
                 break;
             case TerminalApps.CodeCracker:
                 ShowCrack(content);
+                break;
+            case TerminalApps.Whois:
+                ShowWhois(content);
                 break;
             case TerminalApps.StatusBoard:
                 AddLine(content, "Data centre raid in progress: Ashford", Text, 17);
@@ -308,6 +358,158 @@ public partial class TerminalScreen : Control
         take.AddToGroup(TakeJobGroup);
         take.Pressed += () => TakeJobPressed?.Invoke();
         content.AddChild(take);
+    }
+
+    // Whois: a search line and your own page on top; below, the results or one page.
+    private void ShowWhois(VBoxContainer content)
+    {
+        HBoxContainer search = new HBoxContainer();
+        LineEdit text = new LineEdit { PlaceholderText = "Search a name", SizeFlagsHorizontal = SizeFlags.ExpandFill, MaxLength = 24 };
+        text.TextSubmitted += value => WhoisSearchSubmitted?.Invoke(value);
+        search.AddChild(text);
+        Button mine = new Button { Text = "My page", FocusMode = FocusModeEnum.None };
+        mine.AddToGroup(WhoisMineGroup);
+        mine.Pressed += () => WhoisMinePressed?.Invoke();
+        search.AddChild(mine);
+        content.AddChild(search);
+
+        if (_whoisPage != null)
+        {
+            ShowWhoisPage(content, _whoisPage);
+            return;
+        }
+
+        if (_whoisIds.Length == 0)
+        {
+            AddLine(content, "Type a name and press Enter. Names are not unique: the career and level tell players apart.", Dim, 15);
+            return;
+        }
+
+        for (int i = 0; i < _whoisIds.Length; i++)
+        {
+            string id = _whoisIds[i];
+            string title = _whoisTitles[i].Length > 0 ? _whoisTitles[i] : "No career";
+            Button row = new Button
+            {
+                Text = (_whoisOnline[i] != 0 ? "● " : "○ ") + _whoisNames[i] + "   " + title + "   Level " + _whoisLevels[i],
+                Alignment = HorizontalAlignment.Left,
+                FocusMode = FocusModeEnum.None,
+            };
+            row.AddThemeColorOverride("font_color", _whoisOnline[i] != 0 ? Text : Dim);
+            row.Pressed += () => WhoisOpenPressed?.Invoke(id);
+            content.AddChild(row);
+        }
+    }
+
+    private void ShowWhoisPage(VBoxContainer content, Godot.Collections.Dictionary page)
+    {
+        string id = (string)page["id"];
+        string name = (string)page["name"];
+        bool own = (bool)page["own"];
+        bool online = (bool)page["online"];
+
+        AddLine(content, name + "      Level " + (int)page["level"], Text, 20);
+        string title = (string)page["title"];
+
+        if (title.Length == 0)
+        {
+            AddLine(content, "No career", Dim, 16);
+        }
+        else
+        {
+            string next = (string)page["next"];
+            float progress = (float)page["progress"];
+            string bar = next.Length == 0 ? "" : "   [" + new string('#', (int)(progress * 16)) + new string('.', 16 - (int)(progress * 16)) + "]  " + (int)(progress * 100) + "% to " + next;
+            AddLine(content, title + bar, Text, 16);
+        }
+
+        string where = (string)page["where"];
+        string doing = (string)page["doing"];
+        AddLine(content, (online ? "● " : "○ ") + (where.Length > 0 ? where : (online ? "Location hidden" : "Offline")), online ? Text : Dim, 16);
+
+        if (doing.Length > 0)
+        {
+            AddLine(content, "   " + doing, Dim, 15);
+        }
+
+        AddLine(content, "plan", Dim, 14);
+        string plan = (string)page["plan"];
+
+        if (own)
+        {
+            LineEdit planEdit = new LineEdit { Text = plan, PlaceholderText = "Write your plan. Enter saves.", MaxLength = WhoisSettings.MaxPlanLength };
+            CheckBox showSkills = new CheckBox { Text = "Show Skills", ButtonPressed = (bool)page["showSkills"], FocusMode = FocusModeEnum.None };
+            CheckBox showLocation = new CheckBox { Text = "Show Location", ButtonPressed = (bool)page["showLocation"], FocusMode = FocusModeEnum.None };
+            planEdit.TextSubmitted += value => WhoisEditSubmitted?.Invoke(value, showSkills.ButtonPressed, showLocation.ButtonPressed);
+            showSkills.Toggled += on => WhoisEditSubmitted?.Invoke(planEdit.Text, on, showLocation.ButtonPressed);
+            showLocation.Toggled += on => WhoisEditSubmitted?.Invoke(planEdit.Text, showSkills.ButtonPressed, on);
+            content.AddChild(planEdit);
+            HBoxContainer toggles = new HBoxContainer();
+            toggles.AddChild(showSkills);
+            toggles.AddChild(showLocation);
+            content.AddChild(toggles);
+        }
+        else
+        {
+            AddLine(content, plan.Length > 0 ? "\"" + plan + "\"" : "No plan.", plan.Length > 0 ? Text : Dim, 16);
+        }
+
+        AddLine(content, "skills", Dim, 14);
+
+        if ((bool)page["skillsShown"])
+        {
+            int[] skillIds = (int[])page["skillIds"];
+            long[] skillXp = (long[])page["skillXp"];
+            List<string> parts = new List<string>();
+
+            for (int i = 0; i < skillIds.Length && i < skillXp.Length; i++)
+            {
+                if (SkillCatalog.IsKnown(skillIds[i]))
+                {
+                    parts.Add(SkillCatalog.Name((SkillId)skillIds[i]) + " " + SkillCatalog.LevelFor(skillXp[i]));
+                }
+            }
+
+            AddLine(content, string.Join("    ", parts), Text, 16);
+
+            if (own && !(bool)page["showSkills"])
+            {
+                AddLine(content, "Only you see these. Turn on Show Skills to show them.", Dim, 14);
+            }
+        }
+        else
+        {
+            AddLine(content, "Skills are private.", Dim, 16);
+        }
+
+        AddLine(content, "^ " + (int)page["props"] + " props      " + (int)page["friends"] + " friends", Text, 16);
+
+        if (own)
+        {
+            return;
+        }
+
+        HBoxContainer actions = new HBoxContainer();
+        Button props = new Button { Text = (bool)page["gave"] ? "Take back props" : "Give props", FocusMode = FocusModeEnum.None };
+        props.AddToGroup(WhoisPropsGroup);
+        props.Pressed += () => WhoisPropsPressed?.Invoke(id);
+        actions.AddChild(props);
+
+        if (!(bool)page["isFriend"])
+        {
+            Button friend = new Button { Text = "Add friend", FocusMode = FocusModeEnum.None };
+            friend.Pressed += () => WhoisFriendPressed?.Invoke(id);
+            actions.AddChild(friend);
+        }
+
+        if (online)
+        {
+            Button message = new Button { Text = "Message", FocusMode = FocusModeEnum.None };
+            message.Pressed += () => WhoisMessagePressed?.Invoke(id, name);
+            actions.AddChild(message);
+        }
+
+        content.AddChild(actions);
     }
 
     // Four digits, 0 to 5, eight guesses. Each answer: right and in place, right but

@@ -85,6 +85,11 @@ public class ServerTown
     // Raised for the one who repaired the lights: experience and a mission.
     public event Action<Session>? Repaired;
 
+    public bool HasJob(Guid playerId)
+    {
+        return _jobTakers.Contains(playerId);
+    }
+
     public void Repair(Session session)
     {
         string? refusal = _lights.CannotRepair(_jobTakers.Contains(session.Record!.PlayerId), session.Inventory!);

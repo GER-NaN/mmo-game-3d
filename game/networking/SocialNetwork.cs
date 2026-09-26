@@ -20,6 +20,136 @@ public partial class SocialNetwork : NetworkNode
     // ignored (ids, names).
     public event Action<string[], string[], string[], string[], string[]>? ContactsReceived;
 
+    // Server side, Whois: search text, a page by player id, props on a page, the owner's
+    // own settings, and befriending from a page (the player may be offline).
+    public event Action<long, string>? WhoisSearchRequested;
+    public event Action<long, string>? WhoisOpenRequested;
+    public event Action<long, string>? WhoisPropsRequested;
+    public event Action<long, string, bool, bool>? WhoisEditRequested;
+    public event Action<long, string>? BefriendIdRequested;
+
+    // Client side, Whois: search results (ids, names, career titles, levels, 1 if online)
+    // and one page (see ServerWhois for its keys).
+    public event Action<string[], string[], string[], int[], int[]>? WhoisResultsReceived;
+    public event Action<Godot.Collections.Dictionary>? WhoisPageReceived;
+
+    public void SendWhoisSearch(string text)
+    {
+        RpcId(1, MethodName.WhoisSearch, text);
+    }
+
+    public void SendWhoisOpen(string playerId)
+    {
+        RpcId(1, MethodName.WhoisOpen, playerId);
+    }
+
+    public void SendWhoisProps(string playerId)
+    {
+        RpcId(1, MethodName.WhoisProps, playerId);
+    }
+
+    public void SendWhoisEdit(string plan, bool showSkills, bool showLocation)
+    {
+        RpcId(1, MethodName.WhoisEdit, plan, showSkills, showLocation);
+    }
+
+    public void SendBefriendId(string playerId)
+    {
+        RpcId(1, MethodName.BefriendId, playerId);
+    }
+
+    public void SendWhoisResults(long peer, string[] ids, string[] names, string[] titles, int[] levels, int[] online)
+    {
+        SendTo(peer, MethodName.ReceiveWhoisResults, ids, names, titles, levels, online);
+    }
+
+    public void SendWhoisPage(long peer, Godot.Collections.Dictionary page)
+    {
+        SendTo(peer, MethodName.ReceiveWhoisPage, page);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveWhoisResults(string[] ids, string[] names, string[] titles, int[] levels, int[] online)
+    {
+        WhoisResultsReceived?.Invoke(ids, names, titles, levels, online);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveWhoisPage(Godot.Collections.Dictionary page)
+    {
+        WhoisPageReceived?.Invoke(page);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void WhoisSearch(string text)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.WhoisSearch, sender, text))
+            {
+                WhoisSearchRequested?.Invoke(sender, text);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void WhoisOpen(string playerId)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.WhoisOpen, sender, playerId))
+            {
+                WhoisOpenRequested?.Invoke(sender, playerId);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void WhoisProps(string playerId)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.WhoisProps, sender, playerId))
+            {
+                WhoisPropsRequested?.Invoke(sender, playerId);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void WhoisEdit(string plan, bool showSkills, bool showLocation)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.WhoisEdit, sender, plan, showSkills, showLocation))
+            {
+                WhoisEditRequested?.Invoke(sender, plan, showSkills, showLocation);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void BefriendId(string playerId)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.BefriendId, sender, playerId))
+            {
+                BefriendIdRequested?.Invoke(sender, playerId);
+            }
+        }
+    }
+
     public void SendBefriend(long targetPeer)
     {
         RpcId(1, MethodName.Befriend, targetPeer);

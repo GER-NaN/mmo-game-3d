@@ -150,6 +150,12 @@ public partial class ClientGame : Node
         _network.ClockReceived += OnClockReceived;
         _network.MapReceived += OnMapReceived;
         _socialNetwork.ContactsReceived += OnContactsReceived;
+        _socialNetwork.WhoisResultsReceived += (ids, names, titles, levels, online) => _terminal?.ShowWhoisResults(ids, names, titles, levels, online);
+        _socialNetwork.WhoisPageReceived += page =>
+        {
+            GD.Print("Whois page: " + page["name"]);
+            _terminal?.ShowWhoisPage(page);
+        };
         _progressNetwork.ProgressReceived += OnProgressReceived;
         _progressNetwork.CollegeOpened += OnCollegeOpened;
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
@@ -654,6 +660,28 @@ public partial class ClientGame : Node
         _terminal.TakeJobPressed += () => _terminalNetwork.SendTakeJob(StreetLights.JobId);
         _terminal.CrackStartPressed += _terminalNetwork.SendCrackStart;
         _terminal.CrackGuessSubmitted += _terminalNetwork.SendCrackGuess;
+        _terminal.WhoisSearchSubmitted += _socialNetwork.SendWhoisSearch;
+        _terminal.WhoisOpenPressed += _socialNetwork.SendWhoisOpen;
+        _terminal.WhoisMinePressed += () =>
+        {
+            Players.Player? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+
+            if (self != null)
+            {
+                _socialNetwork.SendWhoisOpen(self.PlayerIdText);
+            }
+        };
+        _terminal.WhoisPropsPressed += _socialNetwork.SendWhoisProps;
+        _terminal.WhoisEditSubmitted += _socialNetwork.SendWhoisEdit;
+        _terminal.WhoisFriendPressed += _socialNetwork.SendBefriendId;
+
+        // All talk is in the chat: a message from Whois leaves the terminal and opens the
+        // conversation there.
+        _terminal.WhoisMessagePressed += (id, name) =>
+        {
+            _terminalNetwork.SendLeave();
+            _chat?.OpenDirect(id, name);
+        };
 
         if (_finder != null)
         {

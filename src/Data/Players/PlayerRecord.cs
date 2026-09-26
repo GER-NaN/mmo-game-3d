@@ -22,6 +22,9 @@ public class PlayerRecord
     // on each change rather than with the player.
     public Contacts Contacts { get; set; } = new Contacts();
 
+    // The Whois page's settings. Loaded by WhoisStore, saved when changed.
+    public WhoisSettings Page { get; set; } = new WhoisSettings();
+
     // Skills and progress. Loaded and saved by ProgressStore.
     public PlayerProgress Progress { get; set; } = new PlayerProgress();
 

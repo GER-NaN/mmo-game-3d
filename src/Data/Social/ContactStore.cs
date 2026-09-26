@@ -42,6 +42,13 @@ public class ContactStore
             new { playerId, contactId, ignored });
     }
 
+    // A player's name, or null when there is no such player.
+    public string? NameOf(Guid playerId)
+    {
+        using IDbConnection connection = _database.Open();
+        return connection.QuerySingleOrDefault<string>("select display_name from players where id = @playerId;", new { playerId });
+    }
+
     public void Remove(Guid playerId, Guid contactId)
     {
         using IDbConnection connection = _database.Open();

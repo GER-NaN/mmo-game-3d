@@ -65,6 +65,7 @@ public partial class BotDriver : Node
     private bool _messaged;
     private double _typeIn = -1;
     private int _crackStep;
+    private int _whoisStep;
     private double _collegeSeenFor;
     private double _crackIn;
     private int _crackSeen;
@@ -277,7 +278,7 @@ public partial class BotDriver : Node
             _onlineFor += delta;
             TakeJob();
 
-            if (CrackCode(delta))
+            if (CrackCode(delta) || LookAtWhois())
             {
                 return;
             }
@@ -362,7 +363,6 @@ public partial class BotDriver : Node
                 {
                     GD.Print("Bot: code " + (screen.CrackStatus == 1 ? "cracked" : "locked out") + " in " + guesses.Length + " guesses");
                     _crackStep = -1;
-                    _onlineFor = 0;
                     return false;
                 }
 
@@ -370,6 +370,51 @@ public partial class BotDriver : Node
                 Type(NextGuess(guesses, screen.CrackExact, screen.CrackPartial));
                 return true;
         }
+    }
+
+    // Once, after a code: open Whois and look at its own page for a few seconds.
+    private bool LookAtWhois()
+    {
+        Button? app = GetTree().GetFirstNodeInGroup(TerminalScreen.AppGroupPrefix + TerminalApps.Whois) as Button;
+
+        if (app == null || _crackStep != -1 || _whoisStep > 2)
+        {
+            return false;
+        }
+
+        _crackIn -= GetProcessDeltaTime();
+
+        if (_crackIn > 0)
+        {
+            return true;
+        }
+
+        _crackIn = ReadDelay;
+
+        switch (_whoisStep)
+        {
+            case 0:
+                GD.Print("Bot: opening Whois");
+                Click(app.GetGlobalRect().GetCenter());
+                break;
+            case 1:
+                Button? mine = GetTree().GetFirstNodeInGroup(TerminalScreen.WhoisMineGroup) as Button;
+
+                if (mine != null)
+                {
+                    GD.Print("Bot: clicking My page");
+                    Click(mine.GetGlobalRect().GetCenter());
+                }
+
+                _crackIn = 15;
+                break;
+            default:
+                _onlineFor = 0;
+                break;
+        }
+
+        _whoisStep++;
+        return _whoisStep <= 2;
     }
 
     // The first code, in order, that would have given every answer seen so far.

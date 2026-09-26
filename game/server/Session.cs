@@ -63,6 +63,9 @@ public class Session
     // Whether the player was told this session that the next rank is ready.
     public bool RankReadyNoted { get; set; }
 
+    // The Whois page's settings (Plan, what is shown), live. Set with the record.
+    public WhoisSettings Page { get; set; } = new WhoisSettings();
+
     // Friends and ignores, live. Set with the record.
     public Contacts Contacts { get; set; } = new Contacts();
 

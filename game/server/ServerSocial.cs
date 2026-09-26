@@ -64,6 +64,51 @@ public class ServerSocial
         Send(session);
     }
 
+    // From a Whois page: by player id, online or not. The name comes from the database,
+    // never from the client.
+    public void BefriendId(Session session, string playerIdText)
+    {
+        Guid them;
+
+        if (!Guid.TryParse(playerIdText, out them))
+        {
+            return;
+        }
+
+        foreach (Session other in _sessions())
+        {
+            if (other.Record != null && other.Record.PlayerId == them)
+            {
+                Befriend(session, other.PeerId);
+                return;
+            }
+        }
+
+        _worker.Enqueue(
+            () => _store.NameOf(them),
+            name =>
+            {
+                if (name == null)
+                {
+                    return;
+                }
+
+                Guid me = session.Record!.PlayerId;
+                string? refusal = session.Contacts.Befriend(me, them, name);
+
+                if (refusal != null)
+                {
+                    _session.SendNotice(session.PeerId, refusal);
+                    return;
+                }
+
+                _worker.Enqueue(() => _store.Set(me, them, false), e => GD.PrintErr("Saving a friend failed: " + e.Message));
+                _session.SendNotice(session.PeerId, name + " is now your friend.");
+                Send(session);
+            },
+            e => GD.PrintErr("Finding a friend failed: " + e.Message));
+    }
+
     public void Ignore(Session session, long targetPeer)
     {
         Session? target = _findSession(targetPeer);
