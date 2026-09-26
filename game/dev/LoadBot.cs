@@ -115,7 +115,8 @@ public partial class LoadBot : Node, IPlayerInput
     {
         _actIn -= delta;
 
-        if (_actIn > 0)
+        // Nothing to say once the server has gone.
+        if (_actIn > 0 || !Multiplayer.HasMultiplayerPeer() || Multiplayer.MultiplayerPeer.GetConnectionStatus() != MultiplayerPeer.ConnectionStatus.Connected)
         {
             return;
         }
