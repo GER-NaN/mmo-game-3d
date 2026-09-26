@@ -117,6 +117,9 @@ public partial class ClientGame : Node
     private bool _autoCreated;
     private bool _autoPlayed;
     private string _zoneId = "";
+
+    // The street lights job, taken in a terminal: shown on the HUD until done.
+    private bool _hasLightsJob;
     private string _displayName = "";
     private string _address = "";
 
@@ -190,7 +193,17 @@ public partial class ClientGame : Node
         _terminalNetwork.Opened += OnTerminalOpened;
         _terminalNetwork.Closed += CloseTerminal;
         _terminalNetwork.RosterReceived += (names, zones, online) => _terminal?.ShowRoster(names, zones, online);
-        _terminalNetwork.TownReceived += (working, taken, log) => _terminal?.ShowTown(working, taken, log);
+        _terminalNetwork.TownReceived += (working, taken, log) =>
+        {
+            _terminal?.ShowTown(working, taken, log);
+
+            if (taken && !working && !_hasLightsJob)
+            {
+                GD.Print("Job on the HUD: the junction box");
+            }
+
+            _hasLightsJob = taken && !working;
+        };
         _terminalNetwork.CrackReceived += (guesses, exact, partial, positions, left, status) => _terminal?.ShowCrack(guesses, exact, partial, positions, left, status);
         // Deferred, like the login answers above: these fire inside the engine's network
         // poll, and closing the peer or freeing the world is better done after it.
@@ -251,6 +264,8 @@ public partial class ClientGame : Node
             _hud?.ShowHealth(me.Health);
         }
 
+        ShowJob(self);
+
         if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null || _plantCard != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
             CloseShop();
@@ -266,6 +281,76 @@ public partial class ClientGame : Node
         {
             CloseGive();
         }
+    }
+
+    // The job line, top right: what to do, and in town which way and how far.
+    private void ShowJob(Node3D? self)
+    {
+        Town.TownState? town = GetTree().GetFirstNodeInGroup(Town.TownState.Group) as Town.TownState;
+
+        if (town != null && town.LightsWorking)
+        {
+            _hasLightsJob = false;
+        }
+
+        Town.JunctionBox.Marked = _hasLightsJob;
+
+        if (_hud == null)
+        {
+            return;
+        }
+
+        if (!_hasLightsJob)
+        {
+            _hud.ShowJob("");
+            return;
+        }
+
+        string text = "Job: repair the junction box on Main Street, west of the crossing (a RAM stick as the part)";
+        Node3D? box = _world?.GetZone(_zoneId)?.GetNodeOrNull<Node3D>("Interactables/JunctionBox");
+        Camera3D? camera = GetViewport().GetCamera3D();
+
+        if (box != null && self != null && camera != null)
+        {
+            Vector3 to = box.GlobalPosition - self.GlobalPosition;
+            to.Y = 0f;
+            Vector3 ahead = -camera.GlobalBasis.Z;
+            ahead.Y = 0f;
+            text = "Job: repair the junction box, " + Mathf.RoundToInt(to.Length()) + " m " + Direction(ahead, to);
+        }
+
+        _hud.ShowJob(text);
+    }
+
+    // Which way a spot is from where the camera looks, in words.
+    private static string Direction(Vector3 ahead, Vector3 to)
+    {
+        if (to.Length() < 2f || ahead.Length() < 0.01f)
+        {
+            return "here";
+        }
+
+        // Positive is to the left, seen from above.
+        float angle = Mathf.RadToDeg(ahead.SignedAngleTo(to, Vector3.Up));
+
+        if (Mathf.Abs(angle) < 25f)
+        {
+            return "ahead";
+        }
+
+        if (Mathf.Abs(angle) > 155f)
+        {
+            return "behind you";
+        }
+
+        string side = angle > 0 ? "left" : "right";
+
+        if (Mathf.Abs(angle) < 65f)
+        {
+            return "ahead, to the " + side;
+        }
+
+        return Mathf.Abs(angle) < 115f ? "to the " + side : "behind, to the " + side;
     }
 
     public override void _UnhandledInput(InputEvent @event)

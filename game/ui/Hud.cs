@@ -166,6 +166,28 @@ public partial class Hud : Control
         GetNode<Label>("HealthText").Text = "HP " + health + (health < 50 ? "  (slowed)" : "");
     }
 
+    // The job this player has taken, top right; empty hides it.
+    public void ShowJob(string text)
+    {
+        Label? job = GetNodeOrNull<Label>("Job");
+
+        if (job == null)
+        {
+            job = new Label { Name = "Job", MouseFilter = MouseFilterEnum.Ignore, HorizontalAlignment = HorizontalAlignment.Right };
+            job.AddThemeConstantOverride("outline_size", 6);
+            job.AddThemeColorOverride("font_color", new Color(1f, 0.9f, 0.45f));
+            job.SetAnchorsPreset(LayoutPreset.TopRight);
+            job.GrowHorizontal = GrowDirection.Begin;
+            job.OffsetLeft = -16;
+            job.OffsetRight = -16;
+            job.OffsetTop = 12;
+            AddChild(job);
+        }
+
+        job.Visible = text.Length > 0;
+        job.Text = text;
+    }
+
     // The key help along the bottom.
     public void ShowHint(string hint)
     {
