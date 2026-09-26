@@ -19,6 +19,8 @@ using MmoGame3d.Rules.Time;
 ///   --autoconnect       skip the main menu and connect at once
 ///   --bot               the client plays by itself (implies --autoconnect)
 ///   --report-every 2    print what the client sees every 2 seconds
+///   --screenshot x.png  save the window to a PNG a few seconds in, then quit
+///   --overview          with --screenshot: look down on the whole zone
 /// </summary>
 public class LaunchOptions
 {
@@ -36,6 +38,8 @@ public class LaunchOptions
     public bool AutoConnect { get; private set; }
     public bool Bot { get; private set; }
     public double ReportEverySeconds { get; private set; }
+    public string? ScreenshotPath { get; private set; }
+    public bool Overview { get; private set; }
 
     public static LaunchOptions Parse(string[] args)
     {
@@ -88,6 +92,14 @@ public class LaunchOptions
                 case "--bot":
                     options.Bot = true;
                     options.AutoConnect = true;
+                    break;
+                case "--screenshot":
+                    options.ScreenshotPath = next;
+                    options.AutoConnect = true;
+                    i++;
+                    break;
+                case "--overview":
+                    options.Overview = true;
                     break;
                 case "--report-every":
                     options.ReportEverySeconds = double.Parse(next, System.Globalization.CultureInfo.InvariantCulture);

@@ -288,6 +288,13 @@ public partial class ClientGame : Node
 
         _network.SendWorldReady();
 
+        if (_options.ScreenshotPath != null)
+        {
+            Screenshot shot = new Screenshot { Name = "Screenshot" };
+            AddChild(shot);
+            shot.Start(_options.ScreenshotPath, _options.Overview);
+        }
+
         if (_options.Bot)
         {
             _bot = new BotDriver { Name = "Bot", Say = _network.SendChat };

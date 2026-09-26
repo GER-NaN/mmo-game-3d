@@ -31,12 +31,21 @@ public partial class Player : CharacterBody3D
     // The owner sends a changing walk at most this often. A stop goes out at once.
     private const double InputSendInterval = 0.05;
 
-    private static readonly Color OwnColor = new Color(0.25f, 0.5f, 1f);
+    // Speeds, in world units a second, where the look changes from standing to walking
+    // to running, and the vertical speed that counts as in the air.
+    private const float WalkFrom = 0.3f;
+    private const float RunFrom = 3f;
+    private const float AirborneFrom = 1.2f;
 
     // Owner only.
     private Vector2 _sentDirection;
     private float _sentHeading;
     private double _sinceSend;
+
+    // Client only: how the body is seen to move, smoothed, for the animation.
+    private CharacterModel? _model;
+    private float _seenSpeed;
+    private float _seenRise;
 
     // Server only.
     private Vector2 _moveDirection;
@@ -104,10 +113,12 @@ public partial class Player : CharacterBody3D
         Position = NetPosition;
         Rotation = new Vector3(0f, NetYaw, 0f);
 
+        _model = new CharacterModel { Name = "Model" };
+        AddChild(_model);
+
         if (IsOwnedHere)
         {
             Heading = NetYaw;
-            GetNode<MeshInstance3D>("Body").MaterialOverride = new StandardMaterial3D { AlbedoColor = OwnColor };
             AddToGroup(LocalGroup);
         }
     }
@@ -155,6 +166,8 @@ public partial class Player : CharacterBody3D
             return;
         }
 
+        Vector3 before = Position;
+
         if (Position.DistanceTo(NetPosition) > SnapDistance)
         {
             Position = NetPosition;
@@ -164,9 +177,47 @@ public partial class Player : CharacterBody3D
             Position = Position.Lerp(NetPosition, 1f - Mathf.Exp(-SmoothingRate * (float)delta));
         }
 
+        Animate(before, (float)delta);
+
         // Your own body faces your heading at once; others turn smoothly to theirs.
         float yaw = IsOwnedHere ? Heading : Mathf.LerpAngle(Rotation.Y, NetYaw, 1f - Mathf.Exp(-SmoothingRate * (float)delta));
         Rotation = new Vector3(0f, yaw, 0f);
+    }
+
+    // The look follows what the body is seen doing, so it works the same for every body
+    // on the screen, yours included, from the synced position alone.
+    private void Animate(Vector3 before, float delta)
+    {
+        if (_model == null || delta <= 0f)
+        {
+            return;
+        }
+
+        Vector3 moved = Position - before;
+        float blend = 1f - Mathf.Exp(-10f * delta);
+        _seenSpeed = Mathf.Lerp(_seenSpeed, new Vector2(moved.X, moved.Z).Length() / delta, blend);
+        _seenRise = Mathf.Lerp(_seenRise, moved.Y / delta, blend);
+
+        if (IsOnline)
+        {
+            _model.Play(CharacterModel.Busy);
+        }
+        else if (Mathf.Abs(_seenRise) > AirborneFrom)
+        {
+            _model.Play(CharacterModel.Airborne);
+        }
+        else if (_seenSpeed > RunFrom)
+        {
+            _model.Play(CharacterModel.Run);
+        }
+        else if (_seenSpeed > WalkFrom)
+        {
+            _model.Play(CharacterModel.Walk);
+        }
+        else
+        {
+            _model.Play(CharacterModel.Idle);
+        }
     }
 
     // While a text field or a menu has focus, the keys belong to it, not to walking.

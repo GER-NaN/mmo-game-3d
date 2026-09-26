@@ -14,6 +14,7 @@ public partial class DayNight : Node
     private const float MaxSunEnergy = 1.2f;
     private const float MoonEnergy = 0.18f;
     private const float NightSky = 0.08f;
+    private const float LampsOnBelow = 0.2f;
 
     // The highest the sun climbs, from the horizon; 75 degrees.
     private const float MaxElevation = 1.31f;
@@ -25,6 +26,7 @@ public partial class DayNight : Node
     private DirectionalLight3D _moon = null!;
     private Environment _environment = null!;
     private double _secondsOfDay = 12 * 3600;
+    private bool _lampsOn;
     private bool _known;
 
     public override void _Ready()
@@ -82,6 +84,19 @@ public partial class DayNight : Node
         _moon.Rotation = new Vector3(-0.9f, azimuth - (Mathf.Pi / 2f), 0f);
         _moon.LightColor = MoonLight;
         _moon.LightEnergy = MoonEnergy * (1f - strength);
+
+        // Street lamps come on at dusk. The repair job will decide which ones work.
+        bool dark = strength < LampsOnBelow;
+
+        if (dark != _lampsOn)
+        {
+            _lampsOn = dark;
+
+            foreach (Node lamp in GetTree().GetNodesInGroup("street_lamps"))
+            {
+                ((Node3D)lamp).Visible = dark;
+            }
+        }
 
         float sky = Mathf.Lerp(NightSky, 1f, strength);
         _environment.BackgroundEnergyMultiplier = sky;
