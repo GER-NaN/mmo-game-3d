@@ -250,3 +250,22 @@ public static class PlayerLevel
         return 1 + (int)Math.Floor(Math.Sqrt(Math.Max(0, points) / PointsPerLevelStep));
     }
 }
+
+/// <summary>
+/// Everything a player progresses in, together: skills, career, and what the player
+/// level counts besides them. Time played is kept in seconds and shown in minutes.
+/// </summary>
+public class PlayerProgress
+{
+    public SkillBook Skills { get; } = new SkillBook();
+    public PlayerCareer Career { get; } = new PlayerCareer();
+    public double SecondsPlayed { get; set; }
+
+    // Jobs finished: the street-light repair today, missions later.
+    public long Missions { get; set; }
+
+    public int Level()
+    {
+        return PlayerLevel.For((long)(SecondsPlayed / 60), Skills.TotalXp(), Career.Xp, Missions);
+    }
+}
