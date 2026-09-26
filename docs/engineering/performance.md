@@ -29,28 +29,30 @@ cores), the server and the bot clients on the same machine, diagnostics on.
 ## Where it stands
 
 - 100 players: about 140 fps; worst frames 12 to 20 ms; the server's own game logic is
-  about 5 ms a second in all. The rest is the engine: physics (each player's
-  move-and-slide at 60 steps a second) and replication (everyone in a zone is sent to
-  everyone there, n squared).
+  about 5 ms a second in all. The rest is the engine: replication (everyone in a zone
+  is sent to everyone there, n squared) and physics.
 - 200 players: 7 to 10 fps, frames 55 to 70 ms, worst about 140. Not the test
-  machine: the same with the bots at idle priority. Physics takes 11 to 17 ms a step,
-  so at 60 steps a second the frame budget is gone and the engine runs catch-up steps
-  every frame. Jolt physics (a project setting, tried and reverted) gave 13 to 14 fps
-  and 8 ms a step: better, not a fix.
+  machine: the same with the bots at idle priority. As in load-test.md, the cost is
+  the per-synchronizer, per-peer sync. The engine's physics time (11 to 17 ms at 200)
+  is per frame, and a slow frame runs several of the 60 steps a second, so a step is
+  about 1.5 to 2 ms. Jolt physics (a project setting, tried and reverted) gave 13 to 14
+  fps: a little better, not a fix.
 - A `GD.Print` on the server costs about 2.5 ms of the main thread on Windows, with or
   without diagnostics, flushing or the file log, and with the console or plain exe;
   the cause was not found. The server prints on logins, leaves, rides and breakages.
 - The .NET collector pauses about 10 ms in 10 s, at most one full collection: not a
   cause of the long frames.
 
-## Open decisions
+## Not planned
 
-- Physics: switch to Jolt; run the server's physics at a lower rate (30 steps);
-  or move players without physics bodies on the server (kinematic, checked against
-  the world). Each changes how movement behaves and needs trying in the game.
-- Replication: interest management, so a player is sent only those near them rather
-  than everyone in the zone.
-- Server prints: route the server's routine lines through the diagnostics log only,
-  or find why a print costs milliseconds on Windows.
-- A robo taxi ride loads its own cabin zone: about 10 ms a call, up to 20. Fine for
-  now; many rides at once would want pooled cabins.
+The author decided (2026-09-26) not to optimize further for now: 100 players in one
+place hold, and 200 is not a goal yet. Recorded so they are not rediscovered:
+
+- Replication: interest management, a lower rate for far players, or one packed
+  snapshot per client (load-test.md has the options).
+- Physics: Jolt, a lower server physics rate, or moving players without physics bodies
+  on the server.
+- Server prints: route routine lines through the diagnostics log only, or find why a
+  print costs milliseconds on Windows.
+- A robo taxi ride loads its own cabin zone: about 10 ms a call, up to 20. Many rides at
+  once would want pooled cabins.

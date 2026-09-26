@@ -53,3 +53,6 @@ take is a design decision for the author.
 - Load bots walk through their own input (`IPlayerInput`), since Godot has one `Input`
   per process; the normal `--bot` acts through the real keyboard and mouse.
 - `--stats-every N` on the server prints the line the table above comes from.
+- `-Scenario load-phone | load-defense | load-taxi | load-chat` makes every bot keep
+  doing one thing instead of wandering, to load one part of the server; performance.md
+  has what those runs found and fixed, and how to read the stats line and span timings.

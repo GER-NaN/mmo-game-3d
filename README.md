@@ -1,0 +1,43 @@
+# mmo-game-3d
+
+A small client/server MMO set in a near-future town fighting a rogue AI, in 3D. The
+game's design is `docs/world.md` in the older `mmo-game` repo; this repo builds it.
+
+- Client and server: Godot 4.7 with C# (.NET 8). The server is the same project run
+  headless; networking is Godot's built-in multiplayer, and the server is the authority.
+- Database: Postgres (`mmo3d`, and `mmo3d_test` for tests), migrations in
+  `src/Data/Migrations`, applied by the server at start.
+- Game rules live in plain C# (`src/Rules`) with unit tests; nodes call them.
+- Art (KayKit, Tiny Treats) and sound are not in git: see `assets/README.md`.
+
+## Running
+
+```
+.\scripts\server-up.ps1          the server, headless, in its own window
+.\scripts\client-up.ps1          the game (-Profile name for a second player)
+.\scripts\server-stop.ps1        stops the server so it saves
+```
+
+## Layout
+
+| Folder | What |
+| --- | --- |
+| `game/` | Godot scenes and nodes: client, server, zones, UI, networking |
+| `src/Rules/` | game rules, plain C#, tested |
+| `src/Data/` | Postgres stores and migrations |
+| `src/Diagnostics/` | OpenTelemetry logs and traces to JSON lines |
+| `tests/` | unit tests (rules and stores) |
+| `scripts/` | run, stop, load test, scenario tests, native build |
+| `tools/` | prop generator, model renders, diagnostics query, sound copy |
+| `native/` | the C++ GDExtension for the packet log |
+| `docs/engineering/` | how things work and what was measured |
+
+## Docs
+
+- `docs/engineering/testing.md`: unit tests, dev scenarios, bots, load tests.
+- `docs/engineering/sound.md`: the sound catalog, the director, where sounds come from.
+- `docs/engineering/diagnostics.md`: logs, traces and the packet log.
+- `docs/engineering/load-test.md`: how many players a zone holds.
+- `docs/engineering/performance.md`: server load scenarios, what was fixed, what is not
+  planned.
+- Each tool has a README in its folder.
