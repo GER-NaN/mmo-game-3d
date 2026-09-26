@@ -208,6 +208,11 @@ public partial class TerminalNetwork : NetworkNode
         SendTo(peer, MethodName.ReceiveStatus, lines);
     }
 
+    public void SendStatus(IReadOnlyList<long> peers, string[] lines)
+    {
+        SendToMany(peers, MethodName.ReceiveStatus, lines);
+    }
+
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
     private void ReceiveStatus(string[] lines)
     {

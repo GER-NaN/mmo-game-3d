@@ -85,15 +85,17 @@ public class ServerTerminals
     public void Post(string text)
     {
         _status.Post(Clock(), text);
-        string[] lines = Status();
+        List<long> peers = new List<long>();
 
         foreach (Session session in _sessions())
         {
             if (session.Record != null && _access.IsOnline(session.Record.PlayerId))
             {
-                _network.SendStatus(session.PeerId, lines);
+                peers.Add(session.PeerId);
             }
         }
+
+        _network.SendStatus(peers, Status());
     }
 
     private string[] Status()
