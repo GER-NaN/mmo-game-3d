@@ -63,6 +63,7 @@ public static class TerminalApps
     // Old Town's own cameras: spotting drones, the first Defense Objective of the kind
     // world.md lists ("operate the CCTV camera to spot enemy drone activity").
     public const string TownCameras = "cameras";
+    public const string Defense = "defense";
 
     private static readonly TerminalApp[] All =
     {
@@ -75,7 +76,7 @@ public static class TerminalApps
         new TerminalApp(TownCameras, "Town cameras", ""),
         new TerminalApp(StatusBoard, "Status board", ""),
         new TerminalApp(ExchangeRate, "Exchange rate", ""),
-        new TerminalApp("defense", "Defense Objectives", "Locked. Defense Objectives open when the first one is ready."),
+        new TerminalApp(Defense, "Defense Objectives", ""),
         new TerminalApp("cctv", "Remote monitoring", "Locked. CCTV from other towns needs access you do not have yet."),
         new TerminalApp("fpv", "FPV drone surveillance", "Locked. You need a drone first."),
         new TerminalApp("market", "Market prices", "Locked. The market opens in a bigger town."),
@@ -85,7 +86,7 @@ public static class TerminalApps
     };
 
     // What a phone keeps: the simple apps, and it still shows the locked ones.
-    private static readonly HashSet<string> PhoneApps = new HashSet<string> { Chat, Online, Whois, TodoList, "defense", "wallet" };
+    private static readonly HashSet<string> PhoneApps = new HashSet<string> { Chat, Online, Whois, TodoList, Defense, "wallet" };
 
     public static List<TerminalApp> For(TerminalType door)
     {

@@ -83,6 +83,7 @@ public partial class ServerGame : Node
     private ServerDrones _drones = null!;
     private ServerGarden _garden = null!;
     private ServerAchievements _achievements = null!;
+    private ServerDefense? _defense;
     private AchievementStore _achievementStore = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
@@ -280,6 +281,13 @@ public partial class ServerGame : Node
         };
         networks.Terminal.CrackStartRequested += peer => WithSession(peer, session => _hacking.Start(session));
         networks.Terminal.SpotRequested += (peer, drone) => WithSession(peer, session => _drones.Spot(session, drone));
+        ServerDefense defense = new ServerDefense(networks.Terminal, network, _progress, _worker, new Data.Scores.ScoreStore(database), SendInventory);
+        defense.Post = _terminals.Post;
+        defense.Achieved = _achievements.Grant;
+        defense.SendBoard = _hacking.SendBoard;
+        _defense = defense;
+        networks.Terminal.DefenseStartRequested += peer => WithSession(peer, session => defense.Start(session));
+        networks.Terminal.DefenseFinishRequested += (peer, presses) => WithSession(peer, session => defense.Finish(session, presses));
         networks.Terminal.CrackGuessRequested += (peer, guess) => WithSession(peer, session => _hacking.Guess(session, guess));
         _terminals.Opened += _town.SendTown;
 
@@ -518,6 +526,7 @@ public partial class ServerGame : Node
             _progress.Forget(session);
             _hacking.Forget(session);
             _drones.Forget(session);
+            _defense?.Forget(session);
             _chat.Announce(session.Record!.DisplayName + " left.");
         }
 

@@ -19,6 +19,7 @@ public static class Achievements
     public const string RoboTaxi = "robo-taxi";
     public const string Career = "career";
     public const string Friend = "friend";
+    public const string AgentDefense = "agent-defense";
 
     // A map counts as explored at this share of its cells: a few may sit where no one
     // can walk, behind buildings at the edge.
@@ -36,6 +37,7 @@ public static class Achievements
         new Achievement(RoboTaxi, "Passenger", "Ride a robo taxi."),
         new Achievement(Career, "Enrolled", "Start a career at the college."),
         new Achievement(Friend, "Friendly", "Add a friend."),
+        new Achievement(AgentDefense, "Grid holder", "Play Agent Defense to the end."),
     };
 
     public static Achievement? Find(string id)

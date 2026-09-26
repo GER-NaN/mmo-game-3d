@@ -107,6 +107,62 @@ public partial class TerminalNetwork : NetworkNode
         TownReceived?.Invoke(lightsWorking, lightsTaken, taxisClean, taxisTaken, log);
     }
 
+    // Agent Defense: the client asks for a run and gets its seed; at the end it sends
+    // its presses, packed (AgentDefense.Pack).
+    public event Action<long>? DefenseStartRequested;
+    public event Action<long, int[]>? DefenseFinishRequested;
+    // (seed, length in ms).
+    public event Action<int, int>? DefenseSeedReceived;
+
+    public void SendDefenseStart()
+    {
+        RpcId(1, MethodName.DefenseStart);
+    }
+
+    public void SendDefenseFinish(int[] presses)
+    {
+        RpcId(1, MethodName.DefenseFinish, presses);
+    }
+
+    public void SendDefenseSeed(long peer, int seed, int lengthMs)
+    {
+        SendTo(peer, MethodName.ReceiveDefenseSeed, seed, lengthMs);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void DefenseStart()
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.DefenseStart, sender))
+            {
+                DefenseStartRequested?.Invoke(sender);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void DefenseFinish(int[] presses)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.DefenseFinish, sender, presses.Length))
+            {
+                DefenseFinishRequested?.Invoke(sender, presses);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveDefenseSeed(int seed, int lengthMs)
+    {
+        DefenseSeedReceived?.Invoke(seed, lengthMs);
+    }
+
     // Server side: (peer, drone name) reported on Old Town's cameras.
     public event Action<long, string>? SpotRequested;
 

@@ -221,6 +221,11 @@ public partial class ClientGame : Node
             GD.Print("Leaderboard " + objective + ": " + string.Join(" | ", lines));
             _terminal?.ShowBoard(objective, lines);
         };
+        _terminalNetwork.DefenseSeedReceived += (seed, lengthMs) =>
+        {
+            GD.Print("Agent Defense: run with seed " + seed + ", " + lengthMs + " ms");
+            _terminal?.PlayDefense(seed, lengthMs);
+        };
         _terminalNetwork.StatusReceived += lines =>
         {
             GD.Print("Status board: " + (lines.Length > 0 ? lines[0] : "all quiet"));
@@ -1156,6 +1161,8 @@ public partial class ClientGame : Node
         _terminal.ChatSubmitted += _network.SendChat;
         _terminal.TakeJobPressed += _terminalNetwork.SendTakeJob;
         _terminal.DroneReported += _terminalNetwork.SendSpot;
+        _terminal.DefenseStartPressed += _terminalNetwork.SendDefenseStart;
+        _terminal.DefenseFinished += _terminalNetwork.SendDefenseFinish;
         _terminal.CrackStartPressed += _terminalNetwork.SendCrackStart;
         _terminal.CrackGuessSubmitted += _terminalNetwork.SendCrackGuess;
         _terminal.WhoisSearchSubmitted += _socialNetwork.SendWhoisSearch;

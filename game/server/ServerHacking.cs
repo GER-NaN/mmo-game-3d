@@ -113,26 +113,32 @@ public class ServerHacking
 
     private void SendBoard(Session session)
     {
+        SendBoard(session, Leaderboards.CodeCracker);
+    }
+
+    // Any objective's board: the top ten, then this player's best.
+    public void SendBoard(Session session, string objective)
+    {
         Guid playerId = session.Record!.PlayerId;
         long peer = session.PeerId;
-        bool lower = Leaderboards.LowerIsBetter(Leaderboards.CodeCracker);
+        bool lower = Leaderboards.LowerIsBetter(objective);
         _worker.Enqueue(
             () =>
             {
                 List<string> lines = new List<string>();
-                List<ScoreRecord> top = _scores.Top(Leaderboards.CodeCracker, lower, Leaderboards.Shown);
+                List<ScoreRecord> top = _scores.Top(objective, lower, Leaderboards.Shown);
 
                 for (int i = 0; i < top.Count; i++)
                 {
-                    lines.Add((i + 1) + ". " + top[i].PlayerName + "   " + Leaderboards.Result(Leaderboards.CodeCracker, top[i].Score, top[i].Seconds));
+                    lines.Add((i + 1) + ". " + top[i].PlayerName + "   " + Leaderboards.Result(objective, top[i].Score, top[i].Seconds));
                 }
 
-                ScoreRecord? best = _scores.Best(Leaderboards.CodeCracker, playerId, lower);
-                lines.Add(best == null ? "Your best: none yet" : "Your best: " + Leaderboards.Result(Leaderboards.CodeCracker, best.Score, best.Seconds));
+                ScoreRecord? best = _scores.Best(objective, playerId, lower);
+                lines.Add(best == null ? "Your best: none yet" : "Your best: " + Leaderboards.Result(objective, best.Score, best.Seconds));
                 return lines.ToArray();
             },
-            lines => _network.SendBoard(peer, Leaderboards.CodeCracker, lines),
-            e => GD.PrintErr("Reading the code cracker board failed: " + e.Message));
+            lines => _network.SendBoard(peer, objective, lines),
+            e => GD.PrintErr("Reading the " + objective + " board failed: " + e.Message));
     }
 
     private bool AtPublicTerminal(Session session)

@@ -48,6 +48,13 @@ public partial class TerminalScreen : Control
 
     // A drone's node name, clicked on Old Town's cameras.
     public event Action<string>? DroneReported;
+
+    // Agent Defense: asking for a run, and the presses at its end.
+    public event Action? DefenseStartPressed;
+    public event Action<int[]>? DefenseFinished;
+
+    // Bots find Agent Defense's start button by this group.
+    public const string DefenseStartGroup = "terminal_defense_start";
     public event Action? CrackStartPressed;
 
     // Whois: search text, open a page by player id, your own page, props, your own
@@ -110,6 +117,8 @@ public partial class TerminalScreen : Control
     private int _crackStatus;
     private string[] _status = new string[0];
     private string[] _crackBoard = new string[0];
+    private string[] _defenseBoard = new string[0];
+    private AgentDefenseView? _defense;
 
     public override void _Ready()
     {
@@ -214,6 +223,19 @@ public partial class TerminalScreen : Control
 
     public void ShowBoard(string objective, string[] lines)
     {
+        if (objective == Rules.Terminals.Leaderboards.AgentDefense)
+        {
+            _defenseBoard = lines;
+
+            // Not while a run is on: rebuilding the app would end it.
+            if (_openApp == TerminalApps.Defense && (_defense == null || !_defense.Playing))
+            {
+                ShowApp(new TerminalApp(TerminalApps.Defense, "Defense Objectives", ""));
+            }
+
+            return;
+        }
+
         if (objective != Rules.Terminals.Leaderboards.CodeCracker)
         {
             return;
@@ -225,6 +247,17 @@ public partial class TerminalScreen : Control
         {
             ShowApp(new TerminalApp(TerminalApps.CodeCracker, "Code cracker", ""));
         }
+    }
+
+    // The server's seed for a run: play it.
+    public void PlayDefense(int seed, int lengthMs)
+    {
+        if (_openApp != TerminalApps.Defense)
+        {
+            ShowApp(new TerminalApp(TerminalApps.Defense, "Defense Objectives", ""));
+        }
+
+        _defense?.Play(seed, lengthMs);
     }
 
     public void ShowStatus(string[] lines)
@@ -334,6 +367,9 @@ public partial class TerminalScreen : Control
                 break;
             case TerminalApps.TownCameras:
                 ShowCameras(content);
+                break;
+            case TerminalApps.Defense:
+                ShowDefense(content);
                 break;
             case TerminalApps.Whois:
                 ShowWhois(content);
@@ -683,6 +719,40 @@ public partial class TerminalScreen : Control
         Tween tween = notice.CreateTween();
         tween.TweenInterval(4.0);
         tween.TweenProperty(notice, "modulate:a", 0f, 1.0);
+    }
+
+    // Defense Objectives: Agent Defense for now, with its board.
+    private void ShowDefense(VBoxContainer content)
+    {
+        AddLine(content, "Agent Defense", Text, 18);
+        AddLine(content, "The AI is on the grid. Cut its lines as they cross yours: press D F J K as each cue reaches the yellow line. About a minute.", Dim, 15);
+        _defense = new AgentDefenseView { SizeFlagsVertical = SizeFlags.ExpandFill, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(360, 300) };
+        _defense.Finished += presses => DefenseFinished?.Invoke(presses);
+        content.AddChild(_defense);
+
+        HBoxContainer bottom = new HBoxContainer();
+        bottom.AddThemeConstantOverride("separation", 16);
+        Button start = new Button { Text = "Start a run", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        start.AddToGroup(DefenseStartGroup);
+        start.Pressed += () =>
+        {
+            if (_defense == null || !_defense.Playing)
+            {
+                DefenseStartPressed?.Invoke();
+            }
+        };
+        bottom.AddChild(start);
+        VBoxContainer board = new VBoxContainer();
+
+        foreach (string line in _defenseBoard)
+        {
+            Label label = new Label { Text = line };
+            label.AddThemeFontSizeOverride("font_size", 13);
+            board.AddChild(label);
+        }
+
+        bottom.AddChild(board);
+        content.AddChild(bottom);
     }
 
     // Old Town's cameras: a live picture, four cameras, click a drone to report it.

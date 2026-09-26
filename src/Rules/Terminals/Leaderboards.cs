@@ -13,6 +13,9 @@ public static class Leaderboards
     // The code cracker's score is the guesses used: fewer is better, then faster.
     public const string CodeCracker = "code-cracker";
 
+    // Agent Defense's score is points: more is better, then faster (all runs are a minute).
+    public const string AgentDefense = "agent-defense";
+
     public static bool LowerIsBetter(string objective)
     {
         return objective == CodeCracker;
@@ -21,8 +24,12 @@ public static class Leaderboards
     // "3 guesses, 0:42".
     public static string Result(string objective, int score, double seconds)
     {
-        string what = objective == CodeCracker ? score + (score == 1 ? " guess" : " guesses") : score + " points";
+        if (objective != CodeCracker)
+        {
+            return score + " points";
+        }
+
         TimeSpan time = TimeSpan.FromSeconds(Math.Round(seconds));
-        return what + ", " + (int)time.TotalMinutes + ":" + time.Seconds.ToString("00");
+        return score + (score == 1 ? " guess" : " guesses") + ", " + (int)time.TotalMinutes + ":" + time.Seconds.ToString("00");
     }
 }
