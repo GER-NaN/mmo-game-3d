@@ -684,6 +684,8 @@ public partial class ClientGame : Node
         _inventoryPanel.DropPressed += (type, tier, quantity) =>
             _intents?.Start("drop", id => _itemNetwork.SendDrop(id, (int)type, (int)tier, quantity));
         _inventoryPanel.UnequipPressed += id => _itemNetwork.SendUnequip(id.ToString());
+        _inventoryPanel.RepairPackPressed += _itemNetwork.SendOpenRepairPack;
+        _inventoryPanel.ShowRepairPack(_career == (int)Rules.Skills.CareerId.MechanicalEngineer);
     }
 
     private void OnMapReceived(string zoneId, byte[] cells)
@@ -713,6 +715,7 @@ public partial class ClientGame : Node
         _level = level;
         _skills?.ShowProgress(skills, xp, career, careerXp, rank, classTaken, level);
         _college?.ShowProgress(skills, xp, career, careerXp, rank, classTaken);
+        _inventoryPanel?.ShowRepairPack(career == (int)Rules.Skills.CareerId.MechanicalEngineer);
     }
 
     private void OnCollegeOpened(string role)

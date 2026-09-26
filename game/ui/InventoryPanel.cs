@@ -23,6 +23,29 @@ public partial class InventoryPanel : PanelContainer
     };
 
     public event Action<Guid>? EquipPressed;
+    public event Action? RepairPackPressed;
+
+    // Bots find the repair pack button by this group.
+    public const string RepairPackGroup = "inventory_repair_pack";
+
+    // A Mechanical Engineer carries a repair pack: workbench work anywhere.
+    public void ShowRepairPack(bool engineer)
+    {
+        Button? pack = GetNodeOrNull<Button>("Margin/Rows/RepairPack");
+
+        if (engineer && pack == null)
+        {
+            pack = new Button { Name = "RepairPack", Text = "Open repair pack", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+            pack.AddToGroup(RepairPackGroup);
+            pack.Pressed += () => RepairPackPressed?.Invoke();
+            GetNode<VBoxContainer>("Margin/Rows").AddChild(pack);
+            GetNode<VBoxContainer>("Margin/Rows").MoveChild(pack, 2);
+        }
+        else if (!engineer && pack != null)
+        {
+            pack.QueueFree();
+        }
+    }
     public event Action<Guid>? UnequipPressed;
 
     // (type, tier, quantity): the whole stack.

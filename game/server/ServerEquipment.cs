@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Networking;
 using MmoGame3d.Rules.Items;
+using MmoGame3d.Rules.Skills;
 using MmoGame3d.Rules.Social;
 using MmoGame3d.Workbenches;
 
@@ -52,12 +53,28 @@ public class ServerEquipment
         Apply(session, instanceId, (mine, id) => mine.Unequip(id));
     }
 
-    // Raised when work at a workbench succeeded, for the Workbench skill.
-    public event Action<Session>? WorkDone;
+    // Raised when workbench work succeeded, for the Workbench skill; true when it was
+    // done from the engineer's repair pack, which also feeds the career.
+    public event Action<Session, bool>? WorkDone;
+
+    // The Mechanical Engineer's ability: workbench work anywhere.
+    public void OpenRepairPack(Session session)
+    {
+        if (session.Progress.Career.Career != CareerId.MechanicalEngineer)
+        {
+            _session.SendNotice(session.PeerId, "Only a Mechanical Engineer carries a repair pack.");
+            return;
+        }
+
+        session.OpenWorkbench = null;
+        session.UsingRepairPack = true;
+        _network.SendWorkbenchOpened(session.PeerId);
+    }
 
     public void OpenWorkbench(Session session, Workbench workbench)
     {
         session.OpenWorkbench = workbench;
+        session.UsingRepairPack = false;
         _network.SendWorkbenchOpened(session.PeerId);
     }
 
@@ -68,7 +85,7 @@ public class ServerEquipment
             if (Apply(session, phoneId, (mine, id) => mine.RemoveBattery(id)))
             {
                 session.Body?.Show(Gestures.Work);
-                WorkDone?.Invoke(session);
+                WorkDone?.Invoke(session, session.UsingRepairPack);
             }
         }
     }
@@ -80,7 +97,7 @@ public class ServerEquipment
             if (Apply(session, phoneId, (mine, id) => mine.InsertBattery(id)))
             {
                 session.Body?.Show(Gestures.Work);
-                WorkDone?.Invoke(session);
+                WorkDone?.Invoke(session, session.UsingRepairPack);
             }
         }
     }
@@ -144,6 +161,11 @@ public class ServerEquipment
 
     private bool AtWorkbench(Session session)
     {
+        if (session.UsingRepairPack && session.Progress.Career.Career == CareerId.MechanicalEngineer)
+        {
+            return true;
+        }
+
         Workbench? bench = session.OpenWorkbench;
         bool atBench = bench != null && GodotObject.IsInstanceValid(bench) && session.Body != null
             && bench.IsInReach(session.Body.GlobalPosition, ReachSlack);

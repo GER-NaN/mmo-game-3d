@@ -95,6 +95,9 @@ public static class SkillAwards
     public const long WorkbenchPerJob = 10;
     public const long FieldRepairPerFix = 15;
     public const long ElectricalRepairPerBox = 40;
+
+    // Career experience for work done from the engineer's repair pack.
+    public const long RepairPackPerJob = 10;
 }
 
 /// <summary>

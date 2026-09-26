@@ -151,7 +151,16 @@ public partial class ServerGame : Node
         networks.Items.DropRequested += (peer, intent, type, tier, quantity) => WithSession(peer, session => handover.Drop(session, intent, type, tier, quantity));
         networks.Items.GiveRequested += (peer, intent, target, type, tier, quantity, dollars) => WithSession(peer, session => handover.Give(session, intent, target, type, tier, quantity, dollars));
         _equipment = new ServerEquipment(networks.Items, network, _terminals, () => _sessions.Values, SendInventory);
-        _equipment.WorkDone += session => _progress.Award(session, SkillId.Workbench, SkillAwards.WorkbenchPerJob);
+        _equipment.WorkDone += (session, withPack) =>
+        {
+            _progress.Award(session, SkillId.Workbench, SkillAwards.WorkbenchPerJob);
+
+            if (withPack)
+            {
+                _progress.AwardCareer(session, SkillAwards.RepairPackPerJob);
+            }
+        };
+        networks.Items.RepairPackRequested += peer => WithSession(peer, session => _equipment.OpenRepairPack(session));
         _chests = new ServerChests(network, SendInventory);
         _interactions = new ServerInteractions(world, network, _terminals, _shops, _equipment, _chests);
 

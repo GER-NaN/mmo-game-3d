@@ -61,6 +61,7 @@ public partial class BotDriver : Node
     private double _giveClickIn = -1;
     private bool _dropped;
     private bool _befriended;
+    private bool _packOpened;
     private int _crackStep;
     private double _collegeSeenFor;
     private double _crackIn;
@@ -490,6 +491,19 @@ public partial class BotDriver : Node
                 _phoneStep = 1;
                 break;
             case 1:
+                // An engineer tries their repair pack once; the workbench step does the work.
+                Button? pack = GetTree().GetFirstNodeInGroup(InventoryPanel.RepairPackGroup) as Button;
+
+                if (!_packOpened && pack != null && pack.IsVisibleInTree())
+                {
+                    _packOpened = true;
+                    GD.Print("Bot: clicking Open repair pack");
+                    Click(pack.GetGlobalRect().GetCenter());
+                    _phoneStep = 3;
+                    _nextPhoneStep = 8;
+                    break;
+                }
+
                 Button? equip = GetTree().GetFirstNodeInGroup(InventoryPanel.EquipGroup) as Button;
 
                 if (equip != null && equip.IsVisibleInTree())

@@ -51,6 +51,9 @@ public class Session
     // The workbench last used; work is taken only while it is in reach.
     public Workbench? OpenWorkbench { get; set; }
 
+    // True while a Mechanical Engineer works from their repair pack instead of a bench.
+    public bool UsingRepairPack { get; set; }
+
     // Skills, career, time played, missions, live. Set with the record.
     public PlayerProgress Progress { get; set; } = new PlayerProgress();
 

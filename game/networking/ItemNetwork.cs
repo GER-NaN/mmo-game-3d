@@ -63,8 +63,30 @@ public partial class ItemNetwork : NetworkNode
         }
     }
 
-    // Client side: a workbench was used.
+    // Client side: a workbench was used, or a repair pack opened.
     public event Action? WorkbenchOpened;
+
+    // Server side: an engineer opens their repair pack.
+    public event Action<long>? RepairPackRequested;
+
+    public void SendOpenRepairPack()
+    {
+        RpcId(1, MethodName.OpenRepairPack);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void OpenRepairPack()
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.OpenRepairPack, sender))
+            {
+                RepairPackRequested?.Invoke(sender);
+            }
+        }
+    }
 
     public void SendEquip(string instanceId)
     {
