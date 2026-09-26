@@ -27,12 +27,13 @@ public partial class Screenshot : Node
     {
         Camera3D? camera = GetViewport().GetCamera3D();
 
-        if (camera == null || _taken)
+        if (_taken)
         {
             return;
         }
 
-        if (_overview)
+        // A menu has no camera; it is shot as it is.
+        if (camera != null && _overview)
         {
             camera.SetProcess(false);
             camera.Position = new Vector3(0f, 95f, 55f);

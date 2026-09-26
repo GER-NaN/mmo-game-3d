@@ -4,45 +4,34 @@ using System;
 using Godot;
 using MmoGame3d.Rules.Players;
 
-// The first screen: who you are, which server, and Play. It only reports what was
-// pressed; ClientGame acts on it.
+// The first screen: which server, and Play. The character is chosen after connecting.
+// It only reports what was pressed; ClientGame acts on it.
 public partial class MainMenu : Control
 {
-    // (name, address, look).
-    public event Action<string, string, string>? PlayPressed;
+    // (address).
+    public event Action<string>? PlayPressed;
     public event Action? SettingsPressed;
     public event Action? QuitPressed;
 
-    private LineEdit _name = null!;
     private LineEdit _address = null!;
     private Label _status = null!;
     private Button _play = null!;
 
     public override void _Ready()
     {
-        _name = GetNode<LineEdit>("%Name");
-        OptionButton look = GetNode<OptionButton>("%Look");
-
-        foreach (string id in Looks.Ids)
-        {
-            look.AddItem(Looks.NameOf(id));
-            look.SetItemMetadata(look.ItemCount - 1, id);
-        }
-
         _address = GetNode<LineEdit>("%Address");
         _status = GetNode<Label>("%Status");
         _play = GetNode<Button>("%Play");
 
         _play.Pressed += OnPlay;
-        _name.TextSubmitted += _ => OnPlay();
+        _address.TextSubmitted += _ => OnPlay();
         GetNode<Button>("%Settings").Pressed += () => SettingsPressed?.Invoke();
         GetNode<Button>("%Quit").Pressed += () => QuitPressed?.Invoke();
     }
 
-    public void Fill(string profile, string name, string address)
+    public void Fill(string profile, string address)
     {
         GetNode<Label>("%Profile").Text = "Profile: " + profile;
-        _name.Text = name;
         _address.Text = address;
     }
 
@@ -61,9 +50,7 @@ public partial class MainMenu : Control
     {
         if (!_play.Disabled)
         {
-            OptionButton look = GetNode<OptionButton>("%Look");
-            string id = look.Selected >= 0 ? (string)look.GetItemMetadata(look.Selected) : Looks.Default;
-            PlayPressed?.Invoke(_name.Text, _address.Text.Trim(), id);
+            PlayPressed?.Invoke(_address.Text.Trim());
         }
     }
 }

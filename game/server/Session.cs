@@ -27,7 +27,10 @@ public class Session
 
     public SessionState State { get; set; } = SessionState.Connected;
 
-    // Set once the account lookup is back.
+    // Set once the hello is answered: whose characters this client may play.
+    public System.Guid? AccountId { get; set; }
+
+    // Set once the character is loaded.
     public PlayerRecord? Record { get; set; }
 
     // What they carry, live. Set with the record.
@@ -90,8 +93,11 @@ public class Session
 
 public enum SessionState
 {
-    // Connected, no login yet.
+    // Connected, no hello yet.
     Connected,
+
+    // The account is known; the player is choosing or making a character.
+    Choosing,
 
     // Login sent, the account lookup is running.
     LoggingIn,

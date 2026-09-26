@@ -261,7 +261,10 @@ public partial class ServerGame : Node
 
         Multiplayer.PeerConnected += OnPeerConnected;
         Multiplayer.PeerDisconnected += OnPeerDisconnected;
+        _network.HelloReceived += OnHello;
+        _network.CreateCharacterRequested += OnCreateCharacter;
         _network.LoginRequested += OnLoginRequested;
+        _network.SetLookRequested += (peer, look) => WithSession(peer, session => OnSetLook(session, look));
         _network.WorldReadyReceived += OnWorldReady;
         _network.ChatRequested += OnChatRequested;
         _network.DirectRequested += (peer, target, text) => WithSession(peer, session => _chat.Direct(session, target, text));
@@ -459,7 +462,9 @@ public partial class ServerGame : Node
         GD.Print("Peer " + peer + " left" + (session.Record != null ? " (" + session.Record.DisplayName + ")" : ""));
     }
 
-    private void OnLoginRequested(long peer, int protocol, string licenseKeyText, string displayName, string look)
+    // Who the account is: the license key, checked and made an account if new. The
+    // answer is the account's characters.
+    private void OnHello(long peer, int protocol, string licenseKeyText)
     {
         if (!_sessions.TryGetValue(peer, out Session? session) || session.State != SessionState.Connected)
         {
@@ -480,49 +485,169 @@ public partial class ServerGame : Node
             return;
         }
 
+        session.State = SessionState.LoggingIn;
+        _worker.Enqueue(
+            () => _accounts.GetOrCreate(licenseKey),
+            accountId =>
+            {
+                session.AccountId = accountId;
+                session.State = SessionState.Choosing;
+                SendCharacters(session, "");
+            },
+            e =>
+            {
+                GD.PrintErr("Hello from peer " + peer + " failed: " + e.Message);
+                Refuse(peer, "The server could not find your account. Try again.");
+            });
+    }
+
+    private void SendCharacters(Session session, string message)
+    {
+        Guid accountId = session.AccountId!.Value;
+        long peer = session.PeerId;
+        _worker.Enqueue(
+            () => _players.ListForAccount(accountId),
+            list =>
+            {
+                string[] ids = new string[list.Count];
+                string[] names = new string[list.Count];
+                string[] looks = new string[list.Count];
+                int[] levels = new int[list.Count];
+                string[] titles = new string[list.Count];
+
+                for (int i = 0; i < list.Count; i++)
+                {
+                    CharacterSummary character = list[i];
+                    CareerId? career = character.Career.HasValue && CareerCatalog.Find(character.Career.Value) != null ? (CareerId)character.Career.Value : null;
+                    ids[i] = character.PlayerId.ToString();
+                    names[i] = character.DisplayName;
+                    looks[i] = Appearance.Normalize(character.Look);
+                    levels[i] = PlayerLevel.For((long)(character.SecondsPlayed / 60), character.SkillXp, character.CareerXp, character.Missions);
+                    titles[i] = CareerCatalog.Title(career, (CareerRank)character.CareerRank);
+                }
+
+                _network.SendCharacters(peer, ids, names, looks, levels, titles, message);
+            },
+            e => GD.PrintErr("Listing characters failed: " + e.Message));
+    }
+
+    // A new character in the first free slot: the name checked, the look normalized, and
+    // the starter kit a new player gets.
+    private void OnCreateCharacter(long peer, string displayName, string look)
+    {
+        if (!_sessions.TryGetValue(peer, out Session? session) || session.State != SessionState.Choosing)
+        {
+            return;
+        }
+
         string? nameProblem = DisplayName.Problem(displayName);
 
         if (nameProblem != null)
         {
-            Refuse(peer, nameProblem);
+            SendCharacters(session, nameProblem);
             return;
         }
 
-        session.State = SessionState.LoggingIn;
-
         Zone start = _world.GetZone(ZoneIds.Start)!;
         Vector3 spawn = start.SpawnPoint;
-        string name = displayName.Trim();
+        PlayerRecord newPlayer = new PlayerRecord
+        {
+            PlayerId = Guid.NewGuid(),
+            AccountId = session.AccountId!.Value,
+            DisplayName = displayName.Trim(),
+            Zone = ZoneIds.Start,
+            PositionX = spawn.X,
+            PositionY = spawn.Y,
+            PositionZ = spawn.Z,
+            Dollars = Shops.StartingDollars,
+            Look = Appearance.Normalize(look),
+        };
+        newPlayer.Instances.AddRange(Belongings.StarterKit());
 
         _worker.Enqueue(
             () =>
             {
-                Guid accountId = _accounts.GetOrCreate(licenseKey);
-                PlayerRecord newPlayer = new PlayerRecord
+                int slot = Characters.FreeSlot(_players.ListForAccount(newPlayer.AccountId).ConvertAll(c => c.Slot));
+
+                if (slot < 0 || !_players.Create(newPlayer, slot))
                 {
-                    PlayerId = Guid.NewGuid(),
-                    AccountId = accountId,
-                    DisplayName = name,
-                    Zone = ZoneIds.Start,
-                    PositionX = spawn.X,
-                    PositionY = spawn.Y,
-                    PositionZ = spawn.Z,
-                    Dollars = Shops.StartingDollars,
-                    Look = Looks.OrDefault(look),
-                };
-                PlayerRecord record = _players.GetOrCreate(newPlayer, out _);
-                record.Discovered = _discoveries.Load(record.PlayerId);
-                record.Contacts = _contacts.Load(record.PlayerId);
-                record.Progress = _progressStore.Load(record.PlayerId);
-                record.Page = _whoisStore.LoadSettings(record.PlayerId);
+                    return "All your character slots are taken.";
+                }
+
+                _players.Save(newPlayer);
+                return "";
+            },
+            problem =>
+            {
+                GD.Print(problem.Length == 0 ? "Peer " + peer + " made a character, " + newPlayer.DisplayName : "Peer " + peer + ": " + problem);
+                SendCharacters(session, problem);
+            },
+            e =>
+            {
+                GD.PrintErr("Creating a character for peer " + peer + " failed: " + e.Message);
+                SendCharacters(session, "The server could not make that character. Try again.");
+            });
+    }
+
+    // Playing one of the account's own characters.
+    private void OnLoginRequested(long peer, string playerIdText)
+    {
+        Guid playerId;
+
+        if (!_sessions.TryGetValue(peer, out Session? session) || session.State != SessionState.Choosing || !Guid.TryParse(playerIdText, out playerId))
+        {
+            return;
+        }
+
+        Guid accountId = session.AccountId!.Value;
+        session.State = SessionState.LoggingIn;
+
+        _worker.Enqueue(
+            () =>
+            {
+                PlayerRecord? record = _players.Load(playerId, accountId);
+
+                if (record != null)
+                {
+                    record.Discovered = _discoveries.Load(record.PlayerId);
+                    record.Contacts = _contacts.Load(record.PlayerId);
+                    record.Progress = _progressStore.Load(record.PlayerId);
+                    record.Page = _whoisStore.LoadSettings(record.PlayerId);
+                }
+
                 return record;
             },
-            record => OnPlayerLoaded(peer, record),
+            record =>
+            {
+                if (record == null)
+                {
+                    session.State = SessionState.Choosing;
+                    SendCharacters(session, "That character is not yours.");
+                    return;
+                }
+
+                OnPlayerLoaded(peer, record);
+            },
             e =>
             {
                 GD.PrintErr("Login for peer " + peer + " failed: " + e.Message);
                 Refuse(peer, "The server could not load your player. Try again.");
             });
+    }
+
+    // The wardrobe: a new look, checked and normalized, seen by everyone at once.
+    private void OnSetLook(Session session, string look)
+    {
+        string normalized = Appearance.Normalize(look);
+        session.Record!.Look = normalized;
+
+        if (session.Body != null)
+        {
+            session.Body.Look = normalized;
+        }
+
+        Guid playerId = session.Record.PlayerId;
+        _worker.Enqueue(() => _players.SaveLook(playerId, normalized), e => GD.PrintErr("Saving a look failed: " + e.Message));
     }
 
     private void OnPlayerLoaded(long peer, PlayerRecord record)
@@ -596,7 +721,7 @@ public partial class ServerGame : Node
         body.Name = peer.ToString();
         body.DisplayName = record.DisplayName;
         body.PlayerIdText = record.PlayerId.ToString();
-        body.Look = Looks.OrDefault(record.Look);
+        body.Look = Appearance.Normalize(record.Look);
         body.CareerTitle = CareerCatalog.Title(session.Progress.Career.Career, session.Progress.Career.Rank);
         body.Position = SpaceQueries.FreeSpotNear(zone, new Vector3(record.PositionX, record.PositionY, record.PositionZ));
         body.Rotation = new Vector3(0f, record.Yaw, 0f);
@@ -836,6 +961,7 @@ public partial class ServerGame : Node
         if (_sessions.TryGetValue(peer, out Session? session))
         {
             session.State = SessionState.Connected;
+            session.AccountId = null;
         }
     }
 

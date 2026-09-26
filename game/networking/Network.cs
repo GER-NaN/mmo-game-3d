@@ -17,10 +17,87 @@ using Godot;
 /// </summary>
 public partial class Network : NetworkNode
 {
-    // Server side: (peer, protocol, license key, display name, look). The name and look
-    // matter only for a new player; a returning one keeps theirs.
-    public event Action<long, int, string, string, string>? LoginRequested;
+    // Server side, before the world: (peer, protocol, license key) says who the account
+    // is; then a character is made (peer, name, appearance) or played (peer, player id).
+    public event Action<long, int, string>? HelloReceived;
+    public event Action<long, string, string>? CreateCharacterRequested;
+    public event Action<long, string>? LoginRequested;
     public event Action<long>? WorldReadyReceived;
+
+    // Server side: a new look from the wardrobe.
+    public event Action<long, string>? SetLookRequested;
+
+    // Client side: the account's characters (ids, names, appearances, levels, career
+    // titles) and a problem to show, or "".
+    public event Action<string[], string[], string[], int[], string[], string>? CharactersReceived;
+
+    public void SendHello(int protocol, string licenseKey)
+    {
+        RpcId(1, MethodName.Hello, protocol, licenseKey);
+    }
+
+    public void SendCreateCharacter(string name, string look)
+    {
+        RpcId(1, MethodName.CreateCharacter, name, look);
+    }
+
+    public void SendSetLook(string look)
+    {
+        RpcId(1, MethodName.SetLook, look);
+    }
+
+    public void SendCharacters(long peer, string[] ids, string[] names, string[] looks, int[] levels, string[] titles, string message)
+    {
+        SendTo(peer, MethodName.ReceiveCharacters, ids, names, looks, levels, titles, message);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Hello(int protocol, string licenseKey)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Hello, sender, protocol))
+            {
+                HelloReceived?.Invoke(sender, protocol, licenseKey);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void CreateCharacter(string name, string look)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.CreateCharacter, sender, name, look))
+            {
+                CreateCharacterRequested?.Invoke(sender, name, look);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void SetLook(string look)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.SetLook, sender, look))
+            {
+                SetLookRequested?.Invoke(sender, look);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveCharacters(string[] ids, string[] names, string[] looks, int[] levels, string[] titles, string message)
+    {
+        CharactersReceived?.Invoke(ids, names, looks, levels, titles, message);
+    }
 
     // Server side: walking, sent here rather than to the body, because a body leaves its
     // zone at once when its player goes through a door, and a walk still on its way would
@@ -333,9 +410,9 @@ public partial class Network : NetworkNode
         NoticeReceived?.Invoke(text);
     }
 
-    public void SendLogin(int protocol, string licenseKey, string displayName, string look)
+    public void SendLogin(string playerId)
     {
-        RpcId(1, MethodName.Login, protocol, licenseKey, displayName, look);
+        RpcId(1, MethodName.Login, playerId);
     }
 
     public void SendWorldReady()
@@ -354,15 +431,15 @@ public partial class Network : NetworkNode
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void Login(int protocol, string licenseKey, string displayName, string look)
+    private void Login(string playerId)
     {
         if (Multiplayer.IsServer())
         {
             long sender = Multiplayer.GetRemoteSenderId();
 
-            using (Activity? span = Received(MethodName.Login, sender, protocol, licenseKey, displayName, look))
+            using (Activity? span = Received(MethodName.Login, sender, playerId))
             {
-                LoginRequested?.Invoke(sender, protocol, licenseKey, displayName, look);
+                LoginRequested?.Invoke(sender, playerId);
             }
         }
     }

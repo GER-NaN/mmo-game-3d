@@ -28,6 +28,10 @@ using MmoGame3d.Rules.Time;
 ///   --report-every 2    print what the client sees every 2 seconds
 ///   --screenshot x.png  save the window to a PNG a few seconds in, then quit
 ///   --overview          with --screenshot: look down on the whole zone
+///   --creator           dev: open the character creator at start (with --look), for
+///                       --screenshot
+///   --show-characters   dev: connect at once, then stop at the character screen (for
+///                       --screenshot)
 ///   --screenshot-after 4  seconds in the world before the screenshot (default 4)
 ///   --load-test 50      run 50 bot clients in this one process (profiles load-0...)
 ///   --load-first 0      the first load bot's number, so processes do not share bots
@@ -57,6 +61,8 @@ public class LaunchOptions
     public double ReportEverySeconds { get; private set; }
     public string? ScreenshotPath { get; private set; }
     public bool Overview { get; private set; }
+    public bool Creator { get; private set; }
+    public bool ShowCharacters { get; private set; }
     public double ScreenshotAfterSeconds { get; private set; } = 4;
     public int LoadTestBots { get; private set; }
     public int LoadFirst { get; private set; }
@@ -171,6 +177,13 @@ public class LaunchOptions
                 case "--walk-test":
                     options.WalkTest = true;
                     options.AutoConnect = true;
+                    break;
+                case "--show-characters":
+                    options.ShowCharacters = true;
+                    options.AutoConnect = true;
+                    break;
+                case "--creator":
+                    options.Creator = true;
                     break;
                 case "--overview":
                     options.Overview = true;

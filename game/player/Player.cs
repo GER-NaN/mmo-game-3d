@@ -103,9 +103,36 @@ public partial class Player : CharacterBody3D
     [Export]
     public string GestureId { get; set; } = "";
 
-    // Which model the body wears (see Looks), synced once at spawn.
+    private string _look = "a";
+
+    // How the body looks (see Appearance). Synced on change: the wardrobe can change it,
+    // and a client redresses the model when it does.
     [Export]
-    public string Look { get; set; } = "a";
+    public string Look
+    {
+        get
+        {
+            return _look;
+        }
+
+        set
+        {
+            if (_look == value)
+            {
+                return;
+            }
+
+            _look = value;
+
+            if (_model != null)
+            {
+                RemoveChild(_model);
+                _model.QueueFree();
+                _model = new CharacterModel { Name = "Model", Appearance = _look };
+                AddChild(_model);
+            }
+        }
+    }
 
     // The persistent player id, public: party rosters on clients name members by it.
     [Export]
@@ -193,7 +220,7 @@ public partial class Player : CharacterBody3D
 
         if (DrawModels)
         {
-            _model = new CharacterModel { Name = "Model", ModelPath = CharacterModel.PathFor(Look) };
+            _model = new CharacterModel { Name = "Model", Appearance = Look };
             AddChild(_model);
         }
 

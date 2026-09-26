@@ -53,6 +53,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Settings"
 
+[node name="Wardrobe" type="Button" parent="Center/Panel/Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Wardrobe"
+
 [node name="Leave" type="Button" parent="Center/Panel/Margin/Rows"]
 unique_name_in_owner = true
 layout_mode = 2

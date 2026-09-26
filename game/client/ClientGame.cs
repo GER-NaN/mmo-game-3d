@@ -33,6 +33,8 @@ public partial class ClientGame : Node
     private static readonly PackedScene ShopScene = GD.Load<PackedScene>("res://game/ui/ShopPanel.tscn");
     private static readonly PackedScene WorkbenchScene = GD.Load<PackedScene>("res://game/ui/WorkbenchPanel.tscn");
     private static readonly PackedScene GiveScene = GD.Load<PackedScene>("res://game/ui/GivePanel.tscn");
+    private static readonly PackedScene SelectScene = GD.Load<PackedScene>("res://game/ui/CharacterSelect.tscn");
+    private static readonly PackedScene CreatorScene = GD.Load<PackedScene>("res://game/ui/CharacterCreator.tscn");
     private static readonly PackedScene MapScene = GD.Load<PackedScene>("res://game/ui/MapPanel.tscn");
     private static readonly PackedScene SocialScene = GD.Load<PackedScene>("res://game/ui/SocialPanel.tscn");
     private static readonly PackedScene SkillsScene = GD.Load<PackedScene>("res://game/ui/SkillsPanel.tscn");
@@ -100,8 +102,13 @@ public partial class ClientGame : Node
 
     // What the server last said this player carries.
     private List<ItemStack> _stacks = new List<ItemStack>();
-    private string _pendingName = "";
-    private string _pendingLook = Looks.Default;
+    private CharacterSelect? _select;
+    private CharacterCreator? _creator;
+
+    // Bots and --autoconnect choose by themselves: make a character if there is none,
+    // then play the first. Once each.
+    private bool _autoCreated;
+    private bool _autoPlayed;
     private string _zoneId = "";
     private string _displayName = "";
     private string _address = "";
@@ -174,9 +181,24 @@ public partial class ClientGame : Node
         Multiplayer.ConnectionFailed += () => Callable.From(OnConnectionFailed).CallDeferred();
         Multiplayer.ServerDisconnected += () => Callable.From(OnServerDisconnected).CallDeferred();
 
-        if (options.AutoConnect)
+        _network.CharactersReceived += (ids, names, looks, levels, titles, message) => Callable.From(() => OnCharactersReceived(ids, names, looks, levels, titles, message)).CallDeferred();
+
+        if (options.Creator)
         {
-            Connect(DefaultName(), options.Address ?? _settings.Address, options.Look);
+            CharacterCreator creator = CreatorScene.Instantiate<CharacterCreator>();
+            _ui.AddChild(creator);
+            creator.Open(true, DefaultName(), options.Look);
+
+            if (options.ScreenshotPath != null)
+            {
+                Screenshot shot = new Screenshot { Name = "Screenshot" };
+                AddChild(shot);
+                shot.Start(options.ScreenshotPath, false, options.ScreenshotAfterSeconds);
+            }
+        }
+        else if (options.AutoConnect)
+        {
+            Connect(options.Address ?? _settings.Address);
         }
         else
         {
@@ -312,23 +334,16 @@ public partial class ClientGame : Node
             _menu.QuitPressed += Quit;
         }
 
-        _menu.Fill(_profile.Name, DefaultName(), _settings.Address);
+        CloseCharacterScreens();
+        _menu.Fill(_profile.Name, _settings.Address);
         _menu.SetStatus(status);
         _menu.SetBusy(false);
     }
 
-    private void Connect(string name, string address, string look)
+    private void Connect(string address)
     {
-        _pendingLook = look;
-        string? problem = DisplayName.Problem(name);
-
-        if (problem != null)
-        {
-            ShowMainMenu(problem);
-            return;
-        }
-
-        _pendingName = name.Trim();
+        _autoCreated = false;
+        _autoPlayed = false;
         _address = address;
         _settings.Address = address;
         _settings.Save();
@@ -350,8 +365,8 @@ public partial class ClientGame : Node
 
     private void OnConnected()
     {
-        GD.Print("Connected as peer " + Multiplayer.GetUniqueId() + "; logging in");
-        _network.SendLogin(GameVersion.Protocol, _profile.LicenseKey().ToString(), _pendingName, _pendingLook);
+        GD.Print("Connected as peer " + Multiplayer.GetUniqueId() + "; saying hello");
+        _network.SendHello(GameVersion.Protocol, _profile.LicenseKey().ToString());
     }
 
     private void OnConnectionFailed()
@@ -365,6 +380,141 @@ public partial class ClientGame : Node
         LeaveWorld();
         Disconnect();
         ShowMainMenu("The connection to the server was lost.");
+    }
+
+    // The account's characters: the screen to choose one, or, for bots, a choice made.
+    private void OnCharactersReceived(string[] ids, string[] names, string[] looks, int[] levels, string[] titles, string message)
+    {
+        GD.Print("Characters: " + string.Join(", ", names) + (message.Length > 0 ? " (" + message + ")" : ""));
+
+        if (_options.AutoConnect && !_options.ShowCharacters)
+        {
+            if (ids.Length == 0 && !_autoCreated)
+            {
+                _autoCreated = true;
+                _network.SendCreateCharacter(DefaultName(), _options.Look);
+            }
+            else if (ids.Length > 0 && !_autoPlayed)
+            {
+                _autoPlayed = true;
+                _network.SendLogin(ids[0]);
+            }
+
+            return;
+        }
+
+        // A problem with a character being made is shown on the creator, which stays.
+        if (_creator != null && message.Length > 0)
+        {
+            _creator.SetStatus(message);
+            return;
+        }
+
+        if (_creator != null)
+        {
+            _creator.QueueFree();
+            _creator = null;
+        }
+
+        if (_menu != null)
+        {
+            _menu.QueueFree();
+            _menu = null;
+        }
+
+        if (_select == null)
+        {
+            _select = SelectScene.Instantiate<CharacterSelect>();
+            _ui.AddChild(_select);
+            _select.PlayPressed += id =>
+            {
+                GD.Print("Playing " + id);
+                _network.SendLogin(id);
+            };
+            _select.CreatePressed += OpenCreator;
+            _select.BackPressed += () =>
+            {
+                Disconnect();
+                ShowMainMenu("");
+            };
+        }
+
+        _select.Visible = true;
+        _select.ShowCharacters(ids, names, looks, levels, titles, message);
+
+        if (_options.ShowCharacters && _options.ScreenshotPath != null && GetNodeOrNull("Screenshot") == null)
+        {
+            Screenshot shot = new Screenshot { Name = "Screenshot" };
+            AddChild(shot);
+            shot.Start(_options.ScreenshotPath, false, _options.ScreenshotAfterSeconds);
+        }
+    }
+
+    private void OpenCreator()
+    {
+        _creator = CreatorScene.Instantiate<CharacterCreator>();
+        _ui.AddChild(_creator);
+        _creator.Open(true, DefaultName(), Looks.Default);
+        _creator.DonePressed += (name, look) =>
+        {
+            string? problem = DisplayName.Problem(name);
+
+            if (problem != null)
+            {
+                _creator?.SetStatus(problem);
+                return;
+            }
+
+            _creator?.SetStatus("Making " + name + "...");
+            _network.SendCreateCharacter(name, look);
+        };
+        _creator.CancelPressed += () =>
+        {
+            _creator?.QueueFree();
+            _creator = null;
+        };
+    }
+
+    // In the world: change how your character looks.
+    private void OpenWardrobe()
+    {
+        CloseInGameMenu();
+        Players.Player? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+
+        if (self == null || _creator != null)
+        {
+            return;
+        }
+
+        _creator = CreatorScene.Instantiate<CharacterCreator>();
+        _ui.AddChild(_creator);
+        _creator.Open(false, "", self.Look);
+        _creator.DonePressed += (name, look) =>
+        {
+            _network.SendSetLook(look);
+            _creator?.QueueFree();
+            _creator = null;
+        };
+        _creator.CancelPressed += () =>
+        {
+            _creator?.QueueFree();
+            _creator = null;
+        };
+    }
+
+    private void CloseCharacterScreens()
+    {
+        if (_select != null)
+        {
+            _select.QueueFree();
+            _select = null;
+        }
+
+        if (_creator != null)
+        {
+            _creator.QueueFree();
+            _creator = null;
+        }
     }
 
     private void OnLoginRefused(string reason)
@@ -390,6 +540,7 @@ public partial class ClientGame : Node
             _menu = null;
         }
 
+        CloseCharacterScreens();
         _world = WorldScene.Instantiate<World>();
         _world.Name = "World";
         _main.AddChild(_world);
@@ -911,6 +1062,7 @@ public partial class ClientGame : Node
         _ui.AddChild(_inGameMenu);
         _inGameMenu.ResumePressed += CloseInGameMenu;
         _inGameMenu.SettingsPressed += OpenSettings;
+        _inGameMenu.WardrobePressed += OpenWardrobe;
         _inGameMenu.LeavePressed += Leave;
         _inGameMenu.QuitPressed += Quit;
     }

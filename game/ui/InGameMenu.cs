@@ -12,6 +12,7 @@ public partial class InGameMenu : Control
 
     public event Action? ResumePressed;
     public event Action? SettingsPressed;
+    public event Action? WardrobePressed;
     public event Action? LeavePressed;
     public event Action? QuitPressed;
 
@@ -20,6 +21,7 @@ public partial class InGameMenu : Control
         GetNode<Button>("%Resume").Pressed += () => ResumePressed?.Invoke();
         GetNode<Button>("%Settings").Pressed += () => SettingsPressed?.Invoke();
         GetNode<Button>("%Settings").AddToGroup(SettingsGroup);
+        GetNode<Button>("%Wardrobe").Pressed += () => WardrobePressed?.Invoke();
         GetNode<Button>("%Leave").Pressed += () => LeavePressed?.Invoke();
         GetNode<Button>("%Quit").Pressed += () => QuitPressed?.Invoke();
         GetNode<Button>("%Resume").GrabFocus();

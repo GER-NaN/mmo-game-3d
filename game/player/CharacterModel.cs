@@ -1,6 +1,8 @@
 namespace MmoGame3d.Players;
 
+using System.Collections.Generic;
 using Godot;
+using MmoGame3d.Rules.Players;
 
 /// <summary>
 /// What a player looks like on a client: a KayKit character with the medium rig's
@@ -38,6 +40,29 @@ public partial class CharacterModel : Node3D
         Idle, Walk, Run, Airborne, Busy, "Waving", "Cheering", "Sit_Floor_Idle", "Push_Ups", "Hammering", "Working_A",
     };
 
+    private static readonly Shader RecolorShader = GD.Load<Shader>("res://game/player/Recolor.gdshader");
+
+    // Which palette cells (row * 8 + column) skin, hair, top and bottom use in each base
+    // look, found from the meshes' UVs. A cell is shared between parts (the cap and the
+    // jacket both use white), so each choice is also limited to the meshes it belongs
+    // to: hair to the head, the top to body and arms, the bottom to legs and waist.
+    private static readonly Dictionary<string, int[][]> PartCells = new Dictionary<string, int[][]>
+    {
+        { "a", new[] { new[] { 0 }, new[] { 1 }, new[] { 9 }, new[] { 8 } } },
+        { "b", new[] { new[] { 0 }, new[] { 1 }, new[] { 13 }, new[] { 12 } } },
+    };
+
+    private static readonly string[][] PartMeshes =
+    {
+        new[] { "" },
+        new[] { "_Head" },
+        new[] { "_Body", "_ArmLeft", "_ArmRight" },
+        new[] { "_Body", "_LegLeft", "_LegRight" },
+    };
+
+    // A palette cell's average lightness, per texture, for keeping its shading.
+    private static readonly Dictionary<string, float[]> CellLightness = new Dictionary<string, float[]>();
+
     private static AnimationLibrary? _library;
 
     private AnimationPlayer? _animations;
@@ -46,10 +71,14 @@ public partial class CharacterModel : Node3D
     // Set before the node enters the tree.
     public string ModelPath { get; set; } = PlayerModel;
 
+    // A player's appearance (see Appearance): when set, it picks the model and recolours
+    // it, and ModelPath is ignored. Set before the node enters the tree.
+    public string Appearance { get; set; } = "";
+
     // The model for a player's look. Placeholders until character creation is designed.
     public static string PathFor(string look)
     {
-        switch (look)
+        switch (Rules.Players.Appearance.Parse(look).Base)
         {
             case "b":
                 return "res://assets/kaykit/characters/Protagonist_B.glb";
@@ -60,6 +89,13 @@ public partial class CharacterModel : Node3D
 
     public override void _Ready()
     {
+        Appearance? appearance = Appearance.Length > 0 ? Rules.Players.Appearance.Parse(Appearance) : null;
+
+        if (appearance != null)
+        {
+            ModelPath = PathFor(appearance.Base);
+        }
+
         PackedScene? scene = ResourceLoader.Exists(ModelPath) ? GD.Load<PackedScene>(ModelPath) : null;
 
         // Without the art (a machine it was not copied to), the capsule stays.
@@ -76,10 +112,150 @@ public partial class CharacterModel : Node3D
         model.RotateY(Mathf.Pi);
         AddChild(model);
 
+        if (appearance != null)
+        {
+            Dress(model, appearance);
+        }
+
         _animations = new AnimationPlayer { Name = "Animations" };
         model.AddChild(_animations);
         _animations.AddAnimationLibrary("", SharedLibrary());
         Play(Idle);
+    }
+
+    // Accessories on or off, and the chosen colours on the palette cells of each part.
+    private static void Dress(Node3D model, Appearance appearance)
+    {
+        int[][] cells;
+
+        if (!PartCells.TryGetValue(appearance.Base, out cells!))
+        {
+            return;
+        }
+
+        string[] colors =
+        {
+            Rules.Players.Appearance.SkinTones[appearance.Skin],
+            Rules.Players.Appearance.HairColors[appearance.Hair],
+            Rules.Players.Appearance.ClothesColors[appearance.Top],
+            Rules.Players.Appearance.ClothesColors[appearance.Bottom],
+        };
+
+        foreach (Node node in model.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            MeshInstance3D mesh = (MeshInstance3D)node;
+            string name = mesh.Name.ToString();
+
+            if (name.EndsWith("_Backpack"))
+            {
+                mesh.Visible = appearance.Backpack;
+            }
+            else if (name.EndsWith("_Glasses"))
+            {
+                mesh.Visible = appearance.Glasses;
+            }
+
+            for (int surface = 0; surface < mesh.GetSurfaceOverrideMaterialCount(); surface++)
+            {
+                StandardMaterial3D? original = mesh.Mesh.SurfaceGetMaterial(surface) as StandardMaterial3D;
+
+                if (original == null || original.AlbedoTexture == null)
+                {
+                    continue;
+                }
+
+                float[] lightness = Lightness(original.AlbedoTexture);
+                List<int> slotCells = new List<int>();
+                List<Color> slotColors = new List<Color>();
+                List<float> references = new List<float>();
+
+                for (int part = 0; part < colors.Length; part++)
+                {
+                    if (colors[part].Length == 0 || !Wears(name, PartMeshes[part]))
+                    {
+                        continue;
+                    }
+
+                    foreach (int cell in cells[part])
+                    {
+                        slotCells.Add(cell);
+                        slotColors.Add(new Color(colors[part]));
+                        references.Add(lightness[cell]);
+                    }
+                }
+
+                if (slotCells.Count == 0)
+                {
+                    continue;
+                }
+
+                ShaderMaterial material = new ShaderMaterial { Shader = RecolorShader };
+                material.SetShaderParameter("albedo_texture", original.AlbedoTexture);
+                material.SetShaderParameter("cells", slotCells.ToArray());
+                material.SetShaderParameter("colors", slotColors.ToArray());
+                material.SetShaderParameter("references", references.ToArray());
+                material.SetShaderParameter("count", slotCells.Count);
+                mesh.SetSurfaceOverrideMaterial(surface, material);
+            }
+        }
+    }
+
+    private static bool Wears(string meshName, string[] suffixes)
+    {
+        foreach (string suffix in suffixes)
+        {
+            if (meshName.EndsWith(suffix))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static float[] Lightness(Texture2D texture)
+    {
+        string key = texture.ResourcePath;
+        float[]? cached;
+
+        if (CellLightness.TryGetValue(key, out cached))
+        {
+            return cached;
+        }
+
+        float[] lightness = new float[32];
+        Image image = texture.GetImage();
+
+        if (image.IsCompressed())
+        {
+            image.Decompress();
+        }
+
+        int width = image.GetWidth();
+        int height = image.GetHeight();
+
+        for (int cell = 0; cell < 32; cell++)
+        {
+            int column = cell % 8;
+            int row = cell / 8;
+            float sum = 0f;
+            int samples = 0;
+
+            for (int y = 0; y < 8; y++)
+            {
+                for (int x = 0; x < 4; x++)
+                {
+                    Color pixel = image.GetPixel((int)((column + ((x + 0.5f) / 4f)) * width / 8f), (int)((row + ((y + 0.5f) / 8f)) * height / 4f));
+                    sum += (0.299f * pixel.R) + (0.587f * pixel.G) + (0.114f * pixel.B);
+                    samples++;
+                }
+            }
+
+            lightness[cell] = sum / samples;
+        }
+
+        CellLightness[key] = lightness;
+        return lightness;
     }
 
     public void Play(string animation)

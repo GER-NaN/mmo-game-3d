@@ -28,16 +28,85 @@ public class PlayerStore
         using IDbConnection connection = _database.Open();
 
         int inserted = connection.Execute(
-            @"insert into players (id, account_id, display_name, zone, position_x, position_y, position_z, yaw, dollars, look)
-              values (@PlayerId, @AccountId, @DisplayName, @Zone, @PositionX, @PositionY, @PositionZ, @Yaw, @Dollars, @Look)
-              on conflict (account_id) do nothing;",
+            @"insert into players (id, account_id, slot, display_name, zone, position_x, position_y, position_z, yaw, dollars, look)
+              values (@PlayerId, @AccountId, 0, @DisplayName, @Zone, @PositionX, @PositionY, @PositionZ, @Yaw, @Dollars, @Look)
+              on conflict (account_id, slot) do nothing;",
             newPlayer);
 
         created = inserted == 1;
 
         PlayerRecord player = connection.QuerySingle<PlayerRecord>(
-            "select " + SelectColumns + " from players where account_id = @AccountId;",
+            "select " + SelectColumns + " from players where account_id = @AccountId and slot = 0;",
             new { newPlayer.AccountId });
+        LoadBelongings(connection, player);
+        player.Created = created;
+        return player;
+    }
+
+    // The account's characters, for the character screen, in slot order.
+    public List<CharacterSummary> ListForAccount(Guid accountId)
+    {
+        using IDbConnection connection = _database.Open();
+        return connection.Query<CharacterSummary>(
+            @"select p.id as PlayerId, p.slot as Slot, p.display_name as DisplayName, p.look as Look,
+                     g.career as Career, coalesce(g.career_rank, 0) as CareerRank, coalesce(g.career_xp, 0) as CareerXp,
+                     coalesce(g.seconds_played, 0) as SecondsPlayed, coalesce(g.missions, 0) as Missions,
+                     coalesce((select sum(xp) from player_skills s where s.player_id = p.id), 0) as SkillXp
+              from players p left join player_progress g on g.player_id = p.id
+              where p.account_id = @accountId order by p.slot;",
+            new { accountId }).ToList();
+    }
+
+    // A new character in a free slot. False when the slot is taken.
+    public bool Create(PlayerRecord newPlayer, int slot)
+    {
+        using IDbConnection connection = _database.Open();
+        int inserted = connection.Execute(
+            @"insert into players (id, account_id, slot, display_name, zone, position_x, position_y, position_z, yaw, dollars, look)
+              values (@PlayerId, @AccountId, @slot, @DisplayName, @Zone, @PositionX, @PositionY, @PositionZ, @Yaw, @Dollars, @Look)
+              on conflict (account_id, slot) do nothing;",
+            new
+            {
+                newPlayer.PlayerId,
+                newPlayer.AccountId,
+                slot,
+                newPlayer.DisplayName,
+                newPlayer.Zone,
+                newPlayer.PositionX,
+                newPlayer.PositionY,
+                newPlayer.PositionZ,
+                newPlayer.Yaw,
+                newPlayer.Dollars,
+                newPlayer.Look,
+            });
+        return inserted == 1;
+    }
+
+    // One of the account's characters with what they carry; null when it is not theirs.
+    public PlayerRecord? Load(Guid playerId, Guid accountId)
+    {
+        using IDbConnection connection = _database.Open();
+        PlayerRecord? player = connection.QuerySingleOrDefault<PlayerRecord>(
+            "select " + SelectColumns + " from players where id = @playerId and account_id = @accountId;",
+            new { playerId, accountId });
+
+        if (player != null)
+        {
+            LoadBelongings(connection, player);
+        }
+
+        return player;
+    }
+
+    // A character's look can change later (a wardrobe), unlike the name.
+    public void SaveLook(Guid playerId, string look)
+    {
+        using IDbConnection connection = _database.Open();
+        connection.Execute("update players set look = @look where id = @playerId;", new { playerId, look });
+    }
+
+    private static void LoadBelongings(IDbConnection connection, PlayerRecord player)
+    {
 
         IEnumerable<StackRow> rows = connection.Query<StackRow>(
             "select item_type as ItemType, tier as Tier, quantity as Quantity from inventory_stacks where player_id = @PlayerId order by item_type, tier;",
@@ -62,9 +131,6 @@ public class PlayerStore
                 Charge = row.Charge,
             });
         }
-
-        player.Created = created;
-        return player;
     }
 
     // The row, the stacks and the instances in one transaction, so a player is never
