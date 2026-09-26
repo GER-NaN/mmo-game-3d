@@ -64,14 +64,14 @@ albedo_color = Color(0.36, 0.5, 0.3, 1)
 
 [sub_resource type="PlaneMesh" id="Mesh_Grass"]
 material = SubResource("Material_Grass")
-size = Vector2(80, 80)
+size = Vector2(120, 400)
 
 [sub_resource type="StandardMaterial3D" id="Material_Road"]
 albedo_color = Color(0.32, 0.33, 0.35, 1)
 
 [sub_resource type="PlaneMesh" id="Mesh_Road"]
 material = SubResource("Material_Road")
-size = Vector2(7, 80)
+size = Vector2(7, 400)
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_taxi"]
 properties/0/path = NodePath(".:SecondsLeft")
