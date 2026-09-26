@@ -45,8 +45,10 @@ for name in ["tree_A", "tree_B", "tree_C", "tree_D", "tree_E", "streetlight",
              "streetlight_old_single", "streetlight_old_double", "trafficlight_A", "firehydrant"]:
     PROPS.append(("city_builder_bits", name, CITY_SCALE, "trunk"))
 
-for name in ["car_sedan", "car_hatchback", "car_taxi", "car_police", "car_stationwagon",
-             "bench", "dumpster", "trash_A", "trash_B", "box_A", "box_B"]:
+for name in ["car_sedan", "car_hatchback", "car_taxi", "car_police", "car_stationwagon"]:
+    PROPS.append(("city_builder_bits", name, CITY_SCALE, "car"))
+
+for name in ["bench", "dumpster", "trash_A", "trash_B", "box_A", "box_B"]:
     PROPS.append(("city_builder_bits", name, CITY_SCALE, "box"))
 
 PROPS.append(("city_builder_bits", "watertower", CITY_SCALE, "block"))
@@ -60,6 +62,13 @@ RESOURCE_SCALE = 0.6
 
 for name in ["Gems_Chest", "Gems_Chest_Empty"]:
     PROPS.append(("resource_bits", name, RESOURCE_SCALE, "box"))
+
+# A car is two boxes, so a player can jump onto the bonnet and from there onto the
+# roof: the body up to this fraction of the height, and the cabin on it, this fraction
+# of the length and width. Placeholders, judged from the models.
+CAR_BODY = 0.45
+CAR_CABIN_LENGTH = 0.5
+CAR_CABIN_WIDTH = 0.9
 
 # A trunk is this fraction of the model's width, at least this wide in world units.
 TRUNK_FRACTION = 0.15
@@ -106,6 +115,10 @@ def bounds(path):
     return low, high
 
 
+def shape_id(index):
+    return "BoxShape3D_prop" if index == 0 else "BoxShape3D_prop" + str(index + 1)
+
+
 def scene_name(model):
     return "".join(part[:1].upper() + part[1:] for part in model.split("_"))
 
@@ -143,18 +156,30 @@ def write_prop(pack, model, scale, collision):
         lift = -low[1] * scale
         center[1] += lift
 
+    # Each shape is (size, center).
+    shapes = [(size, center)]
+
+    if collision == "car":
+        bottom = center[1] - size[1] / 2
+        body = [size[0], size[1] * CAR_BODY, size[2]]
+        cabin = [size[0] * CAR_CABIN_WIDTH, size[1] * (1 - CAR_BODY), size[2] * CAR_CABIN_LENGTH]
+        shapes = [(body, [center[0], bottom + body[1] / 2, center[2]]),
+                  (cabin, [center[0], bottom + body[1] + cabin[1] / 2, center[2]])]
+
     lines = []
     has_shape = collision not in ("none", "flat")
     height_scale = 1.0 if collision == "flat" else scale
-    lines.append("[gd_scene load_steps=%d format=3]" % (3 if has_shape else 2))
+    lines.append("[gd_scene load_steps=%d format=3]" % (2 + len(shapes) if has_shape else 2))
     lines.append("")
     lines.append('[ext_resource type="PackedScene" path="res://%s" id="1_model"]' % source.replace("\\", "/"))
     lines.append("")
 
     if has_shape:
-        lines.append('[sub_resource type="BoxShape3D" id="BoxShape3D_prop"]')
-        lines.append("size = Vector3(%s, %s, %s)" % tuple(number(v) for v in size))
-        lines.append("")
+        for i, (shape_size, _) in enumerate(shapes):
+            lines.append('[sub_resource type="BoxShape3D" id="%s"]' % shape_id(i))
+            lines.append("size = Vector3(%s, %s, %s)" % tuple(number(v) for v in shape_size))
+            lines.append("")
+
         lines.append('[node name="%s" type="StaticBody3D"]' % name)
 
         # World (1) plus CameraBlock (4); see game/PhysicsLayers.cs.
@@ -168,10 +193,11 @@ def write_prop(pack, model, scale, collision):
     lines.append("transform = Transform3D(%s, 0, 0, 0, %s, 0, 0, 0, %s, 0, %s, 0)" % (number(scale), number(height_scale), number(scale), number(lift)))
 
     if has_shape:
-        lines.append("")
-        lines.append('[node name="Collision" type="CollisionShape3D" parent="."]')
-        lines.append("transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, %s, %s, %s)" % tuple(number(v) for v in center))
-        lines.append('shape = SubResource("BoxShape3D_prop")')
+        for i, (_, shape_center) in enumerate(shapes):
+            lines.append("")
+            lines.append('[node name="%s" type="CollisionShape3D" parent="."]' % ("Collision" if i == 0 else "Collision" + str(i + 1)))
+            lines.append("transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, %s, %s, %s)" % tuple(number(v) for v in shape_center))
+            lines.append('shape = SubResource("%s")' % shape_id(i))
 
     folder = os.path.join(OUT, pack)
     os.makedirs(folder, exist_ok=True)

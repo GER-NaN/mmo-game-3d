@@ -12,7 +12,8 @@ python tools/kaykit-props/make_props.py
 Run it from the repo root, with the art in `assets/kaykit/` (see `assets/README.md`).
 
 - To add a model, add a line to `PROPS` in the script and run it again.
-- Collision kinds: `box` (the model's bounds), `block` (a box that also stops the chase
+- Collision kinds: `box` (the model's bounds), `car` (a low body and a cabin on it, so
+  a player can jump onto the bonnet and then the roof), `block` (a box that also stops the chase
   camera, for buildings), `trunk` (a narrow post, for trees and
   lights, so a player walks under the branches), `flat` (roads and paving: no collision,
   and scaled only sideways, so they stay a thin surface), `none` (bushes).
