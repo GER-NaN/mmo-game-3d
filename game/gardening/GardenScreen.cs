@@ -60,6 +60,7 @@ public partial class GardenScreen : Control
     public override void _Ready()
     {
         SetAnchorsPreset(LayoutPreset.FullRect);
+        AddToGroup(Players.ChaseCamera.ScreenGroup);
 
         // Holding the focus keeps the walking keys off the body while at the table.
         FocusMode = FocusModeEnum.All;

@@ -105,6 +105,8 @@ public partial class TerminalScreen : Control
 
     public override void _Ready()
     {
+        AddToGroup(Players.ChaseCamera.ScreenGroup);
+
         // A terminal face: monospace where the system has one.
         SystemFont font = new SystemFont { FontNames = new[] { "Consolas", "Cascadia Mono", "DejaVu Sans Mono", "monospace" } };
         Theme = new Theme { DefaultFont = font, DefaultFontSize = 17 };

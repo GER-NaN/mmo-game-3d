@@ -62,6 +62,8 @@ public partial class ChaseCamera : Camera3D
 
     // After the bodies, so the camera follows where the player is this frame, not where
     // they were last frame. Bodies run at the default priority, 0.
+    public const string ScreenGroup = "full_screen";
+
     public override void _Ready()
     {
         ProcessPriority = 100;
@@ -69,6 +71,14 @@ public partial class ChaseCamera : Camera3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        // A screen over the whole view (the terminal, the potting table) has the mouse;
+        // its wheel and drags are not the world camera's.
+        if (GetTree().GetNodeCountInGroup(ScreenGroup) > 0)
+        {
+            _dragging = false;
+            return;
+        }
+
         if (@event is InputEventMouseButton button)
         {
             switch (button.ButtonIndex)
