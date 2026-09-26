@@ -1,5 +1,6 @@
 namespace MmoGame3d.Server;
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -15,6 +16,8 @@ public class TickProfile
     private readonly Dictionary<string, long> _total = new Dictionary<string, long>();
     private readonly Dictionary<string, long> _worst = new Dictionary<string, long>();
     private double _worstFrame;
+    private TimeSpan _gcPausedAtReport = GC.GetTotalPauseDuration();
+    private int _gen2AtReport = GC.CollectionCount(2);
 
     public long Start()
     {
@@ -56,6 +59,14 @@ public class TickProfile
         ranked.Sort((a, b) => b.Value.CompareTo(a.Value));
         StringBuilder text = new StringBuilder();
         text.Append("worst frame ").Append((_worstFrame * 1000.0).ToString("F1", CultureInfo.InvariantCulture)).Append(" ms");
+
+        // The .NET collector's pauses stop the frame too, and are not in any part.
+        TimeSpan paused = GC.GetTotalPauseDuration();
+        int gen2 = GC.CollectionCount(2);
+        text.Append(", gc paused ").Append((paused - _gcPausedAtReport).TotalMilliseconds.ToString("F1", CultureInfo.InvariantCulture))
+            .Append(" ms (").Append(gen2 - _gen2AtReport).Append(" full)");
+        _gcPausedAtReport = paused;
+        _gen2AtReport = gen2;
 
         for (int i = 0; i < ranked.Count && i < parts; i++)
         {
