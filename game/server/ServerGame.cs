@@ -6,17 +6,21 @@ using Godot;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
 using MmoGame3d.Data.Players;
+using MmoGame3d.Items;
 using MmoGame3d.Networking;
 using MmoGame3d.Players;
 using MmoGame3d.Rules;
+using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
 using MmoGame3d.Rules.World;
 using MmoGame3d.Zones;
 
 /// <summary>
 /// The server's side of the game: who is connected, logging in and out, putting bodies
-/// in the world, and writing players down. Game state is only touched on this thread;
-/// the database runs on the persistence worker and answers through its completions.
+/// in the world, what players carry, and writing players down. Game state is only
+/// touched on this thread; the database runs on the persistence worker and answers
+/// through its completions. The parts with a life of their own live in helpers: who
+/// sees what (VisibilityGate) and the items on the ground (GroundItems).
 /// </summary>
 public partial class ServerGame : Node
 {
@@ -36,6 +40,9 @@ public partial class ServerGame : Node
     private AccountStore _accounts = null!;
     private PlayerStore _players = null!;
     private StopSignals? _stopSignals;
+    private VisibilityGate _gate = null!;
+    private GroundItems _groundItems = null!;
+    private bool _stocked;
     private double _sinceSave;
 
     public void Start(LaunchOptions options, Network network, World world)
@@ -69,6 +76,8 @@ public partial class ServerGame : Node
         _players = new PlayerStore(database);
         _worker = new PersistenceWorker();
         _stopSignals = new StopSignals(options.Port);
+        _gate = new VisibilityGate(CanSee);
+        _groundItems = new GroundItems(_gate, OnItemPickedUp);
 
         ENetMultiplayerPeer peer = new ENetMultiplayerPeer();
         Error error = peer.CreateServer(options.Port, options.MaxPlayers);
@@ -112,6 +121,28 @@ public partial class ServerGame : Node
             _sinceSave = 0;
             SaveEveryone();
         }
+    }
+
+    // Physics queries are only sure once the space has stepped, so zones are stocked on
+    // the first physics frame rather than at start.
+    public override void _PhysicsProcess(double delta)
+    {
+        if (_groundItems == null)
+        {
+            return;
+        }
+
+        if (!_stocked)
+        {
+            _stocked = true;
+
+            foreach (string zoneId in ZoneIds.All)
+            {
+                _groundItems.Stock(_world.GetZone(zoneId)!);
+            }
+        }
+
+        _groundItems.Tick(delta);
     }
 
     public override void _ExitTree()
@@ -250,6 +281,13 @@ public partial class ServerGame : Node
         }
 
         session.Record = record;
+        session.Inventory = new Inventory();
+
+        foreach (ItemStack stack in record.Stacks)
+        {
+            session.Inventory.Add(stack.Type, stack.Tier, stack.Quantity);
+        }
+
         session.State = SessionState.Accepted;
         _network.SendLoginAccepted(peer, record.Zone, record.DisplayName);
         GD.Print("Peer " + peer + " logged in as " + record.DisplayName + " (player " + record.PlayerId + ")");
@@ -270,56 +308,36 @@ public partial class ServerGame : Node
         Player body = PlayerScene.Instantiate<Player>();
         body.Name = peer.ToString();
         body.DisplayName = record.DisplayName;
-        body.Position = FreeSpotNear(zone, new Vector3(record.PositionX, record.PositionY, record.PositionZ));
+        body.Position = SpaceQueries.FreeSpotNear(zone, new Vector3(record.PositionX, record.PositionY, record.PositionZ));
         body.Rotation = new Vector3(0f, record.Yaw, 0f);
         body.RespawnPoint = zone.SpawnPoint;
 
-        // A client is sent this body only while it is in the world and in the same zone.
-        // Godot shows a synchronizer to a peer when it is public and every filter agrees,
-        // so the filter is the whole gate. Visibility also decides spawning: the body is
-        // created on a client when it becomes visible there, and removed when it stops.
-        body.Synchronizer.AddVisibilityFilter(Callable.From<long, bool>(viewer => CanSee(viewer, zone.ZoneId)));
-
+        _gate.Watch(body.Synchronizer, zone.ZoneId);
         zone.Players.AddChild(body, true);
         session.Body = body;
         session.State = SessionState.InWorld;
+
+        // The newcomer can now see the zone: everything there asks its filter again, so
+        // the players and items already standing there spawn on this client.
+        _gate.Refresh(zone.ZoneId);
+        SendInventory(session);
     }
 
-    // A saved spot can be inside something built since. So a body goes where the saved
-    // spot is, or the nearest free spot on rings around it. Players pass through each
-    // other, so only the world counts. The test body is lifted a little so the floor it
-    // stands on does not count.
-    private static Vector3 FreeSpotNear(Zone zone, Vector3 wanted)
+    private void OnItemPickedUp(Player player, GroundItem item)
     {
-        const float RingStep = 1.5f;
-        const int Rings = 4;
-        const int SpotsPerRing = 8;
-
-        PhysicsDirectSpaceState3D space = zone.GetWorld3D().DirectSpaceState;
-        PhysicsShapeQueryParameters3D query = new PhysicsShapeQueryParameters3D
+        if (!_sessions.TryGetValue(player.OwnerPeerId, out Session? session) || session.Inventory == null)
         {
-            Shape = new CapsuleShape3D(),
-            CollisionMask = PhysicsLayers.World,
-        };
-
-        for (int ring = 0; ring <= Rings; ring++)
-        {
-            int spots = ring == 0 ? 1 : SpotsPerRing;
-
-            for (int spot = 0; spot < spots; spot++)
-            {
-                float angle = Mathf.Tau * spot / spots;
-                Vector3 candidate = wanted + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * (ring * RingStep);
-                query.Transform = new Transform3D(Basis.Identity, candidate + new Vector3(0f, 1.05f, 0f));
-
-                if (space.IntersectShape(query, 1).Count == 0)
-                {
-                    return candidate;
-                }
-            }
+            return;
         }
 
-        return wanted;
+        session.Inventory.Add(item.Type, item.Tier, item.Quantity);
+        SendInventory(session);
+        _network.SendNotice(session.PeerId, "Picked up " + item.Quantity + " " + ItemCatalog.Describe(item.Type, item.Tier));
+    }
+
+    private void SendInventory(Session session)
+    {
+        _network.SendInventory(session.PeerId, InventoryWire.Pack(session.Inventory!.Stacks));
     }
 
     private bool CanSee(long viewer, string zoneId)
@@ -369,6 +387,11 @@ public partial class ServerGame : Node
             PositionZ = body.Position.Z,
             Yaw = body.Rotation.Y,
         };
+
+        foreach (ItemStack stack in session.Inventory!.Stacks)
+        {
+            snapshot.Stacks.Add(new ItemStack(stack.Type, stack.Tier, stack.Quantity));
+        }
 
         _worker.Enqueue(() => _players.Save(snapshot), e => GD.PrintErr("Saving " + snapshot.DisplayName + " failed: " + e.Message));
     }

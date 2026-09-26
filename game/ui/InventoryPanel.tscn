@@ -1,0 +1,52 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/ui/InventoryPanel.cs" id="1_inventory"]
+
+[node name="InventoryPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(300, 360)
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -180.0
+offset_right = -20.0
+offset_bottom = 180.0
+grow_horizontal = 0
+grow_vertical = 2
+script = ExtResource("1_inventory")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Rows" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Inventory"
+
+[node name="Items" type="ItemList" parent="Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+
+[node name="Empty" type="Label" parent="Margin/Rows"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+text = "Nothing yet. Items on the ground are picked up by walking over them."
+autowrap_mode = 3
+
+[node name="Hint" type="Label" parent="Margin/Rows"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+text = "I to close"

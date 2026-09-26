@@ -3,6 +3,7 @@ namespace MmoGame3d.Tests.Data;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
 using MmoGame3d.Data.Players;
+using MmoGame3d.Rules.Items;
 
 [Collection(DatabaseCollection.Name)]
 public class PlayerStoreTests
@@ -43,6 +44,27 @@ public class PlayerStoreTests
         Assert.Equal(first.PlayerId, again.PlayerId);
         Assert.Equal("First", again.DisplayName);
         Assert.Equal(7f, again.PositionX);
+    }
+
+    [Fact]
+    public void WhatAPlayerCarriesIsSavedAndReplaced()
+    {
+        Guid accountId = _accounts.GetOrCreate(Guid.NewGuid());
+        PlayerRecord player = _players.GetOrCreate(NewPlayer(accountId, "Carrier"), out _);
+
+        player.Stacks.Add(new ItemStack(ItemType.GpuCore, ItemTier.Elite, 3));
+        player.Stacks.Add(new ItemStack(ItemType.RamStick, ItemTier.Standard, 1));
+        _players.Save(player);
+
+        player.Stacks.RemoveAt(1);
+        _players.Save(player);
+
+        PlayerRecord loaded = _players.GetOrCreate(NewPlayer(accountId, "Carrier"), out _);
+
+        ItemStack only = Assert.Single(loaded.Stacks);
+        Assert.Equal(ItemType.GpuCore, only.Type);
+        Assert.Equal(ItemTier.Elite, only.Tier);
+        Assert.Equal(3, only.Quantity);
     }
 
     [Fact]

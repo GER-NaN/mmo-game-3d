@@ -1,9 +1,11 @@
 namespace MmoGame3d.Client;
 
+using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Dev;
 using MmoGame3d.Networking;
 using MmoGame3d.Rules;
+using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
 using MmoGame3d.Ui;
 using MmoGame3d.Zones;
@@ -19,6 +21,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene SettingsScene = GD.Load<PackedScene>("res://game/ui/SettingsPanel.tscn");
     private static readonly PackedScene InGameMenuScene = GD.Load<PackedScene>("res://game/ui/InGameMenu.tscn");
     private static readonly PackedScene HudScene = GD.Load<PackedScene>("res://game/ui/Hud.tscn");
+    private static readonly PackedScene InventoryScene = GD.Load<PackedScene>("res://game/ui/InventoryPanel.tscn");
     private static readonly PackedScene WorldScene = GD.Load<PackedScene>("res://game/zones/World.tscn");
 
     private LaunchOptions _options = null!;
@@ -32,7 +35,11 @@ public partial class ClientGame : Node
     private InGameMenu? _inGameMenu;
     private World? _world;
     private Hud? _hud;
+    private InventoryPanel? _inventoryPanel;
     private BotDriver? _bot;
+
+    // What the server last said this player carries.
+    private List<ItemStack> _stacks = new List<ItemStack>();
     private string _pendingName = "";
     private string _address = "";
 
@@ -61,6 +68,8 @@ public partial class ClientGame : Node
 
         _network.LoginAccepted += (zoneId, displayName) => Callable.From(() => OnLoginAccepted(zoneId, displayName)).CallDeferred();
         _network.LoginRefused += reason => Callable.From(() => OnLoginRefused(reason)).CallDeferred();
+        _network.InventoryReceived += OnInventoryReceived;
+        _network.NoticeReceived += OnNoticeReceived;
         // Deferred, like the login answers above: these fire inside the engine's network
         // poll, and closing the peer or freeing the world is better done after it.
         Multiplayer.ConnectedToServer += () => Callable.From(OnConnected).CallDeferred();
@@ -79,20 +88,28 @@ public partial class ClientGame : Node
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (_world == null || !@event.IsActionPressed("ui_cancel"))
+        if (_world == null)
         {
             return;
         }
 
-        GetViewport().SetInputAsHandled();
+        if (@event.IsActionPressed("ui_cancel"))
+        {
+            GetViewport().SetInputAsHandled();
 
-        if (_inGameMenu == null)
-        {
-            OpenInGameMenu();
+            if (_inGameMenu == null)
+            {
+                OpenInGameMenu();
+            }
+            else
+            {
+                CloseInGameMenu();
+            }
         }
-        else
+        else if (@event.IsActionPressed("inventory"))
         {
-            CloseInGameMenu();
+            GetViewport().SetInputAsHandled();
+            ToggleInventory();
         }
     }
 
@@ -213,6 +230,32 @@ public partial class ClientGame : Node
         }
     }
 
+    private void OnInventoryReceived(int[] packed)
+    {
+        _stacks = InventoryWire.Unpack(packed);
+        _inventoryPanel?.ShowStacks(_stacks);
+    }
+
+    private void OnNoticeReceived(string text)
+    {
+        GD.Print("Notice: " + text);
+        _hud?.ShowNotice(text);
+    }
+
+    private void ToggleInventory()
+    {
+        if (_inventoryPanel != null)
+        {
+            _inventoryPanel.QueueFree();
+            _inventoryPanel = null;
+            return;
+        }
+
+        _inventoryPanel = InventoryScene.Instantiate<InventoryPanel>();
+        _ui.AddChild(_inventoryPanel);
+        _inventoryPanel.ShowStacks(_stacks);
+    }
+
     private void OpenInGameMenu()
     {
         _inGameMenu = InGameMenuScene.Instantiate<InGameMenu>();
@@ -261,6 +304,14 @@ public partial class ClientGame : Node
             _hud.QueueFree();
             _hud = null;
         }
+
+        if (_inventoryPanel != null)
+        {
+            _inventoryPanel.QueueFree();
+            _inventoryPanel = null;
+        }
+
+        _stacks = new List<ItemStack>();
 
         // Out of the tree at once, not at the end of the frame: its nodes must not run
         // another frame against a connection that is already gone.

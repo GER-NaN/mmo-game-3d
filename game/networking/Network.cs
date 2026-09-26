@@ -22,6 +22,34 @@ public partial class Network : Node
     public event Action<string, string>? LoginAccepted;
     public event Action<string>? LoginRefused;
 
+    // Client side: the whole bag, packed (see InventoryWire), sent to its owner only.
+    public event Action<int[]>? InventoryReceived;
+
+    // Client side: a short line for the player ("Picked up 2 GPU core").
+    public event Action<string>? NoticeReceived;
+
+    public void SendInventory(long peer, int[] packed)
+    {
+        RpcId(peer, MethodName.ReceiveInventory, packed);
+    }
+
+    public void SendNotice(long peer, string text)
+    {
+        RpcId(peer, MethodName.ReceiveNotice, text);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveInventory(int[] packed)
+    {
+        InventoryReceived?.Invoke(packed);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveNotice(string text)
+    {
+        NoticeReceived?.Invoke(text);
+    }
+
     public void SendLogin(int protocol, string licenseKey, string displayName)
     {
         RpcId(1, MethodName.Login, protocol, licenseKey, displayName);

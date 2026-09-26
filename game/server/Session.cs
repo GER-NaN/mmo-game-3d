@@ -2,6 +2,7 @@ namespace MmoGame3d.Server;
 
 using MmoGame3d.Data.Players;
 using MmoGame3d.Players;
+using MmoGame3d.Rules.Items;
 
 /// <summary>
 /// One connected client, from connect to disconnect. The peer id is the session's
@@ -21,6 +22,9 @@ public class Session
 
     // Set once the account lookup is back.
     public PlayerRecord? Record { get; set; }
+
+    // What they carry, live. Set with the record.
+    public Inventory? Inventory { get; set; }
 
     // Set once the client has its world loaded and the body is spawned.
     public Player? Body { get; set; }

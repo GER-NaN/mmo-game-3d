@@ -2,6 +2,7 @@ namespace MmoGame3d.Dev;
 
 using System.Text;
 using Godot;
+using MmoGame3d.Items;
 using MmoGame3d.Players;
 
 /// <summary>
@@ -43,6 +44,18 @@ public partial class WorldReport : Node
                     line.Append(' ').Append(player.DisplayName).Append(' ').Append(player.Position.ToString("F1"));
                 }
             }
+
+            int items = 0;
+
+            foreach (Node node in world.FindChildren("*", "Node3D", true, false))
+            {
+                if (node is GroundItem)
+                {
+                    items++;
+                }
+            }
+
+            line.Append("  items ").Append(items);
         }
 
         GD.Print(line.ToString());

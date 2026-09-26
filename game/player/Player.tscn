@@ -51,3 +51,4 @@ pixel_size = 0.005
 [node name="Synchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_interval = 0.05
 replication_config = SubResource("SceneReplicationConfig_sync")
+visibility_update_mode = 2

@@ -22,6 +22,20 @@ offset_bottom = 40.0
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 18
 
+[node name="Notices" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_top = 60.0
+offset_right = 250.0
+offset_bottom = 200.0
+grow_horizontal = 2
+mouse_filter = 2
+alignment = 0
+
 [node name="Hint" type="Label" parent="."]
 modulate = Color(1, 1, 1, 0.6)
 layout_mode = 1
@@ -30,8 +44,8 @@ anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 16.0
 offset_top = -36.0
-offset_right = 900.0
+offset_right = 1000.0
 offset_bottom = -12.0
 grow_vertical = 0
 theme_override_constants/outline_size = 6
-text = "W/S walk   A/D turn   Q/E step   Space jump   Right-drag look   Wheel zoom   Esc menu"
+text = "W/S walk   A/D turn   Q/E step   Space jump   Right-drag look   Wheel zoom   I inventory   Esc menu"
