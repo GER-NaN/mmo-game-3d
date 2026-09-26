@@ -828,7 +828,7 @@ public partial class ServerGame : Node
 
         // The newcomer can now see the zone: everything there asks its filter again, so
         // the players and items already standing there spawn on this client.
-        _gate.Refresh(zone.ZoneId);
+        _gate.Refresh(zone.ZoneId, peer);
         SendInventory(session);
         SendClock(session);
         _maps.Send(session);
@@ -944,7 +944,7 @@ public partial class ServerGame : Node
             span?.SetTag("zone.target", target.ZoneId);
             span?.SetTag("travellers", travellers.Count);
 
-            HashSet<string> left = new HashSet<string>();
+            List<KeyValuePair<string, long>> leaving = new List<KeyValuePair<string, long>>();
 
             for (int i = 0; i < travellers.Count; i++)
             {
@@ -961,16 +961,17 @@ public partial class ServerGame : Node
                     }
                 }
 
-                left.Add(travellers[i].Record!.Zone);
+                string from = travellers[i].Record!.Zone;
                 Transfer(travellers[i], target, arrival, offset);
+                leaving.Add(new KeyValuePair<string, long>(from, travellers[i].PeerId));
             }
 
             // Nothing in the old zones is shown to the travellers any more; the despawns go
             // out before the messages to change zone, so they arrive while the old zone is
-            // still loaded.
-            foreach (string zoneId in left)
+            // still loaded. Only the travellers see differently.
+            foreach (KeyValuePair<string, long> leaver in leaving)
             {
-                _gate.Refresh(zoneId);
+                _gate.Refresh(leaver.Key, leaver.Value);
             }
 
             foreach (Session traveller in travellers)

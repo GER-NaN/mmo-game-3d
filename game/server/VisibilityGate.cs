@@ -51,8 +51,11 @@ public class VisibilityGate
         }
     }
 
-    // After someone enters or leaves the zone: every node there asks its filter again.
-    public void Refresh(string zoneId)
+    // After one player entered or left the zone: every node there asks its filter again,
+    // for that player only. Asking for every peer was every node times every player calls
+    // into C# per arrival (about 14,000 at 100 players in a zone, 16 ms a join); only the
+    // one who moved can see differently.
+    public void Refresh(string zoneId, long peer)
     {
         List<MultiplayerSynchronizer>? watched;
 
@@ -63,7 +66,7 @@ public class VisibilityGate
 
         foreach (MultiplayerSynchronizer synchronizer in watched)
         {
-            synchronizer.UpdateVisibility(0);
+            synchronizer.UpdateVisibility((int)peer);
         }
     }
 }
