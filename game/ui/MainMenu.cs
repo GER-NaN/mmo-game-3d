@@ -26,6 +26,7 @@ public partial class MainMenu : Control
         _play.Pressed += OnPlay;
         _address.TextSubmitted += _ => OnPlay();
         GetNode<Button>("%Settings").Pressed += () => SettingsPressed?.Invoke();
+        GetNode<Button>("%Credits").Pressed += ShowCredits;
         GetNode<Button>("%Quit").Pressed += () => QuitPressed?.Invoke();
     }
 
@@ -52,5 +53,12 @@ public partial class MainMenu : Control
         {
             PlayPressed?.Invoke(_address.Text.Trim());
         }
+    }
+
+    private void ShowCredits()
+    {
+        CreditsPanel credits = new CreditsPanel();
+        AddChild(credits);
+        credits.Closed += credits.QueueFree;
     }
 }
