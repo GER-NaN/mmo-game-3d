@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
 [ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="90_door"]
+[ext_resource type="PackedScene" path="res://game/chests/Chest.tscn" id="91_chest"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/RoadStraight.tscn" id="10_road"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TreeA.tscn" id="20_tree"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TreeB.tscn" id="21_tree"]
@@ -299,6 +300,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.5, 4, 0)
 shape = SubResource("Shape_EdgeWest")
 
 [node name="Interactables" type="Node3D" parent="."]
+
+[node name="OldHardwareChest" parent="Interactables" instance=ExtResource("91_chest")]
+transform = Transform3D(0.866, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866, -9, 0, -6)
 
 [node name="Doors" type="Node3D" parent="."]
 

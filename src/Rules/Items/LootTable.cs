@@ -24,6 +24,18 @@ public class LootTable
         return table;
     }
 
+    // What the old hardware chest in the outskirts holds: salvage, a better haul than
+    // the ground, now and then a battery. Placeholder weights.
+    public static LootTable Chest()
+    {
+        LootTable table = new LootTable();
+        table.Add(new LootEntry(ItemType.RamStick, ItemTier.Enhanced, 10, 1, 2));
+        table.Add(new LootEntry(ItemType.GpuCore, ItemTier.Enhanced, 10, 1, 2));
+        table.Add(new LootEntry(ItemType.RamStick, ItemTier.Advanced, 3, 1, 1));
+        table.Add(new LootEntry(ItemType.Battery, ItemTier.Standard, 4, 1, 1));
+        return table;
+    }
+
     public void Add(LootEntry entry)
     {
         if (entry.Weight <= 0 || entry.MinQuantity <= 0 || entry.MaxQuantity < entry.MinQuantity)

@@ -14,7 +14,7 @@ using MmoGame3d.Ui;
 /// What it does: walks with pauses and turns, jumps sometimes, says a line in chat now
 /// and then, clicks on a nearby player and invites them, joins any party it is invited
 /// to, goes online at a terminal it passes (then offline again a little later), buys
-/// the first thing a shopkeeper offers, equips its phone and goes online on it, and at a
+/// the first thing a shopkeeper offers, opens chests, equips its phone and goes online on it, and at a
 /// workbench takes the battery out and puts one in.
 /// </summary>
 public partial class BotDriver : Node
@@ -203,7 +203,7 @@ public partial class BotDriver : Node
         Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
 
         bool usable = prompt != null && prompt.Visible
-            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair"));
+            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the"));
 
         if (prompt != null && usable && _nextInteract <= 0)
         {

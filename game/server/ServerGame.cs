@@ -57,6 +57,7 @@ public partial class ServerGame : Node
     private ServerShops _shops = null!;
     private ServerEquipment _equipment = null!;
     private ServerTown _town = null!;
+    private ServerChests _chests = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -115,7 +116,8 @@ public partial class ServerGame : Node
         _terminals = new ServerTerminals(networks.Terminal, network, () => _sessions.Values);
         _shops = new ServerShops(networks.Shop, network, SendInventory);
         _equipment = new ServerEquipment(networks.Items, network, _terminals, () => _sessions.Values, SendInventory);
-        _interactions = new ServerInteractions(world, network, _terminals, _shops, _equipment);
+        _chests = new ServerChests(network, SendInventory);
+        _interactions = new ServerInteractions(world, network, _terminals, _shops, _equipment, _chests);
 
         TownState townState = _world.GetZone(ZoneIds.Town)!.GetNode<TownState>("TownState");
         _gate.Watch(townState.Synchronizer, ZoneIds.Town);
@@ -184,6 +186,7 @@ public partial class ServerGame : Node
         _terminals.Tick(delta);
         _equipment.Tick(delta);
         _town.Tick(delta);
+        _chests.Tick();
 
         if (_stopSignals != null && _stopSignals.StopRequested())
         {

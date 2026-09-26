@@ -1,6 +1,7 @@
 namespace MmoGame3d.Server;
 
 using Godot;
+using MmoGame3d.Chests;
 using MmoGame3d.Interact;
 using MmoGame3d.Networking;
 using MmoGame3d.Vendors;
@@ -25,6 +26,7 @@ public class ServerInteractions
     private readonly ServerTerminals _terminals;
     private readonly ServerShops _shops;
     private readonly ServerEquipment _equipment;
+    private readonly ServerChests _chests;
     private ServerTown? _town;
 
     // The town comes up after the interactions it takes part in.
@@ -33,8 +35,9 @@ public class ServerInteractions
         set { _town = value; }
     }
 
-    public ServerInteractions(World world, Network session, ServerTerminals terminals, ServerShops shops, ServerEquipment equipment)
+    public ServerInteractions(World world, Network session, ServerTerminals terminals, ServerShops shops, ServerEquipment equipment, ServerChests chests)
     {
+        _chests = chests;
         _world = world;
         _session = session;
         _terminals = terminals;
@@ -76,6 +79,9 @@ public class ServerInteractions
                 break;
             case JunctionBox:
                 _town?.Repair(session);
+                break;
+            case Chest chest:
+                _chests.Open(session, chest);
                 break;
             default:
                 GD.PrintErr("Nothing handles the interactable " + interactableName + " of type " + thing.GetType().Name);

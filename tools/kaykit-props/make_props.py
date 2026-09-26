@@ -52,6 +52,12 @@ for name in ["desk", "desk_decorated", "monitor", "keyboard", "chair_desk_A", "t
              "table_small", "shelf_B_large_decorated", "cabinet_medium", "couch"]:
     PROPS.append(("furniture_bits", name, FURNITURE_SCALE, "box"))
 
+# Resource pieces are near character size; the chest is a placeholder "old hardware" chest.
+RESOURCE_SCALE = 0.6
+
+for name in ["Gems_Chest", "Gems_Chest_Empty"]:
+    PROPS.append(("resource_bits", name, RESOURCE_SCALE, "box"))
+
 # A trunk is this fraction of the model's width, at least this wide in world units.
 TRUNK_FRACTION = 0.15
 TRUNK_MIN = 0.3
