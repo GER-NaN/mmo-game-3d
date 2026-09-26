@@ -106,6 +106,25 @@ public class ServerScenarios
             case "garden":
                 StandBy(record, ZoneIds.Greenhouse, "PottingTable", new Vector3(0f, 0f, 1.5f));
                 break;
+            case "load-phone":
+            case "load-defense":
+                // Anywhere in town, spread out, with the phone equipped and charged.
+                Spread(record, ZoneIds.Town, 30f);
+                EquipPhone(session);
+
+                if (name == "load-defense")
+                {
+                    Defense?.UseShortRuns(session, ShortDefenseRun);
+                }
+
+                break;
+            case "load-taxi":
+                StandBy(record, ZoneIds.Town, "TaxiStand", new Vector3(_random.RandfRange(-1.5f, 1.5f), 0f, _random.RandfRange(0.6f, 2f)));
+                Town?.DevCleanTaxis();
+                break;
+            case "load-chat":
+                Spread(record, ZoneIds.Town, 30f);
+                break;
             case "workbench":
                 StandBy(record, ZoneIds.Shop, "Workbench", new Vector3(0f, 0f, 1.3f));
                 session.Inventory!.Add(ItemType.Battery, ItemTier.Standard, 1);
@@ -117,8 +136,9 @@ public class ServerScenarios
 
         if (name == "cameras")
         {
-            // Out of zapping range of the terminal, in view of the cameras.
-            Drones?.SpawnPair(new Vector3(14f, 0f, -2f));
+            // Out of zapping range of the terminal, in view of the cameras, and away from
+            // the other scenarios' spots (the college door is at x 15).
+            Drones?.SpawnPair(new Vector3(-14f, 0f, -2f));
         }
 
         GD.Print("Dev scenario \"" + name + "\" set up for " + record.DisplayName);
@@ -126,6 +146,41 @@ public class ServerScenarios
 
     // In reach of the thing: the offset if that spot is free, else the first free spot on
     // a ring round it, so furniture beside it does not push the body out of reach.
+    private readonly RandomNumberGenerator _random = new RandomNumberGenerator();
+
+    private void Spread(PlayerRecord record, string zoneId, float size)
+    {
+        record.Zone = zoneId;
+        record.PositionX = _random.RandfRange(-size, size);
+        record.PositionY = 0f;
+        record.PositionZ = _random.RandfRange(-4f, 4f);
+    }
+
+    private static void EquipPhone(Session session)
+    {
+        Belongings mine = new Belongings(session.Inventory!, session.Instances);
+
+        foreach (ItemInstance item in session.Instances)
+        {
+            if (item.Type == ItemType.Phone)
+            {
+                if (mine.Equipped(SlotType.Device) == null)
+                {
+                    mine.Equip(item.Id);
+                }
+
+                ItemInstance? battery = mine.Inside(item, SlotType.Battery);
+
+                if (battery != null)
+                {
+                    battery.Charge = 1f;
+                }
+
+                return;
+            }
+        }
+    }
+
     private void StandBy(PlayerRecord record, string zoneId, string thing, Vector3 offset)
     {
         Zone zone = _world.GetZone(zoneId)!;

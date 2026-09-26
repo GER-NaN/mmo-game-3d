@@ -68,6 +68,28 @@ def print_trace(records, trace_id, payload):
     walk(None, 0)
 
 
+# Where the server's time goes, by span: the slowest handlers and database calls, and
+# for database spans how long they waited in the queue first.
+def print_durations(records, keys):
+    times = defaultdict(list)
+    waits = defaultdict(list)
+    for record in records:
+        if record.get("type") != "span":
+            continue
+        group = "  ".join(str(field(record, k)) for k in keys)
+        times[group].append(record["duration_ms"])
+        wait = field(record, "db.queue_wait_ms")
+        if wait is not None:
+            waits[group].append(float(wait))
+
+    print("%7s %9s %9s %9s %10s %10s  %s" % ("count", "mean ms", "p95 ms", "max ms", "total ms", "queue ms", "span"))
+    for group, values in sorted(times.items(), key=lambda item: -sum(item[1])):
+        values.sort()
+        p95 = values[min(len(values) - 1, int(len(values) * 0.95))]
+        wait = "%10.2f" % (sum(waits[group]) / len(waits[group])) if waits[group] else "%10s" % "-"
+        print("%7d %9.2f %9.2f %9.2f %10.1f %s  %s" % (len(values), sum(values) / len(values), p95, values[-1], sum(values), wait, group))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--file", help="the .jsonl file (default: the newest server file)")
@@ -76,6 +98,7 @@ def main():
     parser.add_argument("--trace", metavar="TRACE_ID", help="print one trace as a tree of spans with their logs")
     parser.add_argument("--limit", type=int, default=50, help="records to list (default 50, 0 for all)")
     parser.add_argument("--payload", action="store_true", help="show packet payloads instead of their size")
+    parser.add_argument("--durations", action="store_true", help="span times by name (or --group-by): count, mean, p95, max and total, most total first")
     args = parser.parse_args()
 
     path = args.file or default_file()
@@ -91,6 +114,8 @@ def main():
 
     if args.trace:
         print_trace(records, args.trace, args.payload)
+    elif args.durations:
+        print_durations(records, args.group_by.split(",") if args.group_by else ["name"])
     elif args.group_by:
         keys = args.group_by.split(",")
         counts = Counter(tuple(str(field(r, k)) for k in keys) for r in records)

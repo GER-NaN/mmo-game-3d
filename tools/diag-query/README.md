@@ -24,6 +24,11 @@ python tools/diag-query/query.py --trace <trace_id from the line above>
 # With --log-packets: packets by kind and direction
 python tools/diag-query/query.py --where logger=Net.Packets --group-by net.direction,net.kind
 
+# Where the time goes: every span by name, with count, mean, p95, max and total, and
+# for database calls the mean wait in the queue first (a load test's slow handlers)
+python tools/diag-query/query.py --durations
+python tools/diag-query/query.py --durations --where name=Network/
+
 # Errors and warnings from the engine or the game
 python tools/diag-query/query.py --where logger=Engine --where level=Error
 ```

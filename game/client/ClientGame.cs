@@ -831,7 +831,7 @@ public partial class ClientGame : Node
 
         if (_options.LoadBot)
         {
-            LoadBot legs = new LoadBot(Name.GetHashCode() ^ _options.Profile.GetHashCode()) { Name = "LoadBot", Say = _network.SendChat };
+            LoadBot legs = new LoadBot(Name.GetHashCode() ^ _options.Profile.GetHashCode()) { Name = "LoadBot", Say = _network.SendChat, Scenario = _options.Scenario, Networks = _networks };
             AddChild(legs);
         }
 
@@ -841,7 +841,8 @@ public partial class ClientGame : Node
             AddChild(_bot);
         }
 
-        if (_options.Scenario != null && GetNodeOrNull("Scenario") == null)
+        // A load bot asks for its scenario too, but keeps doing it rather than testing it.
+        if (_options.Scenario != null && !_options.LoadBot && GetNodeOrNull("Scenario") == null)
         {
             AddChild(new ScenarioDriver(_options.Scenario, _networks) { Name = "Scenario" });
         }

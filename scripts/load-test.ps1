@@ -9,7 +9,9 @@
 # folder, one per -StatsEvery seconds: players, frame and physics time, traffic out and
 # in. Each bot process logs to load-test\bots-N.log. Needs Postgres, like the server.
 # -NoDiagnostics runs the server without its logs and traces, to see what they cost;
-# -LogPackets runs it with the packet log as well.
+# -LogPackets runs it with the packet log as well. -Scenario makes every bot keep doing
+# one thing instead of wandering (load-phone, load-defense, load-taxi, load-chat; see
+# game/dev/LoadBot.cs); the server is started with --dev-scenarios for it.
 param(
     [int]$Bots = 50,
     [int]$PerProcess = 50,
@@ -17,6 +19,7 @@ param(
     [int]$StatsEvery = 10,
     [switch]$NoDiagnostics,
     [switch]$LogPackets,
+    [string]$Scenario = "",
     [string]$Godot = "C:\Users\geral\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
 )
 
@@ -41,6 +44,10 @@ if ($LogPackets) {
     $serverArgs += "--log-packets"
 }
 
+if ($Scenario -ne "") {
+    $serverArgs += "--dev-scenarios"
+}
+
 $server = Start-Process $Godot -ArgumentList $serverArgs `
     -RedirectStandardOutput $serverLog -WindowStyle Hidden -PassThru
 Start-Sleep -Seconds 7
@@ -50,7 +57,13 @@ $clients = @()
 for ($first = 0; $first -lt $Bots; $first += $PerProcess) {
     $count = [Math]::Min($PerProcess, $Bots - $first)
     $log = Join-Path $logs ("bots-" + $first + ".log")
-    $clients += Start-Process $Godot -ArgumentList "--headless", "--path", "`"$root`"", "--", "--load-test", $count, "--load-first", $first `
+    $botArgs = @("--headless", "--path", "`"$root`"", "--", "--load-test", $count, "--load-first", $first)
+
+    if ($Scenario -ne "") {
+        $botArgs += @("--load-scenario", $Scenario)
+    }
+
+    $clients += Start-Process $Godot -ArgumentList $botArgs `
         -RedirectStandardOutput $log -WindowStyle Hidden -PassThru
 }
 

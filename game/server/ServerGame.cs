@@ -85,6 +85,7 @@ public partial class ServerGame : Node
     private ServerAchievements _achievements = null!;
     private ServerDefense? _defense;
     private ServerScenarios _scenarios = null!;
+    private readonly TickProfile _profile = new TickProfile();
     private AchievementStore _achievementStore = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
@@ -378,20 +379,33 @@ public partial class ServerGame : Node
             return;
         }
 
+        _profile.Frame(delta);
+        long lap = _profile.Start();
         _worker.RunCompletions();
+        lap = _profile.Lap("db replies", lap);
         _parties.Tick(delta);
+        lap = _profile.Lap("parties", lap);
         _terminals.Tick(delta);
+        lap = _profile.Lap("terminals", lap);
         _equipment.Tick(delta);
+        lap = _profile.Lap("equipment", lap);
         _town.Tick(delta);
         _chests.Tick();
-        _rides.Tick(delta);
-        _maps.Tick(delta);
-        _progress.Tick(delta);
         _fixables.Tick(delta);
+        lap = _profile.Lap("town", lap);
+        _rides.Tick(delta);
+        lap = _profile.Lap("rides", lap);
+        _maps.Tick(delta);
+        lap = _profile.Lap("maps", lap);
+        _progress.Tick(delta);
+        lap = _profile.Lap("progress", lap);
         _drones.Tick(delta);
+        lap = _profile.Lap("drones", lap);
         RegenerateHealth(delta);
         _packetLog?.Drain();
+        lap = _profile.Lap("health, packets", lap);
         _diagnostics?.Tick(delta);
+        _profile.Lap("diagnostics", lap);
 
         if (_stopSignals != null && _stopSignals.StopRequested())
         {
@@ -1054,7 +1068,7 @@ public partial class ServerGame : Node
 
         GD.Print(string.Format(
             System.Globalization.CultureInfo.InvariantCulture,
-            "Stats: {0} connected, {1} in world, {2} fps, {7:F0} physics steps/s, frame {3:F1} ms, physics {4:F1} ms, out {5:F0} KB/s, in {6:F0} KB/s",
+            "Stats: {0} connected, {1} in world, {2} fps, {7:F0} physics steps/s, frame {3:F1} ms, physics {4:F1} ms, out {5:F0} KB/s, in {6:F0} KB/s; {8}",
             _sessions.Count,
             inWorld,
             Engine.GetFramesPerSecond(),
@@ -1062,7 +1076,8 @@ public partial class ServerGame : Node
             physics,
             sent / seconds / 1024.0,
             received / seconds / 1024.0,
-            steps));
+            steps,
+            _profile.Report(seconds, 5)));
     }
 
     private void SendClock(Session session)

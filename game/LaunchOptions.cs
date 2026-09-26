@@ -30,6 +30,9 @@ using MmoGame3d.Rules.Time;
 ///                       that test (see ServerScenarios, ScenarioDriver); implies
 ///                       --autoconnect
 ///   --dev-scenarios     server: allow clients to ask for dev scenarios (off by default)
+///   --load-scenario x   with --load-test: every bot asks for dev scenario x and keeps
+///                       doing it (see LoadBot): load-phone, load-defense, load-taxi,
+///                       load-chat
 ///   --screenshot x.png  save the window to a PNG a few seconds in, then quit
 ///   --overview          with --screenshot: look down on the whole zone
 ///   --creator           dev: open the character creator at start (with --look), for
@@ -64,6 +67,9 @@ public class LaunchOptions
     public bool AutoConnect { get; private set; }
     public bool Bot { get; private set; }
     public string? Scenario { get; private set; }
+
+    // Load tests: the dev scenario every load bot asks for and then keeps doing.
+    public string? LoadScenario { get; private set; }
     public bool DevScenarios { get; private set; }
     public double ReportEverySeconds { get; private set; }
     public string? ScreenshotPath { get; private set; }
@@ -90,6 +96,7 @@ public class LaunchOptions
             DisplayName = "Load" + number,
             AutoConnect = true,
             LoadBot = true,
+            Scenario = LoadScenario,
         };
     }
 
@@ -159,6 +166,10 @@ public class LaunchOptions
                 case "--scenario":
                     options.Scenario = next;
                     options.AutoConnect = true;
+                    i++;
+                    break;
+                case "--load-scenario":
+                    options.LoadScenario = next;
                     i++;
                     break;
                 case "--dev-scenarios":
