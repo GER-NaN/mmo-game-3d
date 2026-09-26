@@ -86,10 +86,11 @@ public partial class ServerGame : Node
     private ServerDefense? _defense;
     private ServerScenarios _scenarios = null!;
     private readonly TickProfile _profile = new TickProfile();
+    private readonly Queue<long> _saveTurns = new Queue<long>();
+    private double _saveBudget;
     private AchievementStore _achievementStore = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
-    private double _sinceSave;
     private double _sinceClock;
     private double _sinceStats;
     private ulong _physicsFramesAtStats;
@@ -440,12 +441,34 @@ public partial class ServerGame : Node
             }
         }
 
-        _sinceSave += delta;
+        SaveInTurn(delta);
+    }
 
-        if (_sinceSave >= SaveIntervalSeconds)
+    // Each player is saved every SaveIntervalSeconds, a few a frame in turn rather than
+    // all at once: a hundred saves queued together made every other database call (a
+    // login, a leaderboard) wait behind them, 0.7 s on average.
+    private void SaveInTurn(double delta)
+    {
+        _saveBudget += _sessions.Count * delta / SaveIntervalSeconds;
+
+        while (_saveBudget >= 1)
         {
-            _sinceSave = 0;
-            SaveEveryone();
+            _saveBudget -= 1;
+
+            if (_saveTurns.Count == 0)
+            {
+                foreach (long peer in _sessions.Keys)
+                {
+                    _saveTurns.Enqueue(peer);
+                }
+            }
+
+            Session? session;
+
+            if (_saveTurns.Count > 0 && _sessions.TryGetValue(_saveTurns.Dequeue(), out session) && session.HasEnteredWorld)
+            {
+                Save(session);
+            }
         }
     }
 
