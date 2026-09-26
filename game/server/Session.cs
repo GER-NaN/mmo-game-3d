@@ -45,6 +45,9 @@ public class Session
     // Things with an identity (a phone, a battery), live. Set with the record.
     public List<ItemInstance> Instances { get; set; } = new List<ItemInstance>();
 
+    // The college person last talked to; their requests are taken only while in reach.
+    public College.CollegePerson? OpenCollegePerson { get; set; }
+
     // The workbench last used; work is taken only while it is in reach.
     public Workbench? OpenWorkbench { get; set; }
 

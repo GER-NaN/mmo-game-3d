@@ -398,6 +398,27 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, -8.4)
 TargetZone = "shop"
 TargetArrival = "FromTown"
 
+[node name="Sign" type="Label3D" parent="Doors/ToShop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0.2)
+text = "ELECTRONICS"
+modulate = Color(1, 0.85, 0.5, 1)
+outline_size = 10
+font_size = 64
+pixel_size = 0.01
+
+[node name="ToCollege" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, -8.4)
+TargetZone = "college"
+TargetArrival = "FromTown"
+
+[node name="Sign" type="Label3D" parent="Doors/ToCollege"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0.2)
+text = "COLLEGE"
+modulate = Color(0.7, 0.85, 1, 1)
+outline_size = 10
+font_size = 64
+pixel_size = 0.01
+
 [node name="Arrivals" type="Node3D" parent="."]
 
 [node name="FromOutskirts" type="Marker3D" parent="Arrivals"]
@@ -408,6 +429,9 @@ transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 8, 0, -40)
 
 [node name="FromShop" type="Marker3D" parent="Arrivals"]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -15, 0, -4.5)
+
+[node name="FromCollege" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 15, 0, -4.5)
 
 [node name="Spawn" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 8)

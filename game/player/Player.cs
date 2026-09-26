@@ -89,6 +89,10 @@ public partial class Player : CharacterBody3D
     [Export]
     public string DisplayName { get; set; } = "";
 
+    // The career and rank, public by design ("Mechanical Engineer · Senior"); "" for none.
+    [Export]
+    public string CareerTitle { get; set; } = "";
+
     // At a terminal, in the terminal world. The server holds an online body still; others
     // see it under the name.
     [Export]
@@ -208,7 +212,7 @@ public partial class Player : CharacterBody3D
     {
         Label3D label = GetNode<Label3D>("NameLabel");
 
-        string name = DisplayName + (IsOnline ? "\n(online)" : "");
+        string name = DisplayName + (CareerTitle.Length > 0 ? "\n" + CareerTitle : "") + (IsOnline ? "\n(online)" : "");
 
         if (selected)
         {

@@ -76,6 +76,7 @@ public partial class ServerGame : Node
     private ServerProgress _progress = null!;
     private ServerFixables _fixables = null!;
     private ServerHacking _hacking = null!;
+    private ServerCollege _college = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -183,6 +184,18 @@ public partial class ServerGame : Node
         _fixables = new ServerFixables(fixables, network, _progress);
         _interactions.Fixables = _fixables;
         _hacking = new ServerHacking(networks.Terminal, network, _terminals, _progress);
+        _college = new ServerCollege(networks.Progress, network, _progress);
+        _interactions.College = _college;
+        networks.Progress.TakeClassRequested += peer => WithSession(peer, session => _college.TakeClass(session));
+        networks.Progress.EnrollRequested += (peer, career) => WithSession(peer, session => _college.Enroll(session, career));
+        networks.Progress.RankUpRequested += peer => WithSession(peer, session => _college.RankUp(session));
+        _progress.CareerChanged += session =>
+        {
+            if (session.Body != null)
+            {
+                session.Body.CareerTitle = CareerCatalog.Title(session.Progress.Career.Career, session.Progress.Career.Rank);
+            }
+        };
         networks.Terminal.CrackStartRequested += peer => WithSession(peer, session => _hacking.Start(session));
         networks.Terminal.CrackGuessRequested += (peer, guess) => WithSession(peer, session => _hacking.Guess(session, guess));
         _terminals.Opened += _town.SendTown;
@@ -557,6 +570,7 @@ public partial class ServerGame : Node
         body.DisplayName = record.DisplayName;
         body.PlayerIdText = record.PlayerId.ToString();
         body.Look = Looks.OrDefault(record.Look);
+        body.CareerTitle = CareerCatalog.Title(session.Progress.Career.Career, session.Progress.Career.Rank);
         body.Position = SpaceQueries.FreeSpotNear(zone, new Vector3(record.PositionX, record.PositionY, record.PositionZ));
         body.Rotation = new Vector3(0f, record.Yaw, 0f);
         body.RespawnPoint = zone.SpawnPoint;

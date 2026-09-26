@@ -62,6 +62,7 @@ public partial class BotDriver : Node
     private bool _dropped;
     private bool _befriended;
     private int _crackStep;
+    private double _collegeSeenFor;
     private double _crackIn;
     private int _crackSeen;
     private double _interactHeldFor = -1;
@@ -82,6 +83,13 @@ public partial class BotDriver : Node
         }
 
         AcceptInvites(delta);
+
+        // Reading a college panel, it stands still: walking off would close it.
+        if (College(delta))
+        {
+            return;
+        }
+
         Shop(delta);
         Workbench(delta);
         UseTerminals(delta);
@@ -511,6 +519,47 @@ public partial class BotDriver : Node
                 _nextPhoneStep = 20;
                 break;
         }
+    }
+
+    // At the college: finish the Class, enroll in the first open career, take a rank when
+    // it is offered. One click per read.
+    private bool College(double delta)
+    {
+        Button? button = FirstUsable(CollegePanel.ClassGroup) ?? FirstUsable(CollegePanel.EnrollGroup) ?? FirstUsable(CollegePanel.RankUpGroup);
+
+        if (button == null)
+        {
+            _collegeSeenFor = 0;
+            return false;
+        }
+
+        ReleaseKeys();
+
+        _collegeSeenFor += delta;
+
+        if (_collegeSeenFor >= ReadDelay * 2)
+        {
+            GD.Print("Bot: clicking " + button.Text);
+            Click(button.GetGlobalRect().GetCenter());
+            _collegeSeenFor = -ReadDelay * 2;
+        }
+
+        return true;
+    }
+
+    private Button? FirstUsable(string group)
+    {
+        foreach (Node node in GetTree().GetNodesInGroup(group))
+        {
+            Button? button = node as Button;
+
+            if (button != null && !button.Disabled && button.IsVisibleInTree())
+            {
+                return button;
+            }
+        }
+
+        return null;
     }
 
     // Esc, Settings, a look, Back, Esc; then the friends list open and shut. True while

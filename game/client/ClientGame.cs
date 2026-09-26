@@ -36,6 +36,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene MapScene = GD.Load<PackedScene>("res://game/ui/MapPanel.tscn");
     private static readonly PackedScene SocialScene = GD.Load<PackedScene>("res://game/ui/SocialPanel.tscn");
     private static readonly PackedScene SkillsScene = GD.Load<PackedScene>("res://game/ui/SkillsPanel.tscn");
+    private static readonly PackedScene CollegeScene = GD.Load<PackedScene>("res://game/ui/CollegePanel.tscn");
 
     // Walking this far from where a shop or a workbench was opened closes it.
     private const float PanelWalkAway = 4f;
@@ -73,6 +74,7 @@ public partial class ClientGame : Node
     private MapPanel? _map;
     private SocialPanel? _social;
     private SkillsPanel? _skills;
+    private CollegePanel? _college;
 
     // What the server last said about this player's progress; see ProgressNetwork.
     private int[] _skillIds = new int[0];
@@ -148,6 +150,7 @@ public partial class ClientGame : Node
         _network.MapReceived += OnMapReceived;
         _socialNetwork.ContactsReceived += OnContactsReceived;
         _progressNetwork.ProgressReceived += OnProgressReceived;
+        _progressNetwork.CollegeOpened += OnCollegeOpened;
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
         _shopNetwork.ShopOpened += OnShopOpened;
         _itemNetwork.WorkbenchOpened += OnWorkbenchOpened;
@@ -182,11 +185,12 @@ public partial class ClientGame : Node
 
         Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
 
-        if ((_shop != null || _workbench != null || _give != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
+        if ((_shop != null || _workbench != null || _give != null || _college != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
             CloseShop();
             CloseWorkbench();
             CloseGive();
+            CloseCollege();
         }
 
         // The one being given to walked off, left, or changed zone.
@@ -215,13 +219,14 @@ public partial class ClientGame : Node
             return;
         }
 
-        if ((_shop != null || _workbench != null || _give != null || _map != null) && @event.IsActionPressed("ui_cancel"))
+        if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null) && @event.IsActionPressed("ui_cancel"))
         {
             GetViewport().SetInputAsHandled();
             CloseShop();
             CloseWorkbench();
             CloseGive();
             CloseMap();
+            CloseCollege();
             return;
         }
 
@@ -553,6 +558,7 @@ public partial class ClientGame : Node
 
         CloseTerminal();
         CloseMap();
+        CloseCollege();
         ColorRect fade = new ColorRect { Color = new Color(0f, 0f, 0f, 0f), MouseFilter = Control.MouseFilterEnum.Ignore };
         fade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _ui.AddChild(fade);
@@ -706,6 +712,30 @@ public partial class ClientGame : Node
         _classTaken = classTaken;
         _level = level;
         _skills?.ShowProgress(skills, xp, career, careerXp, rank, classTaken, level);
+        _college?.ShowProgress(skills, xp, career, careerXp, rank, classTaken);
+    }
+
+    private void OnCollegeOpened(string role)
+    {
+        CloseCollege();
+        Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
+        _panelOpenedAt = self != null ? self.GlobalPosition : Vector3.Zero;
+        _college = CollegeScene.Instantiate<CollegePanel>();
+        _ui.AddChild(_college);
+        _college.Open(role);
+        _college.ShowProgress(_skillIds, _skillXp, _career, _careerXp, _careerRank, _classTaken);
+        _college.ClassPressed += _progressNetwork.SendTakeClass;
+        _college.EnrollPressed += _progressNetwork.SendEnroll;
+        _college.RankUpPressed += _progressNetwork.SendRankUp;
+    }
+
+    private void CloseCollege()
+    {
+        if (_college != null)
+        {
+            _college.QueueFree();
+            _college = null;
+        }
     }
 
     private void ToggleSkills()
@@ -910,6 +940,7 @@ public partial class ClientGame : Node
         _maps.Clear();
         CloseSocial();
         CloseSkills();
+        CloseCollege();
 
         _instances = new List<ItemInstance>();
         _chatLog.Clear();

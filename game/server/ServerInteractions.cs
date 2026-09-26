@@ -36,6 +36,8 @@ public class ServerInteractions
 
     public ServerFixables? Fixables { get; set; }
 
+    public ServerCollege? College { get; set; }
+
     public ServerRides? Rides
     {
         set { _rides = value; }
@@ -94,6 +96,9 @@ public class ServerInteractions
                 break;
             case Fixable fixable:
                 Fixables?.Fix(session, fixable);
+                break;
+            case MmoGame3d.College.CollegePerson person:
+                College?.Talk(session, person);
                 break;
             case Chest chest:
                 _chests.Open(session, chest);
