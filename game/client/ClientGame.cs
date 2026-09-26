@@ -1155,6 +1155,7 @@ public partial class ClientGame : Node
         _terminal.GoOfflinePressed += _terminalNetwork.SendLeave;
         _terminal.ChatSubmitted += _network.SendChat;
         _terminal.TakeJobPressed += _terminalNetwork.SendTakeJob;
+        _terminal.DroneReported += _terminalNetwork.SendSpot;
         _terminal.CrackStartPressed += _terminalNetwork.SendCrackStart;
         _terminal.CrackGuessSubmitted += _terminalNetwork.SendCrackGuess;
         _terminal.WhoisSearchSubmitted += _socialNetwork.SendWhoisSearch;

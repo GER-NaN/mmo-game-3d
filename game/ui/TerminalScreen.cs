@@ -45,6 +45,9 @@ public partial class TerminalScreen : Control
     public event Action<string>? ChatSubmitted;
     // The job's id.
     public event Action<string>? TakeJobPressed;
+
+    // A drone's node name, clicked on Old Town's cameras.
+    public event Action<string>? DroneReported;
     public event Action? CrackStartPressed;
 
     // Whois: search text, open a page by player id, your own page, props, your own
@@ -328,6 +331,9 @@ public partial class TerminalScreen : Control
                 break;
             case TerminalApps.CodeCracker:
                 ShowCrack(content);
+                break;
+            case TerminalApps.TownCameras:
+                ShowCameras(content);
                 break;
             case TerminalApps.Whois:
                 ShowWhois(content);
@@ -677,6 +683,42 @@ public partial class TerminalScreen : Control
         Tween tween = notice.CreateTween();
         tween.TweenInterval(4.0);
         tween.TweenProperty(notice, "modulate:a", 0f, 1.0);
+    }
+
+    // Old Town's cameras: a live picture, four cameras, click a drone to report it.
+    private void ShowCameras(VBoxContainer content)
+    {
+        AddLine(content, "Watch for drones over Old Town. Click one to report it: the town pays for each drone reported.", Dim, 15);
+        CctvView view = new CctvView { SizeFlagsVertical = SizeFlags.ExpandFill, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(480, 270) };
+        view.DroneReported += name => DroneReported?.Invoke(name);
+        content.AddChild(view);
+
+        if (!view.HasFeed)
+        {
+            view.QueueFree();
+            AddLine(content, "No feed here. The cameras are on Old Town's own network: use a terminal in Old Town.", Locked, 16);
+            return;
+        }
+
+        HBoxContainer switches = new HBoxContainer();
+        switches.AddThemeConstantOverride("separation", 6);
+        Label caption = new Label { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+
+        for (int i = 0; i < 4; i++)
+        {
+            int camera = i;
+            Button button = new Button { Text = "Cam " + (i + 1), FocusMode = FocusModeEnum.None };
+            button.Pressed += () => view.Show(camera);
+            switches.AddChild(button);
+        }
+
+        switches.AddChild(caption);
+        content.AddChild(switches);
+
+        // The caption follows the camera shown, which moves on by itself.
+        Timer tick = new Timer { WaitTime = 0.5, Autostart = true };
+        tick.Timeout += () => caption.Text = "  REC   CAM " + view.CameraNumber + "   OLD TOWN";
+        switches.AddChild(tick);
     }
 
     private void ShowOnline(VBoxContainer content)

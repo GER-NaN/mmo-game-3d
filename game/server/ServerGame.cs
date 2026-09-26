@@ -224,6 +224,7 @@ public partial class ServerGame : Node
         network.EmpRequested += peer => WithSession(peer, session => _drones.Fire(session));
         _drones.Hurt += HurtPlayer;
         _drones.Post = _terminals.Post;
+        _drones.BagChanged = SendInventory;
         _garden = new ServerGarden(networks.Garden, network, intents, _worker, new PlantStore(database), _progress, _gate, _world.GetZone(ZoneIds.Outskirts)!, SendInventory);
         _garden.Post = _terminals.Post;
         _interactions.Garden = _garden;
@@ -278,6 +279,7 @@ public partial class ServerGame : Node
             }
         };
         networks.Terminal.CrackStartRequested += peer => WithSession(peer, session => _hacking.Start(session));
+        networks.Terminal.SpotRequested += (peer, drone) => WithSession(peer, session => _drones.Spot(session, drone));
         networks.Terminal.CrackGuessRequested += (peer, guess) => WithSession(peer, session => _hacking.Guess(session, guess));
         _terminals.Opened += _town.SendTown;
 

@@ -31,6 +31,7 @@ public class ServerDrones
     private const float ZapRange = 7f;
     private const int ZapDamage = 10;
     private const float KeepFromSpawn = 15f;
+    private const int SpotReward = 3;
 
     private readonly Zone _zone;
     private readonly VisibilityGate _gate;
@@ -38,15 +39,20 @@ public class ServerDrones
     private readonly Func<IEnumerable<Session>> _sessions;
     private readonly Random _random = new Random();
     private readonly Dictionary<Session, double> _lastPulse = new Dictionary<Session, double>();
+    private readonly Dictionary<Session, HashSet<string>> _spotted = new Dictionary<Session, HashSet<string>>();
     private double _sinceCheck = SpawnCheckSeconds;
     private double _clock;
     private double _sinceZap;
     private int _spawned;
 
-    // Raised for a player a drone hurt: (who, how much).
     // What happens here, for the terminal's status board; set by ServerGame.
     public Action<string>? Post { get; set; }
 
+    // The town pays for a drone reported on its cameras; set by ServerGame to send the
+    // player their new bag.
+    public Action<Session>? BagChanged { get; set; }
+
+    // Raised for a player a drone hurt: (who, how much).
     public event Action<Session, int>? Hurt;
 
     public ServerDrones(Zone zone, VisibilityGate gate, Network session, Func<IEnumerable<Session>> sessions)
@@ -126,6 +132,42 @@ public class ServerDrones
 
         GD.Print("Two drones are up over town, around " + center);
         Post?.Invoke("Two drones are up over Old Town.");
+    }
+
+    // A drone reported on Old Town's cameras: paid once a drone a player, while it flies,
+    // and only to someone online at a terminal in town, where the cameras are.
+    public void Spot(Session session, string droneName)
+    {
+        if (session.Body == null || !session.Body.IsOnline || session.ZoneId != _zone.ZoneId)
+        {
+            return;
+        }
+
+        Drone? drone = _zone.GetNode("Drones").GetNodeOrNull<Drone>(droneName);
+
+        if (drone == null || drone.Down)
+        {
+            _session.SendNotice(session.PeerId, "Cameras: nothing there now.");
+            return;
+        }
+
+        HashSet<string>? mine;
+
+        if (!_spotted.TryGetValue(session, out mine))
+        {
+            mine = new HashSet<string>();
+            _spotted[session] = mine;
+        }
+
+        if (!mine.Add(droneName))
+        {
+            _session.SendNotice(session.PeerId, "Cameras: you already reported that drone.");
+            return;
+        }
+
+        session.Dollars += SpotReward;
+        BagChanged?.Invoke(session);
+        _session.SendNotice(session.PeerId, "Cameras: drone reported. The town pays you $" + SpotReward + ".");
     }
 
     public void Fire(Session session)
@@ -233,6 +275,7 @@ public class ServerDrones
 
     public void Forget(Session session)
     {
+        _spotted.Remove(session);
         _lastPulse.Remove(session);
     }
 }

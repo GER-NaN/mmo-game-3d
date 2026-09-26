@@ -60,6 +60,10 @@ public static class TerminalApps
     public const string CodeCracker = "crack";
     public const string Whois = "whois";
 
+    // Old Town's own cameras: spotting drones, the first Defense Objective of the kind
+    // world.md lists ("operate the CCTV camera to spot enemy drone activity").
+    public const string TownCameras = "cameras";
+
     private static readonly TerminalApp[] All =
     {
         new TerminalApp(Chat, "Chat", ""),
@@ -68,6 +72,7 @@ public static class TerminalApps
         new TerminalApp(TodoList, "Town repairs", ""),
         new TerminalApp(TownLog, "Town log", ""),
         new TerminalApp(CodeCracker, "Code cracker", ""),
+        new TerminalApp(TownCameras, "Town cameras", ""),
         new TerminalApp(StatusBoard, "Status board", ""),
         new TerminalApp(ExchangeRate, "Exchange rate", ""),
         new TerminalApp("defense", "Defense Objectives", "Locked. Defense Objectives open when the first one is ready."),

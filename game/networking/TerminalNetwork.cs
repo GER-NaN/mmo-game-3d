@@ -107,6 +107,28 @@ public partial class TerminalNetwork : NetworkNode
         TownReceived?.Invoke(lightsWorking, lightsTaken, taxisClean, taxisTaken, log);
     }
 
+    // Server side: (peer, drone name) reported on Old Town's cameras.
+    public event Action<long, string>? SpotRequested;
+
+    public void SendSpot(string droneName)
+    {
+        RpcId(1, MethodName.Spot, droneName);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Spot(string droneName)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Spot, sender, droneName))
+            {
+                SpotRequested?.Invoke(sender, droneName);
+            }
+        }
+    }
+
     // Client side: an objective's leaderboard: the top lines, then "Your best: ...".
     public event Action<string, string[]>? BoardReceived;
 
