@@ -79,6 +79,10 @@ public partial class Player : CharacterBody3D
     private float _moveHeading;
     private bool _jumpRequested;
 
+    // Server only: walked on the ground and jumped since the skills last looked.
+    private float _walkedMetres;
+    private int _jumps;
+
     private Vector3 _netPosition;
     private float _netYaw;
 
@@ -511,6 +515,20 @@ public partial class Player : CharacterBody3D
         _jumpRequested = true;
     }
 
+    public float TakeWalkedMetres()
+    {
+        float metres = _walkedMetres;
+        _walkedMetres = 0f;
+        return metres;
+    }
+
+    public int TakeJumps()
+    {
+        int jumps = _jumps;
+        _jumps = 0;
+        return jumps;
+    }
+
     // Server only: starts a gesture everyone sees. A timed one ends by itself; one with
     // no time (sitting) lasts until the player moves.
     public void Show(string gestureId)
@@ -541,8 +559,21 @@ public partial class Player : CharacterBody3D
             }
         }
 
+        Vector3 before = Position;
+        bool leaving = jump && IsOnFloor();
         Step(walk, jump, delta);
         Rotation = new Vector3(0f, _moveHeading, 0f);
+
+        if (leaving)
+        {
+            _jumps++;
+        }
+
+        // Only walking on the ground counts: a fall or a respawn is not travel.
+        if (walk != Vector2.Zero && IsOnFloor())
+        {
+            _walkedMetres += new Vector2(Position.X - before.X, Position.Z - before.Z).Length();
+        }
 
         if (Position.Y < FallLimit)
         {

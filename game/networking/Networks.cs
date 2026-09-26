@@ -13,6 +13,7 @@ public class Networks
         Shop = main.GetNode<ShopNetwork>("ShopNetwork");
         Items = main.GetNode<ItemNetwork>("ItemNetwork");
         Social = main.GetNode<SocialNetwork>("SocialNetwork");
+        Progress = main.GetNode<ProgressNetwork>("ProgressNetwork");
     }
 
     public Network Session { get; }
@@ -21,6 +22,7 @@ public class Networks
     public ShopNetwork Shop { get; }
     public ItemNetwork Items { get; }
     public SocialNetwork Social { get; }
+    public ProgressNetwork Progress { get; }
 
     public void SetLog(IRpcLog log)
     {
@@ -30,5 +32,6 @@ public class Networks
         Shop.Log = log;
         Items.Log = log;
         Social.Log = log;
+        Progress.Log = log;
     }
 }

@@ -6,6 +6,7 @@ using MmoGame3d.Players;
 using MmoGame3d.Rules.Intents;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Maps;
+using MmoGame3d.Rules.Skills;
 using MmoGame3d.Rules.Social;
 using MmoGame3d.Vendors;
 using MmoGame3d.Workbenches;
@@ -46,6 +47,15 @@ public class Session
 
     // The workbench last used; work is taken only while it is in reach.
     public Workbench? OpenWorkbench { get; set; }
+
+    // Skills, career, time played, missions, live. Set with the record.
+    public PlayerProgress Progress { get; set; } = new PlayerProgress();
+
+    // Distance and jumps not yet worth a whole Agility experience.
+    public AgilityCounter Agility { get; } = new AgilityCounter();
+
+    // Whether the player was told this session that the next rank is ready.
+    public bool RankReadyNoted { get; set; }
 
     // Friends and ignores, live. Set with the record.
     public Contacts Contacts { get; set; } = new Contacts();

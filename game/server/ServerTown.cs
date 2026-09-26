@@ -82,6 +82,9 @@ public class ServerTown
         SendTown(session);
     }
 
+    // Raised for the one who repaired the lights: experience and a mission.
+    public event Action<Session>? Repaired;
+
     public void Repair(Session session)
     {
         string? refusal = _lights.CannotRepair(_jobTakers.Contains(session.Record!.PlayerId), session.Inventory!);
@@ -97,6 +100,7 @@ public class ServerTown
         session.Body?.Show(Gestures.Repair);
         _jobTakers.Clear();
         _bagChanged(session);
+        Repaired?.Invoke(session);
         Changed(name + " repaired the street lights on Main Street.");
     }
 

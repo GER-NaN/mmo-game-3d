@@ -1,6 +1,7 @@
 namespace MmoGame3d.Data.Players;
 
 using MmoGame3d.Rules.Items;
+using MmoGame3d.Rules.Skills;
 using MmoGame3d.Rules.Social;
 
 /// <summary>
@@ -20,6 +21,9 @@ public class PlayerRecord
     // Friends and ignores. Loaded by ContactStore, not by PlayerStore, and written by it
     // on each change rather than with the player.
     public Contacts Contacts { get; set; } = new Contacts();
+
+    // Skills and progress. Loaded and saved by ProgressStore.
+    public PlayerProgress Progress { get; set; } = new PlayerProgress();
 
     // True when GetOrCreate made this player just now. Not stored.
     public bool Created { get; set; }

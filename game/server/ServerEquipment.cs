@@ -52,6 +52,9 @@ public class ServerEquipment
         Apply(session, instanceId, (mine, id) => mine.Unequip(id));
     }
 
+    // Raised when work at a workbench succeeded, for the Workbench skill.
+    public event Action<Session>? WorkDone;
+
     public void OpenWorkbench(Session session, Workbench workbench)
     {
         session.OpenWorkbench = workbench;
@@ -62,8 +65,11 @@ public class ServerEquipment
     {
         if (AtWorkbench(session))
         {
-            Apply(session, phoneId, (mine, id) => mine.RemoveBattery(id));
-            session.Body?.Show(Gestures.Work);
+            if (Apply(session, phoneId, (mine, id) => mine.RemoveBattery(id)))
+            {
+                session.Body?.Show(Gestures.Work);
+                WorkDone?.Invoke(session);
+            }
         }
     }
 
@@ -71,8 +77,11 @@ public class ServerEquipment
     {
         if (AtWorkbench(session))
         {
-            Apply(session, phoneId, (mine, id) => mine.InsertBattery(id));
-            session.Body?.Show(Gestures.Work);
+            if (Apply(session, phoneId, (mine, id) => mine.InsertBattery(id)))
+            {
+                session.Body?.Show(Gestures.Work);
+                WorkDone?.Invoke(session);
+            }
         }
     }
 
@@ -147,13 +156,14 @@ public class ServerEquipment
         return atBench;
     }
 
-    private void Apply(Session session, string instanceId, Func<Belongings, Guid, string?> change)
+    // True when the change was made.
+    private bool Apply(Session session, string instanceId, Func<Belongings, Guid, string?> change)
     {
         Guid id;
 
         if (session.Inventory == null || !Guid.TryParse(instanceId, out id))
         {
-            return;
+            return false;
         }
 
         string? refusal = change(Belongings(session), id);
@@ -161,10 +171,11 @@ public class ServerEquipment
         if (refusal != null)
         {
             _session.SendNotice(session.PeerId, refusal);
-            return;
+            return false;
         }
 
         _bagChanged(session);
+        return true;
     }
 
     private static Belongings Belongings(Session session)

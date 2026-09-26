@@ -8,6 +8,7 @@ using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
 using MmoGame3d.Data.Maps;
 using MmoGame3d.Data.Players;
+using MmoGame3d.Data.Progress;
 using MmoGame3d.Data.Social;
 using MmoGame3d.Data.Town;
 using MmoGame3d.Interact;
@@ -18,6 +19,7 @@ using MmoGame3d.Rules;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
 using MmoGame3d.Rules.Shops;
+using MmoGame3d.Rules.Skills;
 using MmoGame3d.Rules.Social;
 using MmoGame3d.Rules.Time;
 using MmoGame3d.Town;
@@ -56,6 +58,7 @@ public partial class ServerGame : Node
     private PlayerStore _players = null!;
     private DiscoveryStore _discoveries = null!;
     private ContactStore _contacts = null!;
+    private ProgressStore _progressStore = null!;
     private StopSignals? _stopSignals;
     private VisibilityGate _gate = null!;
     private GroundItems _groundItems = null!;
@@ -70,6 +73,7 @@ public partial class ServerGame : Node
     private ServerRides _rides = null!;
     private ServerMaps _maps = null!;
     private ServerSocial _social = null!;
+    private ServerProgress _progress = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -127,6 +131,8 @@ public partial class ServerGame : Node
         _maps = new ServerMaps(world, network, _worker, _discoveries, () => _sessions.Values);
         _contacts = new ContactStore(database);
         _social = new ServerSocial(networks.Social, network, _worker, _contacts, () => _sessions.Values, FindSession);
+        _progressStore = new ProgressStore(database);
+        _progress = new ServerProgress(networks.Progress, network, () => _sessions.Values);
         _stopSignals = new StopSignals(options.Port);
         _clock = new WorldClock(options.TimeZone, options.TimeOffsetHours);
         TimeSpan worldTime = TimeSpan.FromSeconds(_clock.SecondsOfDay(DateTime.UtcNow));
@@ -142,6 +148,7 @@ public partial class ServerGame : Node
         networks.Items.DropRequested += (peer, intent, type, tier, quantity) => WithSession(peer, session => handover.Drop(session, intent, type, tier, quantity));
         networks.Items.GiveRequested += (peer, intent, target, type, tier, quantity, dollars) => WithSession(peer, session => handover.Give(session, intent, target, type, tier, quantity, dollars));
         _equipment = new ServerEquipment(networks.Items, network, _terminals, () => _sessions.Values, SendInventory);
+        _equipment.WorkDone += session => _progress.Award(session, SkillId.Workbench, SkillAwards.WorkbenchPerJob);
         _chests = new ServerChests(network, SendInventory);
         _interactions = new ServerInteractions(world, network, _terminals, _shops, _equipment, _chests);
 
@@ -149,6 +156,11 @@ public partial class ServerGame : Node
         _gate.Watch(townState.Synchronizer, ZoneIds.Town);
         _town = new ServerTown(townState, new TownStore(database), _worker, network, networks.Terminal, _chat, _clock, () => _sessions.Values, SendInventory);
         _town.Load();
+        _town.Repaired += session =>
+        {
+            _progress.Award(session, SkillId.ElectricalRepair, SkillAwards.ElectricalRepairPerBox);
+            _progress.MissionDone(session);
+        };
         _interactions.Town = _town;
         _rides = new ServerRides(world, _gate, network, _parties, () => _sessions.Values, Travel);
         _interactions.Rides = _rides;
@@ -242,6 +254,7 @@ public partial class ServerGame : Node
         _chests.Tick();
         _rides.Tick(delta);
         _maps.Tick(delta);
+        _progress.Tick(delta);
         _packetLog?.Drain();
         _diagnostics?.Tick(delta);
 
@@ -378,6 +391,7 @@ public partial class ServerGame : Node
             session.Body?.QueueFree();
             _parties.LeftWorld(session);
             _social.WentOffline(session);
+            _progress.Forget(session);
             _chat.Announce(session.Record!.DisplayName + " left.");
         }
 
@@ -438,6 +452,7 @@ public partial class ServerGame : Node
                 PlayerRecord record = _players.GetOrCreate(newPlayer, out _);
                 record.Discovered = _discoveries.Load(record.PlayerId);
                 record.Contacts = _contacts.Load(record.PlayerId);
+                record.Progress = _progressStore.Load(record.PlayerId);
                 return record;
             },
             record => OnPlayerLoaded(peer, record),
@@ -478,6 +493,7 @@ public partial class ServerGame : Node
         session.Record = record;
         session.Dollars = record.Dollars;
         session.Contacts = record.Contacts;
+        session.Progress = record.Progress;
         _diagnostics?.Tag(peer, "player.name", record.DisplayName);
         _diagnostics?.Tag(peer, "player.id", record.PlayerId.ToString());
         session.Inventory = new Inventory();
@@ -534,6 +550,7 @@ public partial class ServerGame : Node
         SendInventory(session);
         SendClock(session);
         _maps.Send(session);
+        _progress.Send(session);
         _parties.EnteredWorld(session);
 
         if (!session.HasEnteredWorld)
@@ -810,5 +827,9 @@ public partial class ServerGame : Node
 
         _worker.Enqueue(() => _players.Save(snapshot), e => GD.PrintErr("Saving " + snapshot.DisplayName + " failed: " + e.Message));
         _maps.Save(session);
+
+        Guid playerId = live.PlayerId;
+        PlayerProgress progress = session.Progress.Copy();
+        _worker.Enqueue(() => _progressStore.Save(playerId, progress), e => GD.PrintErr("Saving the progress of " + snapshot.DisplayName + " failed: " + e.Message));
     }
 }

@@ -35,6 +35,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene GiveScene = GD.Load<PackedScene>("res://game/ui/GivePanel.tscn");
     private static readonly PackedScene MapScene = GD.Load<PackedScene>("res://game/ui/MapPanel.tscn");
     private static readonly PackedScene SocialScene = GD.Load<PackedScene>("res://game/ui/SocialPanel.tscn");
+    private static readonly PackedScene SkillsScene = GD.Load<PackedScene>("res://game/ui/SkillsPanel.tscn");
 
     // Walking this far from where a shop or a workbench was opened closes it.
     private const float PanelWalkAway = 4f;
@@ -50,6 +51,7 @@ public partial class ClientGame : Node
     private ShopNetwork _shopNetwork = null!;
     private ItemNetwork _itemNetwork = null!;
     private SocialNetwork _socialNetwork = null!;
+    private ProgressNetwork _progressNetwork = null!;
     private Node _main = null!;
     private ClientSettings _settings = null!;
     private Profile _profile = null!;
@@ -70,6 +72,16 @@ public partial class ClientGame : Node
     private GivePanel? _give;
     private MapPanel? _map;
     private SocialPanel? _social;
+    private SkillsPanel? _skills;
+
+    // What the server last said about this player's progress; see ProgressNetwork.
+    private int[] _skillIds = new int[0];
+    private long[] _skillXp = new long[0];
+    private int _career = -1;
+    private long _careerXp;
+    private int _careerRank;
+    private bool _classTaken;
+    private int _level = 1;
 
     // What the server last said about friends and ignores; see SocialNetwork.
     private string[][] _contacts = { new string[0], new string[0], new string[0], new string[0], new string[0] };
@@ -101,6 +113,7 @@ public partial class ClientGame : Node
         _shopNetwork = networks.Shop;
         _itemNetwork = networks.Items;
         _socialNetwork = networks.Social;
+        _progressNetwork = networks.Progress;
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load();
@@ -134,6 +147,7 @@ public partial class ClientGame : Node
         _network.ClockReceived += OnClockReceived;
         _network.MapReceived += OnMapReceived;
         _socialNetwork.ContactsReceived += OnContactsReceived;
+        _progressNetwork.ProgressReceived += OnProgressReceived;
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
         _shopNetwork.ShopOpened += OnShopOpened;
         _itemNetwork.WorkbenchOpened += OnWorkbenchOpened;
@@ -244,6 +258,11 @@ public partial class ClientGame : Node
         {
             GetViewport().SetInputAsHandled();
             ToggleSocial();
+        }
+        else if (@event.IsActionPressed("skills"))
+        {
+            GetViewport().SetInputAsHandled();
+            ToggleSkills();
         }
         else if (@event.IsActionPressed("chat") && _chat != null)
         {
@@ -674,6 +693,51 @@ public partial class ClientGame : Node
         _social?.ShowContacts(friendIds, friendNames, friendZones, ignoredIds, ignoredNames);
     }
 
+    private void OnProgressReceived(int[] skills, long[] xp, int career, long careerXp, int rank, bool classTaken, int level)
+    {
+        _skillIds = skills;
+        _skillXp = xp;
+        _career = career;
+        _careerXp = careerXp;
+        _careerRank = rank;
+        _classTaken = classTaken;
+        _level = level;
+        _skills?.ShowProgress(skills, xp, career, careerXp, rank, classTaken, level);
+    }
+
+    private void ToggleSkills()
+    {
+        if (_skills != null)
+        {
+            _skills.QueueFree();
+            _skills = null;
+            return;
+        }
+
+        CloseSocial();
+        _skills = SkillsScene.Instantiate<SkillsPanel>();
+        _ui.AddChild(_skills);
+        _skills.ShowProgress(_skillIds, _skillXp, _career, _careerXp, _careerRank, _classTaken, _level);
+    }
+
+    private void CloseSkills()
+    {
+        if (_skills != null)
+        {
+            _skills.QueueFree();
+            _skills = null;
+        }
+    }
+
+    private void CloseSocial()
+    {
+        if (_social != null)
+        {
+            _social.QueueFree();
+            _social = null;
+        }
+    }
+
     private void ToggleSocial()
     {
         if (_social != null)
@@ -683,6 +747,7 @@ public partial class ClientGame : Node
             return;
         }
 
+        CloseSkills();
         _social = SocialScene.Instantiate<SocialPanel>();
         _ui.AddChild(_social);
         _social.ShowContacts(_contacts[0], _contacts[1], _contacts[2], _contacts[3], _contacts[4]);
@@ -769,7 +834,8 @@ public partial class ClientGame : Node
             + ClientSettings.KeyName("phone") + " phone   "
             + ClientSettings.KeyName("inventory") + " inventory   "
             + ClientSettings.KeyName("map") + " map   "
-            + ClientSettings.KeyName("social") + " friends   Enter chat   Esc menu");
+            + ClientSettings.KeyName("social") + " friends   "
+            + ClientSettings.KeyName("skills") + " skills   Enter chat   Esc menu");
     }
 
     private void Leave()
@@ -839,12 +905,8 @@ public partial class ClientGame : Node
         CloseGive();
         CloseMap();
         _maps.Clear();
-
-        if (_social != null)
-        {
-            _social.QueueFree();
-            _social = null;
-        }
+        CloseSocial();
+        CloseSkills();
 
         _instances = new List<ItemInstance>();
         _chatLog.Clear();
