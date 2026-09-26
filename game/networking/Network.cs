@@ -203,6 +203,42 @@ public partial class Network : NetworkNode
         MapReceived?.Invoke(zoneId, cells);
     }
 
+    // Server side: (peer, target player id, text) a private message.
+    public event Action<long, string, string>? DirectRequested;
+
+    // Client side: (the other player's id, their name, text, true when it came to you).
+    public event Action<string, string, string, bool>? DirectReceived;
+
+    public void SendDirect(string targetPlayerId, string text)
+    {
+        RpcId(1, MethodName.Direct, targetPlayerId, text);
+    }
+
+    public void SendDirectLine(long peer, string partnerId, string partnerName, string text, bool incoming)
+    {
+        SendTo(peer, MethodName.ReceiveDirect, partnerId, partnerName, text, incoming);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Direct(string targetPlayerId, string text)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Direct, sender, targetPlayerId, text))
+            {
+                DirectRequested?.Invoke(sender, targetPlayerId, text);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveDirect(string partnerId, string partnerName, string text, bool incoming)
+    {
+        DirectReceived?.Invoke(partnerId, partnerName, text, incoming);
+    }
+
     // Server side: (peer, text) a player typed.
     public event Action<long, string>? ChatRequested;
 

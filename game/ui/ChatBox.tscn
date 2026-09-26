@@ -15,6 +15,11 @@ mouse_filter = 2
 alignment = 2
 script = ExtResource("1_chat")
 
+[node name="Tabs" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+
 [node name="History" type="RichTextLabel" parent="."]
 unique_name_in_owner = true
 layout_mode = 2

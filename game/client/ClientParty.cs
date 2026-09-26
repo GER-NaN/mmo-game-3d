@@ -36,6 +36,7 @@ public partial class ClientParty : Node
     public event System.Action<Player>? GiveRequested;
     public event System.Action<Player>? FriendRequested;
     public event System.Action<Player>? IgnoreRequested;
+    public event System.Action<Player>? MessageRequested;
 
     public void Start(PartyNetwork network, CanvasLayer ui, Node world)
     {
@@ -110,6 +111,13 @@ public partial class ClientParty : Node
                     if (_target != null && IsInstanceValid(_target))
                     {
                         FriendRequested?.Invoke(_target);
+                    }
+                };
+                _frame.MessagePressed += () =>
+                {
+                    if (_target != null && IsInstanceValid(_target))
+                    {
+                        MessageRequested?.Invoke(_target);
                     }
                 };
                 _frame.IgnorePressed += () =>

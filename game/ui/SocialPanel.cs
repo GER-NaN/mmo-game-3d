@@ -13,6 +13,9 @@ public partial class SocialPanel : PanelContainer
     // (player id) for both Remove and Unignore: either takes them off their list.
     public event Action<string>? RemovePressed;
 
+    // (player id, name): opens a private conversation in the chat.
+    public event Action<string, string>? MessagePressed;
+
     public void ShowContacts(string[] friendIds, string[] friendNames, string[] friendZones, string[] ignoredIds, string[] ignoredNames)
     {
         VBoxContainer friends = GetNode<VBoxContainer>("%Friends");
@@ -23,7 +26,17 @@ public partial class SocialPanel : PanelContainer
         for (int i = 0; i < friendIds.Length; i++)
         {
             bool online = friendZones[i].Length > 0;
-            AddRow(friends, friendIds[i], friendNames[i], online ? ZoneIds.SceneOf(friendZones[i]) : "offline", online, "Remove");
+            HBoxContainer row = AddRow(friends, friendIds[i], friendNames[i], online ? ZoneIds.SceneOf(friendZones[i]) : "offline", online, "Remove");
+
+            if (online)
+            {
+                string id = friendIds[i];
+                string name = friendNames[i];
+                Button message = new Button { Text = "Message", FocusMode = FocusModeEnum.None };
+                message.Pressed += () => MessagePressed?.Invoke(id, name);
+                row.AddChild(message);
+                row.MoveChild(message, row.GetChildCount() - 2);
+            }
         }
 
         for (int i = 0; i < ignoredIds.Length; i++)
@@ -42,7 +55,7 @@ public partial class SocialPanel : PanelContainer
         }
     }
 
-    private void AddRow(VBoxContainer list, string id, string name, string where, bool bright, string action)
+    private HBoxContainer AddRow(VBoxContainer list, string id, string name, string where, bool bright, string action)
     {
         HBoxContainer row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 12);
@@ -52,6 +65,7 @@ public partial class SocialPanel : PanelContainer
         button.Pressed += () => RemovePressed?.Invoke(id);
         row.AddChild(button);
         list.AddChild(row);
+        return row;
     }
 
     private static void Clear(Node list)

@@ -11,11 +11,13 @@ public partial class TargetFrame : PanelContainer
     public const string InviteGroup = "target_invite";
     public const string GiveGroup = "target_give";
     public const string FriendGroup = "target_friend";
+    public const string MessageGroup = "target_message";
 
     public event Action? InvitePressed;
     public event Action? GivePressed;
     public event Action? FriendPressed;
     public event Action? IgnorePressed;
+    public event Action? MessagePressed;
 
     public override void _Ready()
     {
@@ -26,6 +28,8 @@ public partial class TargetFrame : PanelContainer
         GetNode<Button>("%Friend").AddToGroup(FriendGroup);
         GetNode<Button>("%Friend").Pressed += () => FriendPressed?.Invoke();
         GetNode<Button>("%Ignore").Pressed += () => IgnorePressed?.Invoke();
+        GetNode<Button>("%Message").AddToGroup(MessageGroup);
+        GetNode<Button>("%Message").Pressed += () => MessagePressed?.Invoke();
     }
 
     public void ShowTarget(string displayName, bool canInvite)

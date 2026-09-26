@@ -62,6 +62,8 @@ public partial class BotDriver : Node
     private bool _dropped;
     private bool _befriended;
     private bool _packOpened;
+    private bool _messaged;
+    private double _typeIn = -1;
     private int _crackStep;
     private double _collegeSeenFor;
     private double _crackIn;
@@ -78,6 +80,17 @@ public partial class BotDriver : Node
 
     public override void _Process(double delta)
     {
+        // A private message: the chat opened on the conversation; type into it.
+        if (_typeIn >= 0)
+        {
+            _typeIn -= delta;
+
+            if (_typeIn < 0)
+            {
+                Type("hi");
+            }
+        }
+
         if (LookAtSettings(delta))
         {
             return;
@@ -170,12 +183,20 @@ public partial class BotDriver : Node
 
             Button? give = GetTree().GetFirstNodeInGroup(TargetFrame.GiveGroup) as Button;
             Button? friend = GetTree().GetFirstNodeInGroup(TargetFrame.FriendGroup) as Button;
+            Button? message = GetTree().GetFirstNodeInGroup(TargetFrame.MessageGroup) as Button;
 
             if (!_befriended && friend != null && friend.IsVisibleInTree())
             {
                 _befriended = true;
                 GD.Print("Bot: clicking Add friend");
                 Click(friend.GetGlobalRect().GetCenter());
+            }
+            else if (!_messaged && message != null && message.IsVisibleInTree())
+            {
+                _messaged = true;
+                GD.Print("Bot: clicking Message");
+                Click(message.GetGlobalRect().GetCenter());
+                _typeIn = ReadDelay;
             }
             else if (invite != null && invite.IsVisibleInTree())
             {
@@ -396,7 +417,7 @@ public partial class BotDriver : Node
     {
         foreach (char c in text)
         {
-            Key key = Key.Key0 + (c - '0');
+            Key key = char.IsDigit(c) ? Key.Key0 + (c - '0') : Key.A + (char.ToUpperInvariant(c) - 'A');
             Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = c, Pressed = true });
             Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = c, Pressed = false });
         }

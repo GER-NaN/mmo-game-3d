@@ -370,7 +370,8 @@ public partial class TerminalScreen : Control
             view.Newline();
         }
 
-        view.AddText(line.Kind == ChatKind.System ? line.Text : (line.Kind == ChatKind.Party ? "[Party] " : "") + line.Sender + ": " + line.Text);
+        string prefix = line.Kind == ChatKind.Party ? "[Party] " : "";
+        view.AddText(line.Kind == ChatKind.System || line.Kind == ChatKind.Direct ? line.Text : prefix + line.Sender + ": " + line.Text);
     }
 
     private static void AddLine(VBoxContainer content, string text, Color color, int size)

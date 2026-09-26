@@ -251,6 +251,7 @@ public partial class ServerGame : Node
         _network.LoginRequested += OnLoginRequested;
         _network.WorldReadyReceived += OnWorldReady;
         _network.ChatRequested += OnChatRequested;
+        _network.DirectRequested += (peer, target, text) => WithSession(peer, session => _chat.Direct(session, target, text));
         _network.WalkRequested += (peer, direction, heading) => WithSession(peer, session => session.Body?.ApplyWalk(direction, heading));
         _network.StopRequested += (peer, heading) => WithSession(peer, session => session.Body?.ApplyStop(heading));
         _network.JumpRequested += peer => WithSession(peer, session => session.Body?.ApplyJump());

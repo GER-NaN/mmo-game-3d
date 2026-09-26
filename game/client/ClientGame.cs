@@ -146,6 +146,7 @@ public partial class ClientGame : Node
         _network.InventoryReceived += OnInventoryReceived;
         _network.NoticeReceived += OnNoticeReceived;
         _network.ChatReceived += OnChatReceived;
+        _network.DirectReceived += OnDirectReceived;
         _network.ClockReceived += OnClockReceived;
         _network.MapReceived += OnMapReceived;
         _socialNetwork.ContactsReceived += OnContactsReceived;
@@ -393,6 +394,7 @@ public partial class ClientGame : Node
         _chat = ChatScene.Instantiate<ChatBox>();
         _ui.AddChild(_chat);
         _chat.Submitted += OnChatSubmitted;
+        _chat.DirectSubmitted += _network.SendDirect;
 
         _party = new ClientParty { Name = "Party" };
         AddChild(_party);
@@ -400,6 +402,7 @@ public partial class ClientGame : Node
         _party.GiveRequested += OpenGive;
         _party.FriendRequested += player => _socialNetwork.SendBefriend(player.OwnerPeerId);
         _party.IgnoreRequested += player => _socialNetwork.SendIgnore(player.OwnerPeerId);
+        _party.MessageRequested += player => _chat?.OpenDirect(player.PlayerIdText, player.DisplayName);
 
         _intents = new ClientIntents { Name = "Intents" };
         AddChild(_intents);
@@ -607,6 +610,21 @@ public partial class ClientGame : Node
         }
     }
 
+    private void OnDirectReceived(string partnerId, string partnerName, string text, bool incoming)
+    {
+        GD.Print("Chat: " + (incoming ? "[From " : "[To ") + partnerName + "] " + text);
+        _chat?.AddDirect(partnerId, partnerName, text, incoming);
+        ChatLine line = new ChatLine(partnerName, (incoming ? "[From " : "[To ") + partnerName + "] " + text, ChatKind.Direct);
+        _chatLog.Add(line);
+
+        if (_chatLog.Count > ChatKept)
+        {
+            _chatLog.RemoveAt(0);
+        }
+
+        _terminal?.AddChatLine(line);
+    }
+
     private void OnChatReceived(string sender, string text, int kind)
     {
         GD.Print("Chat: " + (sender.Length > 0 ? sender + ": " : "") + text);
@@ -788,6 +806,7 @@ public partial class ClientGame : Node
         _ui.AddChild(_social);
         _social.ShowContacts(_contacts[0], _contacts[1], _contacts[2], _contacts[3], _contacts[4]);
         _social.RemovePressed += _socialNetwork.SendRemove;
+        _social.MessagePressed += (id, name) => _chat?.OpenDirect(id, name);
     }
 
     private void ToggleMap()

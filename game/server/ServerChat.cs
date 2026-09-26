@@ -89,6 +89,50 @@ public class ServerChat
         return clean;
     }
 
+    // A private line to one player, by player id (names are not unique). Same filters and
+    // rate limit as any line. An ignore drops it without saying so, as for invites.
+    public void Direct(Session speaker, string targetIdText, string text)
+    {
+        Guid targetId;
+        Session? target = null;
+
+        if (Guid.TryParse(targetIdText, out targetId))
+        {
+            foreach (Session session in _sessions())
+            {
+                if (session.State == SessionState.InWorld && session.Record != null && session.Record.PlayerId == targetId)
+                {
+                    target = session;
+                }
+            }
+        }
+
+        if (target == null)
+        {
+            _network.SendNotice(speaker.PeerId, "That player is not online.");
+            return;
+        }
+
+        if (target == speaker)
+        {
+            return;
+        }
+
+        string? clean = Prepare(speaker, text);
+
+        if (clean == null)
+        {
+            return;
+        }
+
+        _network.SendDirectLine(speaker.PeerId, target.Record!.PlayerId.ToString(), target.Record.DisplayName, clean, false);
+
+        if (!ServerSocial.Ignores(target, speaker))
+        {
+            _network.SendDirectLine(target.PeerId, speaker.Record!.PlayerId.ToString(), speaker.Record.DisplayName, clean, true);
+        }
+    }
+
     public void Announce(string text)
     {
         Broadcast(null, "", text, ChatKind.System);

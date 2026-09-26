@@ -11,4 +11,7 @@ public enum ChatKind
 
     // A player, to their party only.
     Party,
+
+    // A player, to one other player.
+    Direct,
 }
