@@ -146,6 +146,7 @@ public partial class ClientGame : Node
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load();
+        _settings.ReadOnly = options.LoadBot || options.Bot || options.Scenario != null;
 
         if (DisplayServer.GetName() != "headless")
         {

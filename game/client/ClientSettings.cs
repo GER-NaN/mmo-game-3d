@@ -160,8 +160,18 @@ public class ClientSettings
         _file.SetValue("names", profile, name);
     }
 
+    // A client run by a tool (load bots, --bot, --scenario) never writes the file: it
+    // is the machine's, shared with the person who plays, and a hundred load bots
+    // writing it at once left it broken.
+    public bool ReadOnly { get; set; }
+
     public void Save()
     {
+        if (ReadOnly)
+        {
+            return;
+        }
+
         _file.SetValue("display", "fullscreen", Fullscreen);
         _file.SetValue("network", "address", Address);
         _file.SetValue("controls", "mouse_sensitivity", MouseSensitivity);
