@@ -33,6 +33,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Inventory"
 
+[node name="Dollars" type="Label" parent="Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="Items" type="ItemList" parent="Margin/Rows"]
 unique_name_in_owner = true
 layout_mode = 2

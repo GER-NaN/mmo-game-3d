@@ -25,9 +25,11 @@ public abstract partial class Interactable : StaticBody3D
         get { return GetNodeOrNull<MultiplayerSynchronizer>("Synchronizer"); }
     }
 
-    public bool IsInReach(Vector3 feet)
+    // feet is global. The server passes some slack, for a body that moved on by the time
+    // its request arrived.
+    public bool IsInReach(Vector3 feet, float slack = 0f)
     {
         Vector3 here = GlobalPosition;
-        return new Vector2(here.X - feet.X, here.Z - feet.Z).Length() <= Reach;
+        return new Vector2(here.X - feet.X, here.Z - feet.Z).Length() <= Reach + slack;
     }
 }

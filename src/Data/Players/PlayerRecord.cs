@@ -19,4 +19,5 @@ public class PlayerRecord
     public float PositionY { get; set; }
     public float PositionZ { get; set; }
     public float Yaw { get; set; }
+    public int Dollars { get; set; }
 }

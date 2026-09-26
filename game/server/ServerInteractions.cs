@@ -3,6 +3,7 @@ namespace MmoGame3d.Server;
 using Godot;
 using MmoGame3d.Interact;
 using MmoGame3d.Networking;
+using MmoGame3d.Vendors;
 using MmoGame3d.Terminals;
 using MmoGame3d.Zones;
 
@@ -20,12 +21,14 @@ public class ServerInteractions
     private readonly World _world;
     private readonly Network _session;
     private readonly ServerTerminals _terminals;
+    private readonly ServerShops _shops;
 
-    public ServerInteractions(World world, Network session, ServerTerminals terminals)
+    public ServerInteractions(World world, Network session, ServerTerminals terminals, ServerShops shops)
     {
         _world = world;
         _session = session;
         _terminals = terminals;
+        _shops = shops;
     }
 
     public void Use(Session session, string interactableName)
@@ -43,9 +46,7 @@ public class ServerInteractions
             return;
         }
 
-        Vector3 feet = session.Body.GlobalPosition;
-
-        if (new Vector2(thing.GlobalPosition.X - feet.X, thing.GlobalPosition.Z - feet.Z).Length() > thing.Reach + ReachSlack)
+        if (!thing.IsInReach(session.Body.GlobalPosition, ReachSlack))
         {
             _session.SendNotice(session.PeerId, "Too far away.");
             return;
@@ -55,6 +56,9 @@ public class ServerInteractions
         {
             case Terminal terminal:
                 _terminals.Use(session, terminal);
+                break;
+            case Vendor vendor:
+                _shops.Open(session, vendor);
                 break;
             default:
                 GD.PrintErr("Nothing handles the interactable " + interactableName + " of type " + thing.GetType().Name);

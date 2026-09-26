@@ -12,10 +12,17 @@ public partial class Hud : Control
 
     private string _identity = "";
     private string _clock = "";
+    private string _dollars = "";
 
     public void ShowIdentity(string displayName, string zoneId)
     {
         _identity = displayName + "   " + zoneId;
+        Refresh();
+    }
+
+    public void ShowDollars(int dollars)
+    {
+        _dollars = "$" + dollars;
         Refresh();
     }
 
@@ -30,7 +37,7 @@ public partial class Hud : Control
 
     private void Refresh()
     {
-        GetNode<Label>("%Identity").Text = _identity + (_clock.Length > 0 ? "   " + _clock : "");
+        GetNode<Label>("%Identity").Text = _identity + (_clock.Length > 0 ? "   " + _clock : "") + (_dollars.Length > 0 ? "   " + _dollars : "");
     }
 
     // Bots read the prompt by this group, as a person reads the screen.

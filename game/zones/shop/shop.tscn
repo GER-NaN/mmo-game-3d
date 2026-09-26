@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
 [ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="90_door"]
+[ext_resource type="PackedScene" path="res://game/vendors/Vendor.tscn" id="91_vendor"]
 [ext_resource type="PackedScene" path="res://game/props/furniture_bits/TableMedium.tscn" id="10_counter"]
 [ext_resource type="PackedScene" path="res://game/props/furniture_bits/ShelfBLargeDecorated.tscn" id="11_shelf"]
 [ext_resource type="PackedScene" path="res://game/props/furniture_bits/DeskDecorated.tscn" id="12_desk"]
@@ -139,6 +140,11 @@ transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 5, 0, 2)
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -7.2, 0, 3)
 
 [node name="Interactables" type="Node3D" parent="."]
+
+[node name="Shopkeeper" parent="Interactables" instance=ExtResource("91_vendor")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -3)
+ShopId = "electronics"
+KeeperName = "Dee, the shopkeeper"
 
 [node name="Doors" type="Node3D" parent="."]
 

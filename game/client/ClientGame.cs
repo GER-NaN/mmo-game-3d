@@ -8,6 +8,7 @@ using MmoGame3d.Rules;
 using MmoGame3d.Rules.Chat;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
+using MmoGame3d.Rules.Shops;
 using MmoGame3d.Rules.Terminals;
 using MmoGame3d.Ui;
 using MmoGame3d.Zones;
@@ -26,6 +27,10 @@ public partial class ClientGame : Node
     private static readonly PackedScene InventoryScene = GD.Load<PackedScene>("res://game/ui/InventoryPanel.tscn");
     private static readonly PackedScene ChatScene = GD.Load<PackedScene>("res://game/ui/ChatBox.tscn");
     private static readonly PackedScene TerminalScene = GD.Load<PackedScene>("res://game/ui/TerminalScreen.tscn");
+    private static readonly PackedScene ShopScene = GD.Load<PackedScene>("res://game/ui/ShopPanel.tscn");
+
+    // Walking this far from where a shop was opened closes it.
+    private const float ShopWalkAway = 4f;
 
     // How much chat the client keeps, for a screen opened later.
     private const int ChatKept = 100;
@@ -35,6 +40,7 @@ public partial class ClientGame : Node
     private Network _network = null!;
     private PartyNetwork _partyNetwork = null!;
     private TerminalNetwork _terminalNetwork = null!;
+    private ShopNetwork _shopNetwork = null!;
     private Node _main = null!;
     private ClientSettings _settings = null!;
     private Profile _profile = null!;
@@ -49,6 +55,11 @@ public partial class ClientGame : Node
     private ClientParty? _party;
     private InteractionFinder? _finder;
     private TerminalScreen? _terminal;
+    private ShopPanel? _shop;
+    private string _shopId = "";
+    private Vector3 _shopOpenedAt;
+    private ClientIntents? _intents;
+    private int _dollars;
     private readonly List<ChatLine> _chatLog = new List<ChatLine>();
     private BotDriver? _bot;
 
@@ -65,6 +76,7 @@ public partial class ClientGame : Node
         _network = networks.Session;
         _partyNetwork = networks.Party;
         _terminalNetwork = networks.Terminal;
+        _shopNetwork = networks.Shop;
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load();
@@ -97,6 +109,8 @@ public partial class ClientGame : Node
         _network.ChatReceived += OnChatReceived;
         _network.ClockReceived += OnClockReceived;
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
+        _shopNetwork.ShopOpened += OnShopOpened;
+        _shopNetwork.IntentAnswered += (id, refusal) => _intents?.Answer(id, refusal);
         _terminalNetwork.Opened += OnTerminalOpened;
         _terminalNetwork.Closed += CloseTerminal;
         _terminalNetwork.RosterReceived += (names, zones, online) => _terminal?.ShowRoster(names, zones, online);
@@ -122,6 +136,13 @@ public partial class ClientGame : Node
         {
             _hud.ShowClock(_world.GetNode<DayNight>("DayNight").ClockText);
         }
+
+        Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
+
+        if (_shop != null && self != null && self.GlobalPosition.DistanceTo(_shopOpenedAt) > ShopWalkAway)
+        {
+            CloseShop();
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -140,6 +161,13 @@ public partial class ClientGame : Node
                 _terminalNetwork.SendLeave();
             }
 
+            return;
+        }
+
+        if (_shop != null && @event.IsActionPressed("ui_cancel"))
+        {
+            GetViewport().SetInputAsHandled();
+            CloseShop();
             return;
         }
 
@@ -286,6 +314,16 @@ public partial class ClientGame : Node
         AddChild(_party);
         _party.Start(_partyNetwork, _ui, _world);
 
+        _intents = new ClientIntents { Name = "Intents" };
+        AddChild(_intents);
+        _intents.Answered += (label, refusal) =>
+        {
+            if (refusal.Length > 0)
+            {
+                OnNoticeReceived(refusal);
+            }
+        };
+
         _finder = new InteractionFinder { Name = "InteractionFinder" };
         AddChild(_finder);
         _finder.PromptChanged += _hud.ShowPrompt;
@@ -307,10 +345,46 @@ public partial class ClientGame : Node
         }
     }
 
-    private void OnInventoryReceived(int[] packed)
+    private void OnInventoryReceived(int[] packed, int dollars)
     {
         _stacks = InventoryWire.Unpack(packed);
-        _inventoryPanel?.ShowStacks(_stacks);
+        _dollars = dollars;
+        _inventoryPanel?.ShowStacks(_stacks, _dollars);
+        _hud?.ShowDollars(dollars);
+        _shop?.ShowDollars(dollars);
+    }
+
+    private void OnShopOpened(string shopId)
+    {
+        CloseShop();
+        Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
+        _shopOpenedAt = self != null ? self.GlobalPosition : Vector3.Zero;
+        _shopId = shopId;
+        _shop = ShopScene.Instantiate<ShopPanel>();
+        _ui.AddChild(_shop);
+        _shop.ShowShop(shopId, "Electronics shop", _dollars);
+        _shop.Closed += CloseShop;
+        _shop.BuyPressed += OnBuyPressed;
+    }
+
+    private void OnBuyPressed(int offerIndex)
+    {
+        ShopOffer? offer = Shops.Offer(_shopId, offerIndex);
+        string shopId = _shopId;
+
+        if (offer != null && _intents != null)
+        {
+            _intents.Start(ItemCatalog.Describe(offer.Type, offer.Tier), id => _shopNetwork.SendBuy(id, shopId, offerIndex));
+        }
+    }
+
+    private void CloseShop()
+    {
+        if (_shop != null)
+        {
+            _shop.QueueFree();
+            _shop = null;
+        }
     }
 
     // Through a door: fade out, swap the zone, say ready, fade in. The server has already
@@ -434,7 +508,7 @@ public partial class ClientGame : Node
 
         _inventoryPanel = InventoryScene.Instantiate<InventoryPanel>();
         _ui.AddChild(_inventoryPanel);
-        _inventoryPanel.ShowStacks(_stacks);
+        _inventoryPanel.ShowStacks(_stacks, _dollars);
     }
 
     private void OpenInGameMenu()
@@ -516,6 +590,13 @@ public partial class ClientGame : Node
             _terminal = null;
         }
 
+        if (_intents != null)
+        {
+            _intents.QueueFree();
+            _intents = null;
+        }
+
+        CloseShop();
         _chatLog.Clear();
 
         _stacks = new List<ItemStack>();

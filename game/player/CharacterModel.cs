@@ -18,8 +18,8 @@ public partial class CharacterModel : Node3D
     public const string Airborne = "Jump_Idle";
     public const string Busy = "Interact";
 
-    // Placeholders until chosen: which character everyone is, and how big.
-    private const string ModelPath = "res://assets/kaykit/characters/Protagonist_A.glb";
+    // Placeholders until chosen: which character a player is, and how big.
+    public const string PlayerModel = "res://assets/kaykit/characters/Protagonist_A.glb";
     private const float ModelScale = 0.8f;
     private const float BlendSeconds = 0.2f;
 
@@ -37,6 +37,9 @@ public partial class CharacterModel : Node3D
 
     private AnimationPlayer? _animations;
     private string _playing = "";
+
+    // Set before the node enters the tree.
+    public string ModelPath { get; set; } = PlayerModel;
 
     public override void _Ready()
     {

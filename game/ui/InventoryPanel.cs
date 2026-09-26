@@ -16,8 +16,9 @@ public partial class InventoryPanel : PanelContainer
         new Color(0.85f, 0.5f, 1f),
     };
 
-    public void ShowStacks(IReadOnlyList<ItemStack> stacks)
+    public void ShowStacks(IReadOnlyList<ItemStack> stacks, int dollars)
     {
+        GetNode<Label>("%Dollars").Text = "Pocket change: $" + dollars;
         ItemList list = GetNode<ItemList>("%Items");
         list.Clear();
 

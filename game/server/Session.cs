@@ -2,7 +2,9 @@ namespace MmoGame3d.Server;
 
 using MmoGame3d.Data.Players;
 using MmoGame3d.Players;
+using MmoGame3d.Rules.Intents;
 using MmoGame3d.Rules.Items;
+using MmoGame3d.Vendors;
 
 /// <summary>
 /// One connected client, from connect to disconnect. The peer id is the session's
@@ -25,6 +27,15 @@ public class Session
 
     // What they carry, live. Set with the record.
     public Inventory? Inventory { get; set; }
+
+    // Pocket change, live. Set with the record.
+    public int Dollars { get; set; }
+
+    // The answers given to this player's intents, so a resent one is not acted on twice.
+    public IntentLedger Intents { get; } = new IntentLedger();
+
+    // The shopkeeper last used; a buy is taken only while they are in reach.
+    public Vendor? OpenVendor { get; set; }
 
     // Set once the client has its world loaded and the body is spawned. Null again while
     // the player goes through a door, until the next zone is loaded.

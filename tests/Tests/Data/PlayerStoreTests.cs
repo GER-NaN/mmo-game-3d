@@ -36,6 +36,7 @@ public class PlayerStoreTests
         Assert.True(created);
 
         first.PositionX = 7f;
+        first.Dollars = 3;
         _players.Save(first);
 
         PlayerRecord again = _players.GetOrCreate(NewPlayer(accountId, "Renamed"), out bool createdAgain);
@@ -44,6 +45,7 @@ public class PlayerStoreTests
         Assert.Equal(first.PlayerId, again.PlayerId);
         Assert.Equal("First", again.DisplayName);
         Assert.Equal(7f, again.PositionX);
+        Assert.Equal(3, again.Dollars);
     }
 
     [Fact]

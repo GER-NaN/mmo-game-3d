@@ -13,6 +13,7 @@ using MmoGame3d.Players;
 using MmoGame3d.Rules;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
+using MmoGame3d.Rules.Shops;
 using MmoGame3d.Rules.Time;
 using MmoGame3d.Rules.World;
 using MmoGame3d.Zones;
@@ -51,6 +52,7 @@ public partial class ServerGame : Node
     private ServerParties _parties = null!;
     private ServerTerminals _terminals = null!;
     private ServerInteractions _interactions = null!;
+    private ServerShops _shops = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -107,7 +109,8 @@ public partial class ServerGame : Node
         _chat = new ServerChat(network, () => _sessions.Values);
         _parties = new ServerParties(partyNetwork, network, _chat, () => _sessions.Values);
         _terminals = new ServerTerminals(networks.Terminal, network, () => _sessions.Values);
-        _interactions = new ServerInteractions(world, network, _terminals);
+        _shops = new ServerShops(networks.Shop, network, SendInventory);
+        _interactions = new ServerInteractions(world, network, _terminals, _shops);
 
         // Things standing in the zones sync their state (a terminal in use) only to the
         // players in that zone, like everything else.
@@ -146,6 +149,7 @@ public partial class ServerGame : Node
         partyNetwork.ChatRequested += (peer, text) => WithSession(peer, session => _parties.Chat(session, text));
         _network.InteractRequested += (peer, name) => WithSession(peer, session => _interactions.Use(session, name));
         networks.Terminal.LeaveRequested += peer => WithSession(peer, session => _terminals.Leave(session));
+        networks.Shop.BuyRequested += (peer, intent, shop, offer) => WithSession(peer, session => _shops.Buy(session, intent, shop, offer));
 
         GD.Print("Server listening on port " + options.Port + " for up to " + options.MaxPlayers + " players");
     }
@@ -315,6 +319,7 @@ public partial class ServerGame : Node
                     PositionX = spawn.X,
                     PositionY = spawn.Y,
                     PositionZ = spawn.Z,
+                    Dollars = Shops.StartingDollars,
                 };
                 return _players.GetOrCreate(newPlayer, out _);
             },
@@ -354,6 +359,7 @@ public partial class ServerGame : Node
         }
 
         session.Record = record;
+        session.Dollars = record.Dollars;
         session.Inventory = new Inventory();
 
         foreach (ItemStack stack in record.Stacks)
@@ -488,7 +494,7 @@ public partial class ServerGame : Node
 
     private void SendInventory(Session session)
     {
-        _network.SendInventory(session.PeerId, InventoryWire.Pack(session.Inventory!.Stacks));
+        _network.SendInventory(session.PeerId, InventoryWire.Pack(session.Inventory!.Stacks), session.Dollars);
     }
 
     private bool CanSee(long viewer, string zoneId)
@@ -538,6 +544,7 @@ public partial class ServerGame : Node
             PositionY = body != null ? body.Position.Y : live.PositionY,
             PositionZ = body != null ? body.Position.Z : live.PositionZ,
             Yaw = body != null ? body.Rotation.Y : live.Yaw,
+            Dollars = session.Dollars,
         };
 
         foreach (ItemStack stack in session.Inventory!.Stacks)

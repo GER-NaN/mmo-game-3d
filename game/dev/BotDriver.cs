@@ -13,7 +13,8 @@ using MmoGame3d.Ui;
 ///
 /// What it does: walks with pauses and turns, jumps sometimes, says a line in chat now
 /// and then, clicks on a nearby player and invites them, joins any party it is invited
-/// to, and goes online at a terminal it passes, then offline again a little later.
+/// to, goes online at a terminal it passes (then offline again a little later), and buys
+/// the first thing a shopkeeper offers.
 /// </summary>
 public partial class BotDriver : Node
 {
@@ -44,6 +45,8 @@ public partial class BotDriver : Node
     private double _inviteClickIn = -1;
     private double _joinSeenFor;
     private double _onlineFor;
+    private double _shopSeenFor;
+    private bool _boughtHere;
     private double _interactHeldFor = -1;
     private double _nextInteract;
 
@@ -53,6 +56,7 @@ public partial class BotDriver : Node
     public override void _Process(double delta)
     {
         AcceptInvites(delta);
+        Shop(delta);
         UseTerminals(delta);
 
         // Online, the body stands still and the keys belong to the terminal.
@@ -190,13 +194,48 @@ public partial class BotDriver : Node
         _onlineFor = 0;
         Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
 
-        if (prompt != null && prompt.Visible && prompt.Text.Contains("Go Online") && _nextInteract <= 0)
+        bool usable = prompt != null && prompt.Visible && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to"));
+
+        if (prompt != null && usable && _nextInteract <= 0)
         {
             GD.Print("Bot: pressing F at \"" + prompt.Text + "\"");
             ReleaseKeys();
             Input.ActionPress("interact");
             _interactHeldFor = 0;
             _nextInteract = 2;
+        }
+    }
+
+    // With a shop open: after a moment, buy the first offer once, then close the shop.
+    private void Shop(double delta)
+    {
+        Button? buy = GetTree().GetFirstNodeInGroup(ShopPanel.BuyGroup) as Button;
+
+        if (buy == null || !buy.IsVisibleInTree())
+        {
+            _shopSeenFor = 0;
+            _boughtHere = false;
+            return;
+        }
+
+        _shopSeenFor += delta;
+
+        if (_shopSeenFor < ReadDelay)
+        {
+            return;
+        }
+
+        if (!_boughtHere)
+        {
+            _boughtHere = true;
+            GD.Print("Bot: clicking Buy");
+            Click(buy.GetGlobalRect().GetCenter());
+        }
+        else if (_shopSeenFor > ReadDelay * 4)
+        {
+            GD.Print("Bot: closing the shop");
+            InputEventAction close = new InputEventAction { Action = "ui_cancel", Pressed = true };
+            Input.ParseInputEvent(close);
         }
     }
 
