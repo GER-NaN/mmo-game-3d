@@ -82,6 +82,27 @@ public class ServerScenarios
             case "book":
                 StandBy(record, ZoneIds.Subway, "VisitorBook", new Vector3(0f, 0f, 1.2f));
                 break;
+            case "college":
+                // Outside, facing the door: the test walks in.
+                StandBy(record, ZoneIds.Town, "../Doors/ToCollege", new Vector3(0f, 0f, 3f));
+                record.Yaw = 0f;
+                break;
+            case "lights":
+                StandBy(record, ZoneIds.Town, "JunctionBox", new Vector3(0f, 0f, 1.3f));
+                Town?.DevLightsJob(record.PlayerId);
+                session.Inventory!.Add(ItemType.RamStick, ItemTier.Standard, 1);
+                break;
+            case "taxi":
+                StandBy(record, ZoneIds.Town, "TaxiStand", new Vector3(0f, 0f, 1.3f));
+                Town?.DevCleanTaxis();
+                break;
+            case "fix":
+                StandBy(record, ZoneIds.Town, "Signal0", new Vector3(0f, 0f, -1.3f));
+                _world.GetZone(ZoneIds.Town)!.GetNode<Town.Fixable>("Interactables/Signal0").Broken = true;
+                break;
+            case "garden":
+                StandBy(record, ZoneIds.Greenhouse, "PottingTable", new Vector3(0f, 0f, 1.5f));
+                break;
             case "workbench":
                 StandBy(record, ZoneIds.Shop, "Workbench", new Vector3(0f, 0f, 1.3f));
                 session.Inventory!.Add(ItemType.Battery, ItemTier.Standard, 1);
