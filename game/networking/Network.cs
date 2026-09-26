@@ -1,6 +1,7 @@
 namespace MmoGame3d.Networking;
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Godot;
 
@@ -402,6 +403,11 @@ public partial class Network : NetworkNode
     public void SendChatLine(long peer, string sender, string text, int kind)
     {
         SendTo(peer, MethodName.ReceiveChatLine, sender, text, kind);
+    }
+
+    public void SendChatLine(IReadOnlyList<long> peers, string sender, string text, int kind)
+    {
+        SendToMany(peers, MethodName.ReceiveChatLine, sender, text, kind);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]

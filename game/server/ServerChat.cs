@@ -144,14 +144,20 @@ public class ServerChat
     }
 
     // The speaker is null for the server's own lines, which nobody can ignore.
+    // Converted and logged once for everyone who hears it (SendToMany): a line to a
+    // hundred players one copy at a time took most of a millisecond.
     private void Broadcast(Session? speaker, string sender, string text, ChatKind kind)
     {
+        List<long> peers = new List<long>();
+
         foreach (Session session in _sessions())
         {
             if (session.State == SessionState.InWorld && (speaker == null || !ServerSocial.Ignores(session, speaker)))
             {
-                _network.SendChatLine(session.PeerId, sender, text, (int)kind);
+                peers.Add(session.PeerId);
             }
         }
+
+        _network.SendChatLine(peers, sender, text, (int)kind);
     }
 }
