@@ -152,6 +152,9 @@ public partial class ServerGame : Node
         ServerIntents intents = new ServerIntents(network);
         _shops = new ServerShops(networks.Shop, network, intents, SendInventory);
         ServerHandover handover = new ServerHandover(intents, network, _groundItems, world, FindSession, SendInventory);
+        ServerRecycling recycling = new ServerRecycling(networks.Items, network, intents, SendInventory);
+        networks.Items.RecycleOneRequested += (peer, intent, type, tier) => WithSession(peer, session => recycling.RecycleOne(session, intent, type, tier));
+        networks.Items.RecycleThingRequested += (peer, intent, id) => WithSession(peer, session => recycling.RecycleThing(session, intent, id));
         networks.Items.DropRequested += (peer, intent, type, tier, quantity) => WithSession(peer, session => handover.Drop(session, intent, type, tier, quantity));
         networks.Items.GiveRequested += (peer, intent, target, type, tier, quantity, dollars) => WithSession(peer, session => handover.Give(session, intent, target, type, tier, quantity, dollars));
         _equipment = new ServerEquipment(networks.Items, network, _terminals, () => _sessions.Values, SendInventory);
@@ -167,6 +170,7 @@ public partial class ServerGame : Node
         networks.Items.RepairPackRequested += peer => WithSession(peer, session => _equipment.OpenRepairPack(session));
         _chests = new ServerChests(network, SendInventory);
         _interactions = new ServerInteractions(world, network, _terminals, _shops, _equipment, _chests);
+        _interactions.Recycling = recycling;
 
         TownState townState = _world.GetZone(ZoneIds.Town)!.GetNode<TownState>("TownState");
         _gate.Watch(townState.Synchronizer, ZoneIds.Town);

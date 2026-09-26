@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/town/Recycler.cs" id="1_recycler"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BoxB.tscn" id="2_box"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_recycler"]
+size = Vector3(1, 1.4, 1)
+
+[node name="Recycler" type="StaticBody3D"]
+script = ExtResource("1_recycler")
+Reach = 2.2
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+shape = SubResource("BoxShape3D_recycler")
+
+[node name="Machine" parent="." instance=ExtResource("2_box")]
+collision_layer = 0
+
+[node name="Sign" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+billboard = 1
+text = "RECYCLER"
+modulate = Color(0.55, 1, 0.6, 1)
+outline_size = 8
+font_size = 44
+pixel_size = 0.006

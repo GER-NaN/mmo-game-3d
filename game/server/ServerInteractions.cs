@@ -38,6 +38,8 @@ public class ServerInteractions
 
     public ServerCollege? College { get; set; }
 
+    public ServerRecycling? Recycling { get; set; }
+
     public ServerRides? Rides
     {
         set { _rides = value; }
@@ -93,6 +95,9 @@ public class ServerInteractions
                 break;
             case JunctionBox:
                 _town?.Repair(session);
+                break;
+            case Recycler recycler:
+                Recycling?.Open(session, recycler);
                 break;
             case Fixable fixable:
                 Fixables?.Fix(session, fixable);

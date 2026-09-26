@@ -66,6 +66,63 @@ public partial class ItemNetwork : NetworkNode
     // Client side: a workbench was used, or a repair pack opened.
     public event Action? WorkbenchOpened;
 
+    // Server side, the recycler: (peer, intent id, type, tier) one of a stack, and
+    // (peer, intent id, instance id) a loose thing with its parts.
+    public event Action<long, uint, int, int>? RecycleOneRequested;
+    public event Action<long, uint, string>? RecycleThingRequested;
+
+    // Client side: the recycler was used.
+    public event Action? RecyclerOpened;
+
+    public void SendRecycleOne(uint intentId, int type, int tier)
+    {
+        RpcId(1, MethodName.RecycleOne, intentId, type, tier);
+    }
+
+    public void SendRecycleThing(uint intentId, string instanceId)
+    {
+        RpcId(1, MethodName.RecycleThing, intentId, instanceId);
+    }
+
+    public void SendRecyclerOpened(long peer)
+    {
+        SendTo(peer, MethodName.ReceiveRecyclerOpened);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void RecycleOne(uint intentId, int type, int tier)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.RecycleOne, sender, intentId, type, tier))
+            {
+                RecycleOneRequested?.Invoke(sender, intentId, type, tier);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void RecycleThing(uint intentId, string instanceId)
+    {
+        if (Multiplayer.IsServer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.RecycleThing, sender, intentId, instanceId))
+            {
+                RecycleThingRequested?.Invoke(sender, intentId, instanceId);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveRecyclerOpened()
+    {
+        RecyclerOpened?.Invoke();
+    }
+
     // Server side: an engineer opens their repair pack.
     public event Action<long>? RepairPackRequested;
 

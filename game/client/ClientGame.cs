@@ -35,6 +35,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene GiveScene = GD.Load<PackedScene>("res://game/ui/GivePanel.tscn");
     private static readonly PackedScene SelectScene = GD.Load<PackedScene>("res://game/ui/CharacterSelect.tscn");
     private static readonly PackedScene CreatorScene = GD.Load<PackedScene>("res://game/ui/CharacterCreator.tscn");
+    private static readonly PackedScene RecyclerScene = GD.Load<PackedScene>("res://game/ui/RecyclerPanel.tscn");
     private static readonly PackedScene MapScene = GD.Load<PackedScene>("res://game/ui/MapPanel.tscn");
     private static readonly PackedScene SocialScene = GD.Load<PackedScene>("res://game/ui/SocialPanel.tscn");
     private static readonly PackedScene SkillsScene = GD.Load<PackedScene>("res://game/ui/SkillsPanel.tscn");
@@ -74,6 +75,7 @@ public partial class ClientGame : Node
     private WorkbenchPanel? _workbench;
     private GivePanel? _give;
     private MapPanel? _map;
+    private RecyclerPanel? _recycler;
     private SocialPanel? _social;
     private SkillsPanel? _skills;
     private CollegePanel? _college;
@@ -169,6 +171,7 @@ public partial class ClientGame : Node
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
         _shopNetwork.ShopOpened += OnShopOpened;
         _itemNetwork.WorkbenchOpened += OnWorkbenchOpened;
+        _itemNetwork.RecyclerOpened += OnRecyclerOpened;
         _network.IntentAnswered += (id, refusal) => _intents?.Answer(id, refusal);
         _terminalNetwork.Opened += OnTerminalOpened;
         _terminalNetwork.Closed += CloseTerminal;
@@ -215,12 +218,13 @@ public partial class ClientGame : Node
 
         Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
 
-        if ((_shop != null || _workbench != null || _give != null || _college != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
+        if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
             CloseShop();
             CloseWorkbench();
             CloseGive();
             CloseCollege();
+            CloseRecycler();
         }
 
         // The one being given to walked off, left, or changed zone.
@@ -249,7 +253,7 @@ public partial class ClientGame : Node
             return;
         }
 
-        if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null) && @event.IsActionPressed("ui_cancel"))
+        if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null || _recycler != null) && @event.IsActionPressed("ui_cancel"))
         {
             GetViewport().SetInputAsHandled();
             CloseShop();
@@ -257,6 +261,7 @@ public partial class ClientGame : Node
             CloseGive();
             CloseMap();
             CloseCollege();
+            CloseRecycler();
             return;
         }
 
@@ -624,7 +629,29 @@ public partial class ClientGame : Node
         }
         _hud?.ShowDollars(dollars);
         _shop?.ShowDollars(dollars);
+        _recycler?.ShowBag(_stacks, _instances, _dollars);
         ShowBattery();
+    }
+
+    private void OnRecyclerOpened()
+    {
+        CloseRecycler();
+        _panelOpenedAt = SelfPosition();
+        _recycler = RecyclerScene.Instantiate<RecyclerPanel>();
+        _ui.AddChild(_recycler);
+        _recycler.ShowBag(_stacks, _instances, _dollars);
+        _recycler.RecycleOnePressed += (type, tier) => _intents?.Start("recycle", id => _itemNetwork.SendRecycleOne(id, (int)type, (int)tier));
+        _recycler.RecycleThingPressed += thing => _intents?.Start("recycle", id => _itemNetwork.SendRecycleThing(id, thing.ToString()));
+        _recycler.Closed += CloseRecycler;
+    }
+
+    private void CloseRecycler()
+    {
+        if (_recycler != null)
+        {
+            _recycler.QueueFree();
+            _recycler = null;
+        }
     }
 
     private void ShowBattery()
@@ -1225,6 +1252,7 @@ public partial class ClientGame : Node
         CloseSocial();
         CloseSkills();
         CloseCollege();
+        CloseRecycler();
 
         _instances = new List<ItemInstance>();
         _chatLog.Clear();

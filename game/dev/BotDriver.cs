@@ -63,6 +63,8 @@ public partial class BotDriver : Node
     private bool _befriended;
     private bool _packOpened;
     private bool _messaged;
+    private bool _recycled;
+    private double _recyclerSeenFor;
     private double _nextEmp = 1;
     private double _typeIn = -1;
     private int _crackStep;
@@ -101,7 +103,7 @@ public partial class BotDriver : Node
         AcceptInvites(delta);
 
         // Reading a college panel, it stands still: walking off would close it.
-        if (College(delta))
+        if (College(delta) || Recycle(delta))
         {
             return;
         }
@@ -300,7 +302,7 @@ public partial class BotDriver : Node
         Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
 
         bool usable = prompt != null && prompt.Visible
-            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi") || prompt.Text.Contains("Fix the"));
+            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi") || prompt.Text.Contains("Fix the") || prompt.Text.Contains("recycler"));
 
         // Reading the map, it does not stop to use things.
         if (prompt != null && usable && _nextInteract <= 0 && !_mapOpen)
@@ -624,6 +626,30 @@ public partial class BotDriver : Node
             GD.Print("Bot: clicking " + button.Text);
             Click(button.GetGlobalRect().GetCenter());
             _collegeSeenFor = -ReadDelay * 2;
+        }
+
+        return true;
+    }
+
+    // At the recycler: put one thing in, once, then go on.
+    private bool Recycle(double delta)
+    {
+        Button? button = _recycled ? null : FirstUsable(RecyclerPanel.RecycleGroup);
+
+        if (button == null)
+        {
+            _recyclerSeenFor = 0;
+            return false;
+        }
+
+        ReleaseKeys();
+        _recyclerSeenFor += delta;
+
+        if (_recyclerSeenFor >= ReadDelay * 2)
+        {
+            _recycled = true;
+            GD.Print("Bot: clicking " + button.Text);
+            Click(button.GetGlobalRect().GetCenter());
         }
 
         return true;
