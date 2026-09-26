@@ -1,0 +1,85 @@
+# Running the game
+
+## Scripts
+
+| Script | What |
+| --- | --- |
+| `scripts/server-up.ps1` | builds, then the headless server in its own console window (port 7070) |
+| `scripts/server-stop.ps1 [-Port 7071]` | asks the server to save everyone and quit; use it rather than closing the window |
+| `scripts/client-up.ps1 [-Profile name] [-AutoConnect]` | builds, then the game |
+| `scripts/scenario-test.ps1` | the dev scenario tests on their own server (port 7071) |
+| `scripts/load-test.ps1` | a server and bot clients, with numbers (docs/engineering/load-test.md) |
+| `scripts/native-build.ps1` | the C++ packet log (native/README.md) |
+
+Ctrl+C or closing the server's window is a hard stop: players online are not saved.
+`server-stop.ps1` writes a stop file the server checks each frame.
+
+Killing any Godot process from outside while C# runs prints "Fatal error. Internal CLR
+error" from `GetCurrentStackInfo`. That is the kill, not a bug.
+
+## Launch options
+
+Arguments after `--` on Godot's command line are the game's own; the scripts pass them.
+The full list, with defaults, is the comment at the top of `game/LaunchOptions.cs`. The
+ones used most:
+
+| Option | Side | What |
+| --- | --- | --- |
+| `--server` | server | run as the headless server (with Godot's `--headless`) |
+| `--port N` | both | default 7070 |
+| `--db "Host=..."` | server | another database |
+| `--time-offset 6` | server | shift the world's hour, to see night by day |
+| `--diagnostics off` | server | no logs and traces |
+| `--log-packets` | server | also every packet (needs the native build) |
+| `--dev-scenarios` | server | allow dev scenario setups (never on a real server) |
+| `--profile name` | client | which player; `fresh` is a new one each launch |
+| `--name Gerald` | client | the name a new player gets |
+| `--autoconnect`, `--address 1.2.3.4` | client | skip the menu; connect elsewhere |
+| `--bot`, `--report-every 3` | client | play by itself; print what it sees |
+| `--scenario name` | client | run one dev scenario test |
+| `--screenshot x.png` (+ `--overview`, `--garden`, `--creator`, `--show-characters`, `--screenshot-after 4`) | client | save a picture and quit: how looks were checked without clicking |
+
+## Players and profiles
+
+A client's identity is a license key in `profiles/<name>/license.txt` under Godot's user
+data folder. The same profile is the same account every launch; a second player on the
+same machine needs another profile (`client-up.ps1 -Profile second`). The profile
+`fresh` makes a new account each launch and saves nothing. An account has two character
+slots. Real authentication does not exist yet: the key file is the whole secret.
+
+## Where things are on disk
+
+Godot's user data folder is `%APPDATA%\Godot\app_userdata\mmo-game-3d`:
+
+| Path | What |
+| --- | --- |
+| `settings.cfg` | the machine's settings: display, address, mouse, camera, keys, volumes, names. Clients run by tools never write it. |
+| `profiles/<name>/license.txt` | each profile's account key |
+| `diagnostics/server-<port>-<time>.jsonl` | the server's logs and traces, a file per run (`tools/diag-query`) |
+| `server-stop-<port>` | the stop request `server-stop.ps1` writes |
+| `logs/` | Godot's own log files |
+
+## Resetting
+
+- The world and every player: drop and recreate `mmo3d`; the server migrates it again
+  at start.
+
+  ```
+  docker exec game-db psql -U mmo -d postgres -c "drop database mmo3d with (force);"
+  docker exec game-db psql -U mmo -d postgres -c "create database mmo3d;"
+  ```
+
+  The dev database holds test data: scenario players ("Test cracker", ...), load bots
+  ("Load0" ...), bots, and their house plants, subway tags, scores and achievements.
+- The test database: the same with `mmo3d_test`; tests never need it empty.
+- A client's identity: delete its `profiles/<name>` folder (the old account stays in
+  the database, unreachable).
+- Settings: delete `settings.cfg`.
+
+## Playing with someone else
+
+The server listens on UDP (ENet) port 7070. Another machine types the server's address
+on the main menu. Allow the port through the Windows firewall (Windows asks on the
+server's first run); over the internet it needs a port forward, and traffic is not
+encrypted. Clients must be the same build: the server refuses a client whose
+`GameVersion.Protocol` differs, with a clear message.

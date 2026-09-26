@@ -10,10 +10,11 @@ and nothing that writes records changes.
 | What | How | Where in the code |
 | --- | --- | --- |
 | Every RPC the server receives | A span named `Node/Method` (`Network/Login`), with the arguments and the sender's context. What the handler does runs inside it. | `NetworkNode.Received`, in every server-side `[Rpc]` method |
-| Every RPC the server sends | A log record `rpc out`, with the arguments | `NetworkNode.SendTo` |
+| Every RPC the server sends | A log record `rpc out`, with the arguments; one record for a send to many (`net.peers` is how many) | `NetworkNode.SendTo`, `NetworkNode.SendToMany` |
 | Database work | A span `db <caller>` on the worker thread, a child of whatever queued it, and `db done <caller>` for the completion on the game thread | `PersistenceWorker.Enqueue` |
 | Everything Godot prints | Log records under `Engine`: every `GD.Print`, and every engine error and warning with its file and line | `EngineLog`, registered with `OS.AddLogger` |
 | The game's own spans | `Travel`, `SaveEveryone` | `ServerDiagnostics.Source` |
+| Where each frame goes (load tests) | The `Stats:` console line with `--stats-every N`: frame, physics, traffic, worst frame, .NET collector pauses, the slowest parts of the tick | `ServerGame.PrintStats`, `TickProfile` (see performance.md) |
 | Health | A record `diagnostics` every 10 s: packets and bytes in and out, and how many records the logging dropped | `ServerDiagnostics.Tick` |
 | Every packet, replication included (off by default) | A log record `packet in` / `packet out` with the peer, channel, mode, kind (`sync`, `spawn`, `remote_call`...), size and payload | `PacketLogPeer` (C++, `native/`) drained by `NativePacketLog`, with `--log-packets` |
 
@@ -97,3 +98,47 @@ server-<port>-<date>-<time>.jsonl`. `--diagnostics path` chooses another,
 
 Payloads are base64. `tools/diag-query` searches, groups and prints traces from the
 file.
+
+## Extending it
+
+- **A new RPC node** (a `NetworkNode` subclass under Main): add it to `Networks`, and to
+  `Networks.SetLog`, or its RPCs are not recorded. In each server-side `[Rpc]` method,
+  wrap the handler in `using (Activity? span = Received(MethodName.X, sender, args...))`;
+  send with `SendTo` (one peer) or `SendToMany` (the same message to many: converted and
+  logged once).
+- **A span of the game's own:** `using (Activity? span = ServerDiagnostics.Source.
+  StartActivity("Name")) { ... }`, with `span?.SetTag("key", value)` for attributes.
+  Database work queued inside it becomes its child by itself.
+- **Context on a player's records:** `ServerDiagnostics.Tag(peer, "key", value)`; it is
+  added to every record about that peer from then on.
+- **A log line:** `GD.Print` goes to the file under `Engine` (and the console). Note a
+  print costs about 2.5 ms of the main thread on Windows (performance.md), so keep them
+  to events, not per frame.
+- **A viewer:** records go through OpenTelemetry in `src/Diagnostics/Telemetry.cs`,
+  with our JSON lines exporters behind a `BoundedProcessor` (drop and count, never
+  block). A viewer is a second exporter there: for OTLP (SigNoz, Grafana, Jaeger, the
+  Datadog Agent), add the `OpenTelemetry.Exporter.OpenTelemetryProtocol` package and an
+  OTLP exporter wrapped the same way. Nothing that writes records changes.
+
+## The native packet log, in detail
+
+- `native/src/packet_log_peer.cpp`: `PacketLogPeer`, a `MultiplayerPeerExtension` in
+  C++. `wrap(inner)` takes the server's `ENetMultiplayerPeer`; every method passes
+  straight to it, and `_put_packet` / `_get_packet` also append a record to a byte
+  buffer: direction (1 byte), peer (4), channel (1), transfer mode (1), size (4), then
+  the payload. Past 16 MB in a frame, records are dropped and counted.
+  `drain()` returns the buffer and starts a new one; `take_dropped()` the count.
+- `native/packet_log.gdextension` names the DLL; `register_types.cpp` registers the
+  class. The extension is loaded at runtime, only by a server with `--log-packets`
+  (`NativePacketLog.Wrap` calls `GDExtensionManager.LoadExtension`), so the editor and
+  clients never need the DLL, and a machine without the build just runs without the
+  packet log.
+- `game/server/diagnostics/NativePacketLog.cs` drains once a frame (`ServerGame._Process`),
+  parses the records (the header layout above; change both sides together) and hands
+  each to `ServerDiagnostics` as a `packet in` / `packet out` record, with the packet's
+  kind read from Godot's multiplayer header (`sync`, `spawn`, `remote_call`...).
+- To check it works: `.\scripts\native-build.ps1`, then
+  `.\scripts\load-test.ps1 -Bots 10 -Seconds 30 -LogPackets`, then
+  `python tools/diag-query/query.py --where logger=Net.Packets --group-by net.direction,net.kind`.
+- Building, versions (godot-cpp is pinned to 4.5, which loads in 4.7), Linux, and adding
+  another extension: `native/README.md`.

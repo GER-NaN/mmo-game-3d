@@ -34,6 +34,14 @@ game's design is `docs/world.md` in the older `mmo-game` repo; this repo builds 
 
 ## Docs
 
+Start with setup, then running; making-changes has the recipes.
+
+- `docs/engineering/setup.md`: a machine from nothing (tools, Postgres and the two
+  databases, art and sound, first run).
+- `docs/engineering/running.md`: the scripts, launch options, profiles, where data
+  lives, resetting, playing with someone else.
+- `docs/engineering/making-changes.md`: how to add an RPC, a migration, a zone, an
+  interactable, synced state, a terminal app, a prop, a sound; the git flow.
 - `docs/engineering/testing.md`: unit tests, dev scenarios, bots, load tests.
 - `docs/engineering/sound.md`: the sound catalog, the director, where sounds come from.
 - `docs/engineering/diagnostics.md`: logs, traces and the packet log.
@@ -41,3 +49,13 @@ game's design is `docs/world.md` in the older `mmo-game` repo; this repo builds 
 - `docs/engineering/performance.md`: server load scenarios, what was fixed, what is not
   planned.
 - Each tool has a README in its folder.
+
+## Outside this repo
+
+- The design: `docs/world.md` (canonical) and `docs/features/` in the `mmo-game` repo.
+- The art library `C:\game-art` and the sound library `C:\game-sound`, on the author's
+  machine (assets/README.md says what is copied from each).
+- The Postgres container `game-db`, shared with `mmo-game` (setup.md).
+- The play-test checklist and the sound plan are private pages on claude.ai:
+  https://claude.ai/artifact/SC2qn9pVeZu9ARAJGB6Nuj and
+  https://claude.ai/artifact/1MKB3GyhdAnXvWJCbGj3oD
