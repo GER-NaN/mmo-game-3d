@@ -5,6 +5,7 @@ using MmoGame3d.Data.Players;
 using MmoGame3d.Players;
 using MmoGame3d.Rules.Intents;
 using MmoGame3d.Rules.Items;
+using MmoGame3d.Rules.Maps;
 using MmoGame3d.Vendors;
 using MmoGame3d.Workbenches;
 
@@ -44,6 +45,11 @@ public class Session
 
     // The workbench last used; work is taken only while it is in reach.
     public Workbench? OpenWorkbench { get; set; }
+
+    // Where they have been, per zone with a map, live; and the zones changed since the
+    // last save. Set with the record.
+    public Dictionary<string, Discovery> Maps { get; } = new Dictionary<string, Discovery>();
+    public HashSet<string> UnsavedMaps { get; } = new HashSet<string>();
 
     // Set once the client has its world loaded and the body is spawned. Null again while
     // the player goes through a door, until the next zone is loaded.

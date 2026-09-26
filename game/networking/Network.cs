@@ -163,6 +163,20 @@ public partial class Network : Node
         ClockReceived?.Invoke(secondsOfDay);
     }
 
+    // Client side: (zone, cells) where the player has been in that zone; see Discovery.
+    public event Action<string, byte[]>? MapReceived;
+
+    public void SendMap(long peer, string zoneId, byte[] cells)
+    {
+        RpcId(peer, MethodName.ReceiveMap, zoneId, cells);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveMap(string zoneId, byte[] cells)
+    {
+        MapReceived?.Invoke(zoneId, cells);
+    }
+
     // Server side: (peer, text) a player typed.
     public event Action<long, string>? ChatRequested;
 

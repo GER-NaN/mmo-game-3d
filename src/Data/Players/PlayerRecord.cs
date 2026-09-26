@@ -12,6 +12,10 @@ public class PlayerRecord
     public List<ItemStack> Stacks { get; set; } = new List<ItemStack>();
     public List<ItemInstance> Instances { get; set; } = new List<ItemInstance>();
 
+    // Where they have been, per zone (see Discovery). Loaded and saved by DiscoveryStore,
+    // not by PlayerStore.
+    public Dictionary<string, byte[]> Discovered { get; set; } = new Dictionary<string, byte[]>();
+
     // True when GetOrCreate made this player just now. Not stored.
     public bool Created { get; set; }
 

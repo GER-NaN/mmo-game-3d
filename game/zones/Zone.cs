@@ -20,6 +20,11 @@ public partial class Zone : Node3D
     [Export]
     public int ItemStock { get; set; } = 15;
 
+    // The ground the map covers, centred on the zone's origin. Zero means the zone has no
+    // map: an interior or a ride, where there is nothing to find your way around.
+    [Export]
+    public Vector2 MapSize { get; set; } = Vector2.Zero;
+
     public string ZoneId
     {
         get { return Name; }

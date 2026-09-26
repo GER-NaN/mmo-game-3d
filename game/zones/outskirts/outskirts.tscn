@@ -41,6 +41,7 @@ size = Vector3(1, 8, 82)
 [node name="outskirts" type="Node3D"]
 script = ExtResource("1_zone")
 ItemAreaSize = Vector2(70, 70)
+MapSize = Vector2(80, 80)
 ItemStock = 12
 
 [node name="Ground" type="StaticBody3D" parent="."]

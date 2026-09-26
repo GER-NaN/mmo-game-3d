@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
+using MmoGame3d.Data.Maps;
 using MmoGame3d.Data.Players;
 using MmoGame3d.Data.Town;
 using MmoGame3d.Interact;
@@ -51,6 +52,7 @@ public partial class ServerGame : Node
     private PersistenceWorker _worker = null!;
     private AccountStore _accounts = null!;
     private PlayerStore _players = null!;
+    private DiscoveryStore _discoveries = null!;
     private StopSignals? _stopSignals;
     private VisibilityGate _gate = null!;
     private GroundItems _groundItems = null!;
@@ -63,6 +65,7 @@ public partial class ServerGame : Node
     private ServerTown _town = null!;
     private ServerChests _chests = null!;
     private ServerRides _rides = null!;
+    private ServerMaps _maps = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -112,7 +115,9 @@ public partial class ServerGame : Node
 
         _accounts = new AccountStore(database);
         _players = new PlayerStore(database);
+        _discoveries = new DiscoveryStore(database);
         _worker = new PersistenceWorker();
+        _maps = new ServerMaps(world, network, _worker, _discoveries, () => _sessions.Values);
         _stopSignals = new StopSignals(options.Port);
         _clock = new WorldClock(options.TimeZone, options.TimeOffsetHours);
         TimeSpan worldTime = TimeSpan.FromSeconds(_clock.SecondsOfDay(DateTime.UtcNow));
@@ -214,6 +219,7 @@ public partial class ServerGame : Node
         _town.Tick(delta);
         _chests.Tick();
         _rides.Tick(delta);
+        _maps.Tick(delta);
 
         if (_stopSignals != null && _stopSignals.StopRequested())
         {
@@ -383,7 +389,9 @@ public partial class ServerGame : Node
                     Dollars = Shops.StartingDollars,
                     Look = Looks.OrDefault(look),
                 };
-                return _players.GetOrCreate(newPlayer, out _);
+                PlayerRecord record = _players.GetOrCreate(newPlayer, out _);
+                record.Discovered = _discoveries.Load(record.PlayerId);
+                return record;
             },
             record => OnPlayerLoaded(peer, record),
             e =>
@@ -474,6 +482,7 @@ public partial class ServerGame : Node
         _gate.Refresh(zone.ZoneId);
         SendInventory(session);
         SendClock(session);
+        _maps.Send(session);
         _parties.EnteredWorld(session);
 
         if (!session.HasEnteredWorld)
@@ -735,5 +744,6 @@ public partial class ServerGame : Node
         }
 
         _worker.Enqueue(() => _players.Save(snapshot), e => GD.PrintErr("Saving " + snapshot.DisplayName + " failed: " + e.Message));
+        _maps.Save(session);
     }
 }

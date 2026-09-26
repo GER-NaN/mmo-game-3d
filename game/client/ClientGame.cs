@@ -33,6 +33,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene ShopScene = GD.Load<PackedScene>("res://game/ui/ShopPanel.tscn");
     private static readonly PackedScene WorkbenchScene = GD.Load<PackedScene>("res://game/ui/WorkbenchPanel.tscn");
     private static readonly PackedScene GiveScene = GD.Load<PackedScene>("res://game/ui/GivePanel.tscn");
+    private static readonly PackedScene MapScene = GD.Load<PackedScene>("res://game/ui/MapPanel.tscn");
 
     // Walking this far from where a shop or a workbench was opened closes it.
     private const float PanelWalkAway = 4f;
@@ -65,6 +66,10 @@ public partial class ClientGame : Node
     private string _shopId = "";
     private WorkbenchPanel? _workbench;
     private GivePanel? _give;
+    private MapPanel? _map;
+
+    // Where the server says this player has been, per zone.
+    private readonly Dictionary<string, byte[]> _maps = new Dictionary<string, byte[]>();
     private Players.Player? _giveTo;
     private Vector3 _panelOpenedAt;
     private List<ItemInstance> _instances = new List<ItemInstance>();
@@ -120,6 +125,7 @@ public partial class ClientGame : Node
         _network.NoticeReceived += OnNoticeReceived;
         _network.ChatReceived += OnChatReceived;
         _network.ClockReceived += OnClockReceived;
+        _network.MapReceived += OnMapReceived;
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
         _shopNetwork.ShopOpened += OnShopOpened;
         _itemNetwork.WorkbenchOpened += OnWorkbenchOpened;
@@ -186,12 +192,13 @@ public partial class ClientGame : Node
             return;
         }
 
-        if ((_shop != null || _workbench != null || _give != null) && @event.IsActionPressed("ui_cancel"))
+        if ((_shop != null || _workbench != null || _give != null || _map != null) && @event.IsActionPressed("ui_cancel"))
         {
             GetViewport().SetInputAsHandled();
             CloseShop();
             CloseWorkbench();
             CloseGive();
+            CloseMap();
             return;
         }
 
@@ -219,6 +226,11 @@ public partial class ClientGame : Node
         {
             GetViewport().SetInputAsHandled();
             ToggleInventory();
+        }
+        else if (@event.IsActionPressed("map"))
+        {
+            GetViewport().SetInputAsHandled();
+            ToggleMap();
         }
         else if (@event.IsActionPressed("chat") && _chat != null)
         {
@@ -503,6 +515,7 @@ public partial class ClientGame : Node
         }
 
         CloseTerminal();
+        CloseMap();
         ColorRect fade = new ColorRect { Color = new Color(0f, 0f, 0f, 0f), MouseFilter = Control.MouseFilterEnum.Ignore };
         fade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _ui.AddChild(fade);
@@ -628,6 +641,48 @@ public partial class ClientGame : Node
         _inventoryPanel.UnequipPressed += id => _itemNetwork.SendUnequip(id.ToString());
     }
 
+    private void OnMapReceived(string zoneId, byte[] cells)
+    {
+        _maps[zoneId] = cells;
+
+        if (_map != null && zoneId == _zoneId)
+        {
+            _map.ShowCells(cells);
+        }
+    }
+
+    private void ToggleMap()
+    {
+        if (_map != null)
+        {
+            CloseMap();
+            return;
+        }
+
+        Zone? zone = _world?.GetZone(_zoneId);
+
+        if (zone == null || zone.MapSize == Vector2.Zero)
+        {
+            OnNoticeReceived("There is no map of this place.");
+            return;
+        }
+
+        byte[]? cells;
+        _maps.TryGetValue(_zoneId, out cells);
+        _map = MapScene.Instantiate<MapPanel>();
+        _ui.AddChild(_map);
+        _map.Open(ZoneIds.SceneOf(_zoneId).Capitalize(), zone.MapSize, cells);
+    }
+
+    private void CloseMap()
+    {
+        if (_map != null)
+        {
+            _map.QueueFree();
+            _map = null;
+        }
+    }
+
     private void OpenInGameMenu()
     {
         _inGameMenu = InGameMenuScene.Instantiate<InGameMenu>();
@@ -716,6 +771,8 @@ public partial class ClientGame : Node
         CloseShop();
         CloseWorkbench();
         CloseGive();
+        CloseMap();
+        _maps.Clear();
         _instances = new List<ItemInstance>();
         _chatLog.Clear();
 

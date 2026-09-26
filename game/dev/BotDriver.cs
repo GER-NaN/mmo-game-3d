@@ -16,7 +16,7 @@ using MmoGame3d.Ui;
 /// to, goes online at a terminal it passes (then offline again a little later), buys
 /// the first thing a shopkeeper offers, opens chests, equips its phone and goes online on it, and at a
 /// workbench takes the battery out and puts one in. It drops a stack once, and gives one
-/// thing to a party member it clicks on.
+/// thing to a party member it clicks on. Now and then it glances at the map.
 /// </summary>
 public partial class BotDriver : Node
 {
@@ -57,6 +57,8 @@ public partial class BotDriver : Node
     private bool _dropped;
     private double _interactHeldFor = -1;
     private double _nextInteract;
+    private double _nextMap = 1;
+    private bool _mapOpen;
 
     // How the bot talks: the same call the chat box makes.
     public Action<string>? Say { get; set; }
@@ -75,6 +77,7 @@ public partial class BotDriver : Node
         }
 
         UsePhone(delta);
+        GlanceAtMap(delta);
         Recruit(delta);
         Talk(delta);
         Wander(delta);
@@ -237,7 +240,8 @@ public partial class BotDriver : Node
         bool usable = prompt != null && prompt.Visible
             && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi"));
 
-        if (prompt != null && usable && _nextInteract <= 0)
+        // Reading the map, it does not stop to use things.
+        if (prompt != null && usable && _nextInteract <= 0 && !_mapOpen)
         {
             GD.Print("Bot: pressing F at \"" + prompt.Text + "\"");
             ReleaseKeys();
@@ -362,6 +366,21 @@ public partial class BotDriver : Node
                 _nextPhoneStep = 20;
                 break;
         }
+    }
+
+    // Open for a few seconds, then shut, before the phone takes the keys.
+    private void GlanceAtMap(double delta)
+    {
+        _nextMap -= delta;
+
+        if (_nextMap > 0)
+        {
+            return;
+        }
+
+        Press("map");
+        _mapOpen = !_mapOpen;
+        _nextMap = _mapOpen ? 2.5 : 25;
     }
 
     // At a workbench: take the battery out, then put one in, then close.
