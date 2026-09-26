@@ -8,8 +8,8 @@ size = Vector3(2.095, 2.063, 4.69)
 [node name="CarPolice" type="StaticBody3D"]
 
 [node name="Model" parent="." instance=ExtResource("1_model")]
-transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0)
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0.305, 0)
 
 [node name="Collision" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.726, -0.016)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.032, -0.016)
 shape = SubResource("BoxShape3D_prop")

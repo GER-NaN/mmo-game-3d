@@ -8,8 +8,8 @@ size = Vector3(0.638, 5.445, 0.638)
 [node name="TreeB" type="StaticBody3D"]
 
 [node name="Model" parent="." instance=ExtResource("1_model")]
-transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0)
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0.011, 0)
 
 [node name="Collision" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.711, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.722, 0)
 shape = SubResource("BoxShape3D_prop")

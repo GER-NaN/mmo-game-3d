@@ -135,6 +135,14 @@ def write_prop(pack, model, scale, collision):
         size = [width, size[1], width]
         center = [0.0, center[1], 0.0]
 
+    # Some models (the cars) reach below their origin: lift them so they stand on the
+    # ground rather than sink into it.
+    lift = 0.0
+
+    if collision != "flat" and low[1] < 0:
+        lift = -low[1] * scale
+        center[1] += lift
+
     lines = []
     has_shape = collision not in ("none", "flat")
     height_scale = 1.0 if collision == "flat" else scale
@@ -157,7 +165,7 @@ def write_prop(pack, model, scale, collision):
 
     lines.append("")
     lines.append('[node name="Model" parent="." instance=ExtResource("1_model")]')
-    lines.append("transform = Transform3D(%s, 0, 0, 0, %s, 0, 0, 0, %s, 0, 0, 0)" % (number(scale), number(height_scale), number(scale)))
+    lines.append("transform = Transform3D(%s, 0, 0, 0, %s, 0, 0, 0, %s, 0, %s, 0)" % (number(scale), number(height_scale), number(scale), number(lift)))
 
     if has_shape:
         lines.append("")
