@@ -26,6 +26,10 @@ using MmoGame3d.Rules.Time;
 ///   --autoconnect       skip the main menu and connect at once
 ///   --bot               the client plays by itself (implies --autoconnect)
 ///   --report-every 2    print what the client sees every 2 seconds
+///   --scenario defense  dev: ask the server to set this player up for a test and run
+///                       that test (see ServerScenarios, ScenarioDriver); implies
+///                       --autoconnect
+///   --dev-scenarios     server: allow clients to ask for dev scenarios (off by default)
 ///   --screenshot x.png  save the window to a PNG a few seconds in, then quit
 ///   --overview          with --screenshot: look down on the whole zone
 ///   --creator           dev: open the character creator at start (with --look), for
@@ -59,6 +63,8 @@ public class LaunchOptions
     public string? Address { get; private set; }
     public bool AutoConnect { get; private set; }
     public bool Bot { get; private set; }
+    public string? Scenario { get; private set; }
+    public bool DevScenarios { get; private set; }
     public double ReportEverySeconds { get; private set; }
     public string? ScreenshotPath { get; private set; }
     public bool Overview { get; private set; }
@@ -149,6 +155,14 @@ public class LaunchOptions
                 case "--bot":
                     options.Bot = true;
                     options.AutoConnect = true;
+                    break;
+                case "--scenario":
+                    options.Scenario = next;
+                    options.AutoConnect = true;
+                    i++;
+                    break;
+                case "--dev-scenarios":
+                    options.DevScenarios = true;
                     break;
                 case "--screenshot":
                     options.ScreenshotPath = next;

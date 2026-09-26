@@ -59,6 +59,7 @@ public partial class ClientGame : Node
     private SocialNetwork _socialNetwork = null!;
     private ProgressNetwork _progressNetwork = null!;
     private GardenNetwork _gardenNetwork = null!;
+    private Networks _networks = null!;
     private SubwayNetwork _subwayNetwork = null!;
     private VisitorBookPanel? _book;
     private GardenScreen? _garden;
@@ -138,6 +139,7 @@ public partial class ClientGame : Node
         _socialNetwork = networks.Social;
         _progressNetwork = networks.Progress;
         _gardenNetwork = networks.Garden;
+        _networks = networks;
         _subwayNetwork = networks.Subway;
         _subwayNetwork.PageReceived += ShowBook;
         _main = main;
@@ -528,6 +530,13 @@ public partial class ClientGame : Node
     private void OnConnected()
     {
         GD.Print("Connected as peer " + Multiplayer.GetUniqueId() + "; saying hello");
+
+        // Before the hello, so it is set when the player is loaded.
+        if (_options.Scenario != null)
+        {
+            _network.SendScenario(_options.Scenario);
+        }
+
         _network.SendHello(GameVersion.Protocol, _profile.LicenseKey().ToString());
     }
 
@@ -770,6 +779,11 @@ public partial class ClientGame : Node
         {
             _bot = new BotDriver { Name = "Bot", Say = _network.SendChat };
             AddChild(_bot);
+        }
+
+        if (_options.Scenario != null && GetNodeOrNull("Scenario") == null)
+        {
+            AddChild(new ScenarioDriver(_options.Scenario, _networks) { Name = "Scenario" });
         }
     }
 

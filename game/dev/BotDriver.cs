@@ -427,7 +427,7 @@ public partial class BotDriver : Node
     }
 
     // The first code, in order, that would have given every answer seen so far.
-    private static string NextGuess(string[] guesses, int[] exact, int[] partial)
+    public static string NextGuess(string[] guesses, int[] exact, int[] partial)
     {
         int count = 1;
 
@@ -467,7 +467,7 @@ public partial class BotDriver : Node
     }
 
     // Key by key into whatever has the focus, then Enter.
-    private static void Type(string text)
+    public static void Type(string text)
     {
         foreach (char c in text)
         {
@@ -939,7 +939,7 @@ public partial class BotDriver : Node
 
     // A real press and release at a screen point, through the same input queue a mouse
     // feeds, so the GUI and the picker both see it.
-    private static void Click(Vector2 at)
+    public static void Click(Vector2 at)
     {
         InputEventMouseButton press = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = at, GlobalPosition = at };
         InputEventMouseButton release = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = at, GlobalPosition = at };

@@ -27,6 +27,9 @@ public partial class CctvView : SubViewportContainer
     private int _shown;
     private double _sinceCycle;
 
+    // Dev scenarios find the view by this group.
+    public const string Group = "cctv_view";
+
     // The drone's node name, when a click lands on one.
     public event Action<string>? DroneReported;
 
@@ -43,6 +46,7 @@ public partial class CctvView : SubViewportContainer
 
     public override void _Ready()
     {
+        AddToGroup(Group);
         Stretch = true;
         MouseFilter = MouseFilterEnum.Stop;
         TownState? state = GetTree().GetFirstNodeInGroup(TownState.Group) as TownState;
@@ -84,6 +88,35 @@ public partial class CctvView : SubViewportContainer
         {
             Show(_shown + 1);
         }
+    }
+
+    // For dev scenarios, which click as a person does: where on the screen a flying
+    // drone is in the picture, or null if none is.
+    public Vector2? ScreenPointOfADrone()
+    {
+        if (_town == null)
+        {
+            return null;
+        }
+
+        foreach (Node node in _town.GetNode("Drones").GetChildren())
+        {
+            Drone? drone = node as Drone;
+
+            if (drone == null || drone.Down || _camera.IsPositionBehind(drone.GlobalPosition))
+            {
+                continue;
+            }
+
+            Vector2 local = _camera.UnprojectPosition(drone.GlobalPosition);
+
+            if (new Rect2(Vector2.Zero, Size).HasPoint(local))
+            {
+                return GlobalPosition + local;
+            }
+        }
+
+        return null;
     }
 
     public override void _GuiInput(InputEvent @event)

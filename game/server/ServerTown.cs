@@ -122,6 +122,18 @@ public class ServerTown
         return _jobTakers.Contains(playerId) || _taxiJobTakers.Contains(playerId);
     }
 
+    // Dev test scenarios only: the taxis infected and this player on the job.
+    public void DevRootkitJob(Guid playerId)
+    {
+        if (_taxis.Clean)
+        {
+            _taxis = TaxiRootkit.Infected();
+            _state.TaxisClean = false;
+        }
+
+        _taxiJobTakers.Add(playerId);
+    }
+
     // A code cracked at a public terminal: with the rootkit job, it is the rootkit's.
     public void CodeCracked(Session session)
     {

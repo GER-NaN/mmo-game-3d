@@ -15,6 +15,9 @@ public partial class AgentDefenseView : Control
 {
     public static readonly Key[] LaneKeys = { Key.D, Key.F, Key.J, Key.K };
 
+    // Dev scenarios find the view by this group.
+    public const string Group = "agent_defense_view";
+
     // Placeholders: how far ahead cues show, and the count-in before the first.
     private const int AheadMs = 1800;
     private const int CountInMs = 3000;
@@ -53,6 +56,7 @@ public partial class AgentDefenseView : Control
 
     public override void _Ready()
     {
+        AddToGroup(Group);
         MouseFilter = MouseFilterEnum.Stop;
         FocusMode = FocusModeEnum.All;
         ClipContents = true;

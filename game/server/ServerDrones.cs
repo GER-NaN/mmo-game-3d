@@ -118,6 +118,14 @@ public class ServerDrones
             }
         }
 
+        SpawnPair(center);
+    }
+
+    // Two drones circling a spot. Also used by dev test scenarios, which want them at once.
+    public void SpawnPair(Vector3 center)
+    {
+        Node3D drones = _zone.GetNode<Node3D>("Drones");
+
         for (int i = 0; i < 2; i++)
         {
             Drone drone = DroneScene.Instantiate<Drone>();

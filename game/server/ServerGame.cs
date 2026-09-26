@@ -84,6 +84,7 @@ public partial class ServerGame : Node
     private ServerGarden _garden = null!;
     private ServerAchievements _achievements = null!;
     private ServerDefense? _defense;
+    private ServerScenarios _scenarios = null!;
     private AchievementStore _achievementStore = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
@@ -286,6 +287,8 @@ public partial class ServerGame : Node
         defense.Achieved = _achievements.Grant;
         defense.SendBoard = _hacking.SendBoard;
         _defense = defense;
+        _scenarios = new ServerScenarios(options.DevScenarios, world) { Town = _town, Defense = defense, Drones = _drones };
+        network.ScenarioRequested += _scenarios.Ask;
         networks.Terminal.DefenseStartRequested += peer => WithSession(peer, session => defense.Start(session));
         networks.Terminal.DefenseFinishRequested += (peer, presses) => WithSession(peer, session => defense.Finish(session, presses));
         networks.Terminal.CrackGuessRequested += (peer, guess) => WithSession(peer, session => _hacking.Guess(session, guess));
@@ -514,6 +517,7 @@ public partial class ServerGame : Node
 
         _sessions.Remove(peer);
         _chat.Forget(peer);
+        _scenarios.Forget(peer);
         _diagnostics?.Forget(peer);
 
         if (session.HasEnteredWorld)
@@ -772,6 +776,7 @@ public partial class ServerGame : Node
         }
 
         session.Instances = record.Instances;
+        _scenarios.Apply(session, record);
 
         session.State = SessionState.Accepted;
         _network.SendLoginAccepted(peer, record.Zone, record.DisplayName);
