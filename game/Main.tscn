@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://game/networking/SocialNetwork.cs" id="7_social"]
 [ext_resource type="Script" path="res://game/networking/ProgressNetwork.cs" id="8_progress"]
 [ext_resource type="Script" path="res://game/networking/GardenNetwork.cs" id="9_garden"]
+[ext_resource type="Script" path="res://game/networking/SubwayNetwork.cs" id="10_subway"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -36,3 +37,6 @@ script = ExtResource("8_progress")
 
 [node name="GardenNetwork" type="Node" parent="."]
 script = ExtResource("9_garden")
+
+[node name="SubwayNetwork" type="Node" parent="."]
+script = ExtResource("10_subway")

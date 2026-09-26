@@ -41,6 +41,7 @@ public class ServerInteractions
     public ServerRecycling? Recycling { get; set; }
 
     public ServerGarden? Garden { get; set; }
+    public ServerSubway? Subway { get; set; }
 
     public ServerRides? Rides
     {
@@ -118,6 +119,13 @@ public class ServerInteractions
                 break;
             case TaxiStand stand:
                 _rides?.Call(session, stand);
+                break;
+            case MmoGame3d.Subway.SubwayWallNode:
+                Subway?.Spray(session);
+                break;
+            case MmoGame3d.Subway.VisitorBook:
+                // The newest page first: a page past the end is the last one.
+                Subway?.ReadBook(session, int.MaxValue);
                 break;
             case Townsperson person:
                 _session.SendNotice(session.PeerId, person.PersonName + ": " + Chatter.Pick(_random));

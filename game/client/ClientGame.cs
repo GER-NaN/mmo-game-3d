@@ -59,6 +59,8 @@ public partial class ClientGame : Node
     private SocialNetwork _socialNetwork = null!;
     private ProgressNetwork _progressNetwork = null!;
     private GardenNetwork _gardenNetwork = null!;
+    private SubwayNetwork _subwayNetwork = null!;
+    private VisitorBookPanel? _book;
     private GardenScreen? _garden;
     private PlantCard? _plantCard;
     private Node _main = null!;
@@ -134,6 +136,8 @@ public partial class ClientGame : Node
         _socialNetwork = networks.Social;
         _progressNetwork = networks.Progress;
         _gardenNetwork = networks.Garden;
+        _subwayNetwork = networks.Subway;
+        _subwayNetwork.PageReceived += ShowBook;
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load();
@@ -276,8 +280,9 @@ public partial class ClientGame : Node
 
         ShowJob(self);
 
-        if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null || _plantCard != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
+        if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null || _plantCard != null || _book != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
+            CloseBook();
             CloseShop();
             CloseWorkbench();
             CloseGive();
@@ -383,8 +388,9 @@ public partial class ClientGame : Node
             return;
         }
 
-        if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null || _recycler != null || _plantCard != null) && @event.IsActionPressed("ui_cancel"))
+        if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null || _recycler != null || _plantCard != null || _book != null) && @event.IsActionPressed("ui_cancel"))
         {
+            CloseBook();
             GetViewport().SetInputAsHandled();
             CloseShop();
             CloseWorkbench();
@@ -1351,6 +1357,34 @@ public partial class ClientGame : Node
         CloseSocial();
         CloseMap();
         ClosePlantCard();
+        CloseBook();
+    }
+
+    // The subway's visitor book, a page at a time; opened by the first page to arrive.
+    private void ShowBook(int page, int pages, string[] lines)
+    {
+        GD.Print("Visitor book: page " + (page + 1) + " of " + pages + ", " + lines.Length + " names");
+
+        if (_book == null)
+        {
+            ClosePanels();
+            _panelOpenedAt = SelfPosition();
+            _book = new VisitorBookPanel();
+            _ui.AddChild(_book);
+            _book.PagePressed += _subwayNetwork.SendReadBook;
+            _book.Closed += CloseBook;
+        }
+
+        _book.ShowPage(page, pages, lines);
+    }
+
+    private void CloseBook()
+    {
+        if (_book != null)
+        {
+            _book.QueueFree();
+            _book = null;
+        }
     }
 
     private void CloseInventory()

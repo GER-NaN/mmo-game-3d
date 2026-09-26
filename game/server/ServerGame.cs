@@ -223,6 +223,11 @@ public partial class ServerGame : Node
         _interactions.Garden = _garden;
         networks.Garden.CompleteRequested += (peer, intent, design, name) => WithSession(peer, session => _garden.Complete(session, intent, design, name));
         _garden.Load();
+        ServerSubway subway = new ServerSubway(networks.Subway, network, _worker, new Data.Town.SubwayStore(database), _gate, _world.GetZone(ZoneIds.Subway)!);
+        subway.Post = _terminals.Post;
+        _interactions.Subway = subway;
+        networks.Subway.PageRequested += (peer, page) => WithSession(peer, session => subway.ReadBook(session, page));
+        subway.Load();
         networks.Social.WhoisSearchRequested += (peer, text) => WithSession(peer, session => _whois.Search(session, text));
         networks.Social.WhoisOpenRequested += (peer, id) => WithSession(peer, session => _whois.Open(session, id));
         networks.Social.WhoisPropsRequested += (peer, id) => WithSession(peer, session => _whois.ToggleProps(session, id));

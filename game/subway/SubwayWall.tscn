@@ -1,0 +1,55 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://game/subway/SubwayWallNode.cs" id="1_wall"]
+
+[sub_resource type="BoxShape3D" id="Shape_wall"]
+size = Vector3(14, 3.4, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="Material_tile"]
+albedo_color = Color(0.86, 0.88, 0.83, 1)
+roughness = 0.35
+
+[sub_resource type="BoxMesh" id="Mesh_wall"]
+material = SubResource("Material_tile")
+size = Vector3(14, 3.4, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="Material_band"]
+albedo_color = Color(0.1, 0.42, 0.3, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_band"]
+material = SubResource("Material_band")
+size = Vector3(14, 0.25, 0.04)
+
+[sub_resource type="BoxMesh" id="Mesh_base"]
+material = SubResource("Material_band")
+size = Vector3(14, 0.4, 0.04)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_wall"]
+properties/0/path = NodePath(".:Tags")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+
+[node name="SubwayWall" type="StaticBody3D"]
+script = ExtResource("1_wall")
+Reach = 6.0
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -0.15)
+shape = SubResource("Shape_wall")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -0.15)
+mesh = SubResource("Mesh_wall")
+
+[node name="Band" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.95, 0.02)
+mesh = SubResource("Mesh_band")
+
+[node name="Base" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0.02)
+mesh = SubResource("Mesh_base")
+
+[node name="Synchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_interval = 1.0
+replication_config = SubResource("SceneReplicationConfig_wall")
+visibility_update_mode = 2
