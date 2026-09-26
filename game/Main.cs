@@ -14,7 +14,7 @@ public partial class Main : Node3D
     private const float SpawnSpacing = 1.5f;
     private const int SpawnsPerRow = 5;
 
-    private readonly PackedScene _playerScene = GD.Load<PackedScene>("res://Player.tscn");
+    private readonly PackedScene _playerScene = GD.Load<PackedScene>("res://game/player/Player.tscn");
     private Node3D _players = null!;
     private int _spawned;
 

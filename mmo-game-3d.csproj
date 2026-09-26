@@ -5,4 +5,14 @@
     <RootNamespace>MmoGame3d</RootNamespace>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <!-- The Godot project globs every .cs file under the root. The libraries and tests
+       are projects of their own, so they are taken out of the glob and referenced. -->
+  <ItemGroup>
+    <Compile Remove="src/**" />
+    <Compile Remove="tests/**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="src\Rules\Rules.csproj" />
+    <ProjectReference Include="src\Data\Data.csproj" />
+  </ItemGroup>
 </Project>

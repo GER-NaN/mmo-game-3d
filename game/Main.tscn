@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://Main.cs" id="1_main"]
-[ext_resource type="Script" path="res://FollowCamera.cs" id="2_camera"]
+[ext_resource type="Script" path="res://game/Main.cs" id="1_main"]
+[ext_resource type="Script" path="res://game/FollowCamera.cs" id="2_camera"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
 size = Vector3(40, 1, 40)
@@ -31,5 +31,5 @@ mesh = SubResource("BoxMesh_ground")
 [node name="Players" type="Node3D" parent="."]
 
 [node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("res://Player.tscn")
+_spawnable_scenes = PackedStringArray("res://game/player/Player.tscn")
 spawn_path = NodePath("../Players")

@@ -8,3 +8,6 @@ obj/
 
 # Private agent instructions
 CLAUDE.local.md
+
+# Test results
+TestResults/
