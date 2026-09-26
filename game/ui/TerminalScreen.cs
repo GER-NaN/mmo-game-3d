@@ -439,7 +439,9 @@ public partial class TerminalScreen : Control
 
         if (own)
         {
-            LineEdit planEdit = new LineEdit { Text = plan, PlaceholderText = "Write your plan. Enter saves.", MaxLength = WhoisSettings.MaxPlanLength };
+            // Like the old .plan file: a line about what you are up to, for whoever looks.
+            AddLine(content, "Your plan is one line anyone who looks you up can read: what you are up to, or looking for.", Dim, 14);
+            LineEdit planEdit = new LineEdit { Text = plan, PlaceholderText = "e.g. \"Fixing the street lights. Need RAM sticks.\" Enter saves.", MaxLength = WhoisSettings.MaxPlanLength };
             CheckBox showSkills = new CheckBox { Text = "Show Skills", ButtonPressed = (bool)page["showSkills"], FocusMode = FocusModeEnum.None };
             CheckBox showLocation = new CheckBox { Text = "Show Location", ButtonPressed = (bool)page["showLocation"], FocusMode = FocusModeEnum.None };
             planEdit.TextSubmitted += value => WhoisEditSubmitted?.Invoke(value, showSkills.ButtonPressed, showLocation.ButtonPressed);
