@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
 [ext_resource type="PackedScene" path="res://game/terminals/Terminal.tscn" id="2_terminal"]
+[ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="90_door"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/RoadStraight.tscn" id="2_p"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/RoadJunction.tscn" id="3_p"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingA.tscn" id="4_p"]
@@ -292,6 +293,26 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 5)
 
 [node name="StreetKiosk" parent="Interactables" instance=ExtResource("2_terminal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -7)
+
+[node name="Doors" type="Node3D" parent="."]
+
+[node name="ToOutskirts" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -47)
+TargetZone = "outskirts"
+TargetArrival = "FromTown"
+
+[node name="ToShop" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, -8.4)
+TargetZone = "shop"
+TargetArrival = "FromTown"
+
+[node name="Arrivals" type="Node3D" parent="."]
+
+[node name="FromOutskirts" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -40)
+
+[node name="FromShop" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -15, 0, -4.5)
 
 [node name="Spawn" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 8)

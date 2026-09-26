@@ -5,8 +5,10 @@ namespace MmoGame3d.Rules.World;
 public static class ZoneIds
 {
     public const string Town = "town";
+    public const string Outskirts = "outskirts";
+    public const string Shop = "shop";
 
     public const string Start = Town;
 
-    public static readonly string[] All = { Town };
+    public static readonly string[] All = { Town, Outskirts, Shop };
 }

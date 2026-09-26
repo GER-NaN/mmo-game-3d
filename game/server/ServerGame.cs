@@ -64,9 +64,19 @@ public partial class ServerGame : Node
         _network = network;
         _world = world;
 
-        foreach (string zoneId in ZoneIds.All)
+        for (int i = 0; i < ZoneIds.All.Length; i++)
         {
-            _world.LoadZone(zoneId);
+            Zone zone = _world.LoadZone(ZoneIds.All[i], new Vector3(i * World.ZoneSpacing, 0f, 0f));
+
+            foreach (Node node in zone.GetNode("Doors").GetChildren())
+            {
+                Door? door = node as Door;
+
+                if (door != null)
+                {
+                    door.Entered += OnDoorEntered;
+                }
+            }
         }
 
         // Migrations run before the server listens: a schema that cannot be brought up
@@ -245,11 +255,11 @@ public partial class ServerGame : Node
         _sessions.Remove(peer);
         _chat.Forget(peer);
 
-        if (session.Body != null)
+        if (session.HasEnteredWorld)
         {
             _terminals.Disconnected(session);
             Save(session);
-            session.Body.QueueFree();
+            session.Body?.QueueFree();
             _parties.LeftWorld(session);
             _chat.Announce(session.Record!.DisplayName + " left.");
         }
@@ -387,7 +397,50 @@ public partial class ServerGame : Node
         SendInventory(session);
         SendClock(session);
         _parties.EnteredWorld(session);
-        _chat.Announce(record.DisplayName + " joined.");
+
+        if (!session.HasEnteredWorld)
+        {
+            session.HasEnteredWorld = true;
+            _chat.Announce(record.DisplayName + " joined.");
+        }
+    }
+
+    // Through a door: the body leaves this zone at once, and the client is told to load
+    // the next. The client says WorldReady when it has, and the body is spawned there by
+    // the same path as at login.
+    private void OnDoorEntered(Door door, Player player)
+    {
+        Session? session = FindSession(player.OwnerPeerId);
+        Zone? target = _world.GetZone(door.TargetZone);
+        Node3D? arrival = target?.Arrival(door.TargetArrival);
+
+        if (session == null || session.State != SessionState.InWorld || session.Record == null || target == null || arrival == null)
+        {
+            if (target == null || arrival == null)
+            {
+                GD.PrintErr("Door " + door.GetPath() + " leads to " + door.TargetZone + "/" + door.TargetArrival + ", which is not there");
+            }
+
+            return;
+        }
+
+        string from = session.Record.Zone;
+        _terminals.Disconnected(session);
+        session.Body!.QueueFree();
+        session.Body = null;
+
+        session.Record.Zone = target.ZoneId;
+        session.Record.PositionX = arrival.Position.X;
+        session.Record.PositionY = arrival.Position.Y;
+        session.Record.PositionZ = arrival.Position.Z;
+        session.Record.Yaw = arrival.Rotation.Y;
+        session.State = SessionState.Accepted;
+
+        // Nothing in the old zone is shown to the traveller any more; the despawns go out
+        // before the message to change zone, so they arrive while the old zone is loaded.
+        _gate.Refresh(from);
+        _network.SendZoneChanged(session.PeerId, target.ZoneId);
+        GD.Print(session.Record.DisplayName + " went from " + from + " to " + target.ZoneId);
     }
 
     private Session? FindSession(long peer)
@@ -460,19 +513,20 @@ public partial class ServerGame : Node
     {
         foreach (Session session in _sessions.Values)
         {
-            if (session.Body != null)
+            if (session.HasEnteredWorld)
             {
                 Save(session);
             }
         }
     }
 
-    // Copies the body's state into a fresh record for the worker, so the worker never
-    // reads an object the game thread is still changing.
+    // Copies the player's state into a fresh record for the worker, so the worker never
+    // reads an object the game thread is still changing. Between zones there is no body,
+    // and the record already holds where they will arrive.
     private void Save(Session session)
     {
         PlayerRecord live = session.Record!;
-        Player body = session.Body!;
+        Player? body = session.Body;
 
         PlayerRecord snapshot = new PlayerRecord
         {
@@ -480,10 +534,10 @@ public partial class ServerGame : Node
             AccountId = live.AccountId,
             DisplayName = live.DisplayName,
             Zone = live.Zone,
-            PositionX = body.Position.X,
-            PositionY = body.Position.Y,
-            PositionZ = body.Position.Z,
-            Yaw = body.Rotation.Y,
+            PositionX = body != null ? body.Position.X : live.PositionX,
+            PositionY = body != null ? body.Position.Y : live.PositionY,
+            PositionZ = body != null ? body.Position.Z : live.PositionZ,
+            Yaw = body != null ? body.Rotation.Y : live.Yaw,
         };
 
         foreach (ItemStack stack in session.Inventory!.Stacks)

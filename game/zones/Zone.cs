@@ -7,8 +7,8 @@ using Godot;
 /// it with the same collision the client draws, so there is no separate map data.
 ///
 /// A zone scene needs: a "Spawn" marker where new players appear; "Players" and
-/// "Items" nodes, each with a spawner pointing at it; and everything that blocks on the
-/// World physics layer.
+/// "Items" nodes, each with a spawner pointing at it; everything that blocks on the
+/// World physics layer; and, for doors in, markers under "Arrivals".
 /// </summary>
 public partial class Zone : Node3D
 {
@@ -35,8 +35,17 @@ public partial class Zone : Node3D
         get { return GetNode<Node3D>("Items"); }
     }
 
+    // Positions here are zone-local: the server lays its zones out far apart, while a
+    // client loads its one zone at the origin, so only zone-local numbers mean the same
+    // on both sides. Synced positions are zone-local for the same reason.
     public Vector3 SpawnPoint
     {
-        get { return GetNode<Node3D>("Spawn").GlobalPosition; }
+        get { return GetNode<Node3D>("Spawn").Position; }
+    }
+
+    // Where a door into this zone puts you: a marker under "Arrivals", or null.
+    public Node3D? Arrival(string name)
+    {
+        return GetNodeOrNull<Node3D>("Arrivals/" + name);
     }
 }

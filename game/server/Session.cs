@@ -26,8 +26,13 @@ public class Session
     // What they carry, live. Set with the record.
     public Inventory? Inventory { get; set; }
 
-    // Set once the client has its world loaded and the body is spawned.
+    // Set once the client has its world loaded and the body is spawned. Null again while
+    // the player goes through a door, until the next zone is loaded.
     public Player? Body { get; set; }
+
+    // True from the first spawn on: the player has been in the world this session, so
+    // there is something to save and a leave to announce.
+    public bool HasEnteredWorld { get; set; }
 
     public string? ZoneId
     {

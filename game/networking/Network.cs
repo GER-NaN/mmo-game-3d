@@ -47,6 +47,21 @@ public partial class Network : Node
     // Client side: a short line for the player ("Picked up 2 GPU core").
     public event Action<string>? NoticeReceived;
 
+    // Client side: the player walked through a door into this zone. The client loads it
+    // and says WorldReady again, as at login.
+    public event Action<string>? ZoneChanged;
+
+    public void SendZoneChanged(long peer, string zoneId)
+    {
+        RpcId(peer, MethodName.ReceiveZoneChanged, zoneId);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveZoneChanged(string zoneId)
+    {
+        ZoneChanged?.Invoke(zoneId);
+    }
+
     // Client side: seconds since the world's midnight.
     public event Action<double>? ClockReceived;
 

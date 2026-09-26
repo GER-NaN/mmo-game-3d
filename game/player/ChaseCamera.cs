@@ -25,6 +25,9 @@ public partial class ChaseCamera : Camera3D
     private const float FollowRate = 8f;
     private const float LookReturnRate = 3f;
 
+    // How far in front of a wall the camera stops, so it does not see through it.
+    private const float WallGap = 0.3f;
+
     // The point looked at, above the feet.
     private static readonly Vector3 LookHeight = new Vector3(0f, 1.5f, 0f);
 
@@ -76,8 +79,8 @@ public partial class ChaseCamera : Camera3D
             _lookYaw = Mathf.LerpAngle(_lookYaw, 0f, 1f - Mathf.Exp(-LookReturnRate * step));
         }
 
-        float wanted = player.Heading + _lookYaw;
-        _yaw = _placed ? Mathf.LerpAngle(_yaw, wanted, 1f - Mathf.Exp(-FollowRate * step)) : wanted;
+        float wantedYaw = player.Heading + _lookYaw;
+        _yaw = _placed ? Mathf.LerpAngle(_yaw, wantedYaw, 1f - Mathf.Exp(-FollowRate * step)) : wantedYaw;
         _placed = true;
 
         // Behind is +Z in the player's frame, since the player faces -Z. The pitch turns
@@ -85,7 +88,24 @@ public partial class ChaseCamera : Camera3D
         Basis orbit = new Basis(Vector3.Up, _yaw) * new Basis(Vector3.Right, _pitch);
         Vector3 target = player.GlobalPosition + LookHeight;
 
-        Position = target + (orbit * new Vector3(0f, 0f, _distance));
+        Vector3 wanted = target + (orbit * new Vector3(0f, 0f, _distance));
+        Position = Unblocked(target, wanted);
         LookAt(target, Vector3.Up);
+    }
+
+    // Indoors or by a building, the wanted spot can be behind a wall: then the camera
+    // comes in to just in front of it, the way a spring arm does.
+    private Vector3 Unblocked(Vector3 target, Vector3 wanted)
+    {
+        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(target, wanted, PhysicsLayers.World);
+        Godot.Collections.Dictionary hit = GetWorld3D().DirectSpaceState.IntersectRay(query);
+
+        if (hit.Count == 0)
+        {
+            return wanted;
+        }
+
+        Vector3 point = (Vector3)hit["position"];
+        return point + ((target - point).Normalized() * WallGap);
     }
 }

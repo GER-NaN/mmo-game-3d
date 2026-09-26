@@ -108,7 +108,7 @@ public class GroundItems
                 0f,
                 (float)((_random.NextDouble() * 2.0) - 1.0) * half.Y);
 
-            if (SpaceQueries.IsFree(zone, zone.GlobalPosition + candidate))
+            if (SpaceQueries.IsFree(zone, zone.ToGlobal(candidate)))
             {
                 spot = candidate;
                 return true;

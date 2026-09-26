@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/zones/Door.cs" id="1_door"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_door"]
+size = Vector3(6, 3, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_threshold"]
+transparency = 1
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.6, 0.85, 1, 0.07)
+
+[sub_resource type="QuadMesh" id="QuadMesh_threshold"]
+material = SubResource("StandardMaterial3D_threshold")
+size = Vector2(6, 3)
+
+[node name="Door" type="Area3D"]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_door")
+
+[node name="Shape" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("BoxShape3D_door")
+
+[node name="Threshold" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+cast_shadow = 0
+mesh = SubResource("QuadMesh_threshold")

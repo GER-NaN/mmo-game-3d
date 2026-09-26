@@ -55,6 +55,8 @@ public partial class ClientGame : Node
     // What the server last said this player carries.
     private List<ItemStack> _stacks = new List<ItemStack>();
     private string _pendingName = "";
+    private string _zoneId = "";
+    private string _displayName = "";
     private string _address = "";
 
     public void Start(LaunchOptions options, Networks networks, Node main)
@@ -94,6 +96,7 @@ public partial class ClientGame : Node
         _network.NoticeReceived += OnNoticeReceived;
         _network.ChatReceived += OnChatReceived;
         _network.ClockReceived += OnClockReceived;
+        _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
         _terminalNetwork.Opened += OnTerminalOpened;
         _terminalNetwork.Closed += CloseTerminal;
         _terminalNetwork.RosterReceived += (names, zones, online) => _terminal?.ShowRoster(names, zones, online);
@@ -267,7 +270,9 @@ public partial class ClientGame : Node
         _world = WorldScene.Instantiate<World>();
         _world.Name = "World";
         _main.AddChild(_world);
-        _world.LoadZone(zoneId);
+        _world.LoadZone(zoneId, Vector3.Zero);
+        _zoneId = zoneId;
+        _displayName = displayName;
 
         _hud = HudScene.Instantiate<Hud>();
         _ui.AddChild(_hud);
@@ -306,6 +311,40 @@ public partial class ClientGame : Node
     {
         _stacks = InventoryWire.Unpack(packed);
         _inventoryPanel?.ShowStacks(_stacks);
+    }
+
+    // Through a door: fade out, swap the zone, say ready, fade in. The server has already
+    // taken this player's body out of the old zone.
+    private void OnZoneChanged(string zoneId)
+    {
+        if (_world == null)
+        {
+            return;
+        }
+
+        CloseTerminal();
+        ColorRect fade = new ColorRect { Color = new Color(0f, 0f, 0f, 0f), MouseFilter = Control.MouseFilterEnum.Ignore };
+        fade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _ui.AddChild(fade);
+
+        Tween tween = fade.CreateTween();
+        tween.TweenProperty(fade, "color:a", 1f, 0.25f);
+        tween.TweenCallback(Callable.From(() =>
+        {
+            if (_world == null)
+            {
+                return;
+            }
+
+            _world.UnloadZone(_zoneId);
+            _world.LoadZone(zoneId, Vector3.Zero);
+            _zoneId = zoneId;
+            _hud?.ShowIdentity(_displayName, zoneId);
+            _network.SendWorldReady();
+            GD.Print("Now in " + zoneId);
+        }));
+        tween.TweenProperty(fade, "color:a", 0f, 0.4f);
+        tween.TweenCallback(Callable.From(fade.QueueFree));
     }
 
     private void OnClockReceived(double secondsOfDay)
