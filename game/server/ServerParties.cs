@@ -109,6 +109,30 @@ public class ServerParties
         _chat.SayTo(speaker, text, ChatKind.Party, listeners);
     }
 
+    // The other members of this player's party who are in the world now.
+    public List<Session> OthersOnline(Session session)
+    {
+        List<Session> others = new List<Session>();
+        Party? party = session.Record == null ? null : _roster.FindForPlayer(session.Record.PlayerId);
+
+        if (party == null)
+        {
+            return others;
+        }
+
+        foreach (PartyMember member in party.Members)
+        {
+            Session? other = FindByPlayer(member.PlayerId);
+
+            if (other != null && other != session && other.State == SessionState.InWorld)
+            {
+                others.Add(other);
+            }
+        }
+
+        return others;
+    }
+
     public void EnteredWorld(Session session)
     {
         _roster.PlayerEnteredWorld(session.Record!.PlayerId);

@@ -36,6 +36,9 @@ public partial class ServerGame : Node
     // How often every client is told the time. They count the seconds between.
     private const double ClockIntervalSeconds = 10;
 
+    // Party members this close to whoever walks through a door go through with them.
+    private const float PartyFollowDistance = 10f;
+
     private static readonly TimeSpan ShutdownDrain = TimeSpan.FromSeconds(10);
     private static readonly PackedScene PlayerScene = GD.Load<PackedScene>("res://game/player/Player.tscn");
 
@@ -443,42 +446,76 @@ public partial class ServerGame : Node
         }
     }
 
-    // Through a door: the body leaves this zone at once, and the client is told to load
-    // the next. The client says WorldReady when it has, and the body is spawned there by
-    // the same path as at login.
+    // Through a door. The party goes together (first-playable): members in the same zone
+    // and close by go through with whoever walked in, and arrive around them.
     private void OnDoorEntered(Door door, Player player)
     {
         Session? session = FindSession(player.OwnerPeerId);
         Zone? target = _world.GetZone(door.TargetZone);
         Node3D? arrival = target?.Arrival(door.TargetArrival);
 
-        if (session == null || session.State != SessionState.InWorld || session.Record == null || target == null || arrival == null)
+        if (target == null || arrival == null)
         {
-            if (target == null || arrival == null)
-            {
-                GD.PrintErr("Door " + door.GetPath() + " leads to " + door.TargetZone + "/" + door.TargetArrival + ", which is not there");
-            }
+            GD.PrintErr("Door " + door.GetPath() + " leads to " + door.TargetZone + "/" + door.TargetArrival + ", which is not there");
+            return;
+        }
 
+        if (session == null || session.State != SessionState.InWorld || session.Record == null || session.Body == null)
+        {
             return;
         }
 
         string from = session.Record.Zone;
+        Vector3 at = session.Body.GlobalPosition;
+        List<Session> following = new List<Session>();
+
+        foreach (Session other in _parties.OthersOnline(session))
+        {
+            if (other.Record!.Zone == from && other.Body != null && other.Body.GlobalPosition.DistanceTo(at) <= PartyFollowDistance)
+            {
+                following.Add(other);
+            }
+        }
+
+        Transfer(session, target, arrival, Vector3.Zero);
+
+        for (int i = 0; i < following.Count; i++)
+        {
+            // Around the arrival point, so the party does not land in one heap.
+            float angle = Mathf.Tau * i / following.Count;
+            Transfer(following[i], target, arrival, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.5f);
+            _network.SendNotice(following[i].PeerId, "You went with your party.");
+        }
+
+        // Nothing in the old zone is shown to the travellers any more; the despawns go
+        // out before the messages to change zone, so they arrive while the old zone is
+        // still loaded.
+        _gate.Refresh(from);
+
+        _network.SendZoneChanged(session.PeerId, target.ZoneId);
+
+        foreach (Session other in following)
+        {
+            _network.SendZoneChanged(other.PeerId, target.ZoneId);
+        }
+    }
+
+    // The body leaves its zone at once; the record says where the player arrives. The
+    // client says WorldReady once it has loaded the zone, and the body is spawned there by
+    // the same path as at login.
+    private void Transfer(Session session, Zone target, Node3D arrival, Vector3 offset)
+    {
+        GD.Print(session.Record!.DisplayName + " went from " + session.Record.Zone + " to " + target.ZoneId);
         _terminals.Disconnected(session);
         session.Body!.QueueFree();
         session.Body = null;
 
         session.Record.Zone = target.ZoneId;
-        session.Record.PositionX = arrival.Position.X;
+        session.Record.PositionX = arrival.Position.X + offset.X;
         session.Record.PositionY = arrival.Position.Y;
-        session.Record.PositionZ = arrival.Position.Z;
+        session.Record.PositionZ = arrival.Position.Z + offset.Z;
         session.Record.Yaw = arrival.Rotation.Y;
         session.State = SessionState.Accepted;
-
-        // Nothing in the old zone is shown to the traveller any more; the despawns go out
-        // before the message to change zone, so they arrive while the old zone is loaded.
-        _gate.Refresh(from);
-        _network.SendZoneChanged(session.PeerId, target.ZoneId);
-        GD.Print(session.Record.DisplayName + " went from " + from + " to " + target.ZoneId);
     }
 
     private Session? FindSession(long peer)

@@ -42,7 +42,7 @@ public partial class BotDriver : Node
     private readonly Random _random = new Random();
     private double _spellLeft;
     private double _nextLine = 5;
-    private double _nextRecruit = 4;
+    private double _nextRecruit = 1.5;
     private double _inviteClickIn = -1;
     private double _joinSeenFor;
     private double _onlineFor;
