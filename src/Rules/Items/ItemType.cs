@@ -9,6 +9,13 @@ public enum ItemType
     Phone,
     Battery,
     EmpEmitter,
+
+    // Small ready-made house plants, the greenhouse's reward.
+    PottedMonstera,
+    PottedPothos,
+    PottedSnakePlant,
+    PottedYucca,
+    PottedZzPlant,
 }
 
 // Quality, low to high. Placeholder names.

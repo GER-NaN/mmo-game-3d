@@ -28,6 +28,11 @@ public static class ItemCatalog
             ItemType.EmpEmitter,
             new ItemDefinition(ItemType.EmpEmitter, "EMP Emitter", "A pulse that knocks drones out of the sky. Equip it, then press R near one.", false)
         },
+        { ItemType.PottedMonstera, new ItemDefinition(ItemType.PottedMonstera, "Small potted monstera", "A little house plant from the greenhouse.", true) },
+        { ItemType.PottedPothos, new ItemDefinition(ItemType.PottedPothos, "Small potted pothos", "A little house plant from the greenhouse.", true) },
+        { ItemType.PottedSnakePlant, new ItemDefinition(ItemType.PottedSnakePlant, "Small potted snake plant", "A little house plant from the greenhouse.", true) },
+        { ItemType.PottedYucca, new ItemDefinition(ItemType.PottedYucca, "Small potted yucca", "A little house plant from the greenhouse.", true) },
+        { ItemType.PottedZzPlant, new ItemDefinition(ItemType.PottedZzPlant, "Small potted ZZ plant", "A little house plant from the greenhouse.", true) },
     };
 
     public static ItemDefinition Get(ItemType type)

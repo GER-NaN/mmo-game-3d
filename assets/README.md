@@ -18,6 +18,14 @@ Godot edition at `C:\game-art\3d\kaykit-godot`:
 | `kaykit/character_animations/rig_medium/` | `character_animations/animations/rig_medium/` |
 | `kaykit/characters/` | `mystery_monthly_series_5/10_protagonists/characters/*.glb`, and the townspeople: `mystery_monthly_series_5/11_hiker/characters/Hiker.glb`, `mystery_monthly_series_6/12_farmers/characters/Farmer_A.glb`, `mystery_monthly_series_4/02_driver/characters/Driver.glb` |
 
+From Tiny Treats Collection 1 (CC0, Isa Lousberg, www.isalousberg.com), at
+`C:\game-artd\Tiny_Treats_Collection_1_1.0`:
+
+| Here | From the collection |
+| --- | --- |
+| `tinytreats/License.txt` | `License.txt` |
+| `tinytreats/house_plants/` | `House Plants/Assets/gltf/` (every file) |
+
 After copying, open the project in the Godot editor once (or run Godot with
 `--headless --import`) so it imports them.
 

@@ -13,6 +13,7 @@ public enum SkillId
     Workbench = 2,
     FieldRepair = 3,
     ElectricalRepair = 4,
+    Gardening = 5,
 }
 
 public static class SkillCatalog
@@ -24,7 +25,7 @@ public static class SkillCatalog
 
     public static readonly SkillId[] All =
     {
-        SkillId.Agility, SkillId.Hacking, SkillId.Workbench, SkillId.FieldRepair, SkillId.ElectricalRepair,
+        SkillId.Agility, SkillId.Hacking, SkillId.Workbench, SkillId.FieldRepair, SkillId.ElectricalRepair, SkillId.Gardening,
     };
 
     public static string Name(SkillId skill)
@@ -41,6 +42,8 @@ public static class SkillCatalog
                 return "Field repair";
             case SkillId.ElectricalRepair:
                 return "Electrical repair";
+            case SkillId.Gardening:
+                return "Gardening";
             default:
                 return skill.ToString();
         }
@@ -61,6 +64,8 @@ public static class SkillCatalog
                 return "Fixing broken things around town.";
             case SkillId.ElectricalRepair:
                 return "Repairing junction boxes.";
+            case SkillId.Gardening:
+                return "Making house plants in the greenhouse.";
             default:
                 return "";
         }

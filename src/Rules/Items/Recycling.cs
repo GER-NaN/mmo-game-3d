@@ -15,6 +15,11 @@ public static class Recycling
         { ItemType.Phone, 5 },
         { ItemType.Battery, 1 },
         { ItemType.EmpEmitter, 3 },
+        { ItemType.PottedMonstera, 2 },
+        { ItemType.PottedPothos, 2 },
+        { ItemType.PottedSnakePlant, 2 },
+        { ItemType.PottedYucca, 2 },
+        { ItemType.PottedZzPlant, 2 },
     };
 
     // Each tier up doubles it.
