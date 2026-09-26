@@ -95,6 +95,7 @@ public partial class ClientGame : Node
     private int _careerRank;
     private bool _classTaken;
     private int _level = 1;
+    private string[] _achievements = new string[0];
 
     // What the server last said about friends and ignores; see SocialNetwork.
     private string[][] _contacts = { new string[0], new string[0], new string[0], new string[0], new string[0] };
@@ -182,6 +183,11 @@ public partial class ClientGame : Node
         };
         _progressNetwork.ProgressReceived += OnProgressReceived;
         _progressNetwork.CollegeOpened += OnCollegeOpened;
+        _progressNetwork.AchievementsReceived += earned =>
+        {
+            _achievements = earned;
+            _skills?.ShowAchievements(earned);
+        };
         _gardenNetwork.GardenOpened += OpenGarden;
         _gardenNetwork.PlantMade += (id, name, reward) =>
         {
@@ -1283,6 +1289,7 @@ public partial class ClientGame : Node
         _skills = SkillsScene.Instantiate<SkillsPanel>();
         _ui.AddChild(_skills);
         _skills.ShowProgress(_skillIds, _skillXp, _career, _careerXp, _careerRank, _classTaken, _level);
+        _skills.ShowAchievements(_achievements);
     }
 
     private void CloseSkills()

@@ -18,6 +18,9 @@ using MmoGame3d.Zones;
 /// </summary>
 public class ServerSubway
 {
+    // Tells the achievements when one is earned here; set by ServerGame.
+    public Action<Session, string>? Achieved { get; set; }
+
     private readonly SubwayNetwork _network;
     private readonly Network _session;
     private readonly PersistenceWorker _worker;
@@ -85,6 +88,7 @@ public class ServerSubway
                 Wall.Tags = SubwayWall.Pack(_shown);
                 session.Body?.Show(Gestures.Work);
                 _session.SendNotice(peer, "You sprayed your name on the wall, tag #" + tag.Id + ". Nobody can paint over it.");
+                Achieved?.Invoke(session, Rules.Achievements.Achievements.SubwayTag);
                 Post?.Invoke(name + " sprayed their name on the wall in the Old Town subway.");
             },
             e =>

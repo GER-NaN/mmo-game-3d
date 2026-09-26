@@ -16,6 +16,10 @@ using MmoGame3d.Rules.Terminals;
 /// </summary>
 public class ServerHacking
 {
+
+    // Tells the achievements when one is earned here; set by ServerGame.
+    public Action<Session, string>? Achieved { get; set; }
+
     private const int Playing = 0;
     private const int Cracked = 1;
     private const int LockedOut = 2;
@@ -75,6 +79,7 @@ public class ServerHacking
             _session.SendNotice(session.PeerId, "Code cracked.");
             _progress.Award(session, SkillId.Hacking, SkillAwards.HackingPerCode);
             Record(session, code.Guesses.Count);
+            Achieved?.Invoke(session, Rules.Achievements.Achievements.CrackACode);
         }
 
         Send(session, code);

@@ -16,6 +16,9 @@ using MmoGame3d.Rules.Social;
 /// </summary>
 public class ServerSocial
 {
+    // Tells the achievements when one is earned here; set by ServerGame.
+    public Action<Session, string>? Achieved { get; set; }
+
     private readonly SocialNetwork _network;
     private readonly Network _session;
     private readonly PersistenceWorker _worker;
@@ -61,6 +64,7 @@ public class ServerSocial
 
         _worker.Enqueue(() => _store.Set(me, them, false), e => GD.PrintErr("Saving a friend failed: " + e.Message));
         _session.SendNotice(session.PeerId, target.Record.DisplayName + " is now your friend.");
+        Achieved?.Invoke(session, Rules.Achievements.Achievements.Friend);
         Send(session);
     }
 

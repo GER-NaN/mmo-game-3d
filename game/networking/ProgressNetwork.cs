@@ -43,6 +43,20 @@ public partial class ProgressNetwork : NetworkNode
         SendTo(peer, MethodName.ReceiveProgress, skills, xp, career, careerXp, rank, classTaken, level);
     }
 
+    // Client side: the ids of the achievements earned.
+    public event Action<string[]>? AchievementsReceived;
+
+    public void SendAchievements(long peer, string[] earned)
+    {
+        SendTo(peer, MethodName.ReceiveAchievements, earned);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveAchievements(string[] earned)
+    {
+        AchievementsReceived?.Invoke(earned);
+    }
+
     public void SendCollegeOpened(long peer, string who)
     {
         SendTo(peer, MethodName.ReceiveCollegeOpened, who);

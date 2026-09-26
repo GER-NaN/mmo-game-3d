@@ -16,6 +16,9 @@ using MmoGame3d.Zones;
 /// </summary>
 public class ServerDrones
 {
+    // Tells the achievements when one is earned here; set by ServerGame.
+    public Action<Session, string>? Achieved { get; set; }
+
     private static readonly PackedScene DroneScene = GD.Load<PackedScene>("res://game/drones/Drone.tscn");
 
     // Placeholders.
@@ -181,6 +184,7 @@ public class ServerDrones
         if (downed > 0)
         {
             _session.SendNotice(session.PeerId, downed == 1 ? "A drone drops out of the sky." : downed + " drones drop out of the sky.");
+            Achieved?.Invoke(session, Rules.Achievements.Achievements.DownADrone);
             Post?.Invoke(session.Record!.DisplayName + " brought down " + (downed == 1 ? "a drone" : downed + " drones") + " with an EMP.");
         }
     }

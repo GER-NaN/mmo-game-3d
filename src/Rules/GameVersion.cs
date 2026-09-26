@@ -5,5 +5,5 @@ namespace MmoGame3d.Rules;
 // refuses early with a clear reason. Raise it whenever an RPC or synced property changes.
 public static class GameVersion
 {
-    public const int Protocol = 18;
+    public const int Protocol = 19;
 }

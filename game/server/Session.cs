@@ -66,6 +66,9 @@ public class Session
     // Skills, career, time played, missions, live. Set with the record.
     public PlayerProgress Progress { get; set; } = new PlayerProgress();
 
+    // The achievements earned, for granting each once.
+    public HashSet<string> Achievements { get; set; } = new HashSet<string>();
+
     // Distance and jumps not yet worth a whole Agility experience.
     public AgilityCounter Agility { get; } = new AgilityCounter();
 

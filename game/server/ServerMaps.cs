@@ -16,6 +16,9 @@ using MmoGame3d.Zones;
 /// </summary>
 public class ServerMaps
 {
+    // Tells the achievements when one is earned here; set by ServerGame.
+    public Action<Session, string>? Achieved { get; set; }
+
     // Walking pace is a few metres a second and a cell is ten, so twice a second is
     // plenty.
     private const double LookIntervalSeconds = 0.5;
@@ -60,7 +63,26 @@ public class ServerMaps
             {
                 session.UnsavedMaps.Add(session.ZoneId!);
                 _network.SendMap(session.PeerId, session.ZoneId!, map.ToBytes());
+                Explored(session, session.ZoneId!, map);
             }
+        }
+    }
+
+    private void Explored(Session session, string zoneId, Discovery map)
+    {
+        if (!Rules.Achievements.Achievements.IsExplored(map.DiscoveredCount(), map.Columns * map.Rows))
+        {
+            return;
+        }
+
+        switch (zoneId)
+        {
+            case Rules.World.ZoneIds.Town:
+                Achieved?.Invoke(session, Rules.Achievements.Achievements.ExploreOldTown);
+                break;
+            case Rules.World.ZoneIds.Outskirts:
+                Achieved?.Invoke(session, Rules.Achievements.Achievements.ExploreOutskirts);
+                break;
         }
     }
 

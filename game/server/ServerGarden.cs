@@ -24,6 +24,9 @@ using MmoGame3d.Zones;
 /// </summary>
 public class ServerGarden
 {
+    // Tells the achievements when one is earned here; set by ServerGame.
+    public Action<Session, string>? Achieved { get; set; }
+
     // What happens here, for the terminal's status board; set by ServerGame.
     public Action<string>? Post { get; set; }
 
@@ -164,6 +167,7 @@ public class ServerGarden
                 }
 
                 GD.Print(creator + " made house plant #" + id + (name.Length > 0 ? " \"" + name + "\"" : ""));
+                Achieved?.Invoke(session, Rules.Achievements.Achievements.HousePlant);
                 Post?.Invoke(creator + " made house plant #" + id + (name.Length > 0 ? ", \"" + name + "\"" : "") + ". It stands outside the greenhouse.");
                 _network.SendPlantMade(peer, id, name, ItemCatalog.Describe(reward, ItemTier.Standard));
             },

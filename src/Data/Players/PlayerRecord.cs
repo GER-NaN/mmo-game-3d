@@ -27,6 +27,7 @@ public class PlayerRecord
 
     // Skills and progress. Loaded and saved by ProgressStore.
     public PlayerProgress Progress { get; set; } = new PlayerProgress();
+    public HashSet<string> Achievements { get; set; } = new HashSet<string>();
 
     // True when GetOrCreate made this player just now. Not stored.
     public bool Created { get; set; }

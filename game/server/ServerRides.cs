@@ -18,6 +18,9 @@ using MmoGame3d.Zones;
 /// </summary>
 public class ServerRides
 {
+    // Tells the achievements when one is earned here; set by ServerGame.
+    public Action<Session, string>? Achieved { get; set; }
+
     // Party members this close to whoever calls the taxi ride along.
     private const float PartyDistance = 10f;
 
@@ -79,6 +82,7 @@ public class ServerRides
 
         foreach (Session rider in riders)
         {
+            Achieved?.Invoke(rider, Rules.Achievements.Achievements.RoboTaxi);
             _session.SendNotice(rider.PeerId, "The robo taxi drives you round town. About " + Mathf.RoundToInt(state.SecondsLeft) + " seconds to the drop-off.");
         }
 

@@ -1,7 +1,9 @@
 namespace MmoGame3d.Ui;
 
 using System.Globalization;
+using System.Collections.Generic;
 using Godot;
+using MmoGame3d.Rules.Achievements;
 using MmoGame3d.Rules.Skills;
 
 // Your own skills and career. Skills are private (others see them only on your Whois
@@ -75,6 +77,48 @@ public partial class SkillsPanel : PanelContainer
             row.AddChild(new Label { Text = "to " + CareerCatalog.RankName(current + 1), Modulate = Dim });
             careerBar.AddChild(row);
         }
+    }
+
+    // Below the career: every achievement, earned ones bright, the rest dim; hover for how.
+    public void ShowAchievements(string[] earned)
+    {
+        VBoxContainer rows = GetNode<VBoxContainer>("Margin/Rows");
+        GridContainer? grid = rows.GetNodeOrNull<GridContainer>("Achievements");
+
+        if (grid == null)
+        {
+            Label title = new Label { Name = "AchievementsTitle" };
+            title.AddThemeFontSizeOverride("font_size", 18);
+            rows.AddChild(title);
+            grid = new GridContainer { Name = "Achievements", Columns = 2 };
+            grid.AddThemeConstantOverride("h_separation", 16);
+            rows.AddChild(grid);
+        }
+
+        foreach (Node child in grid.GetChildren())
+        {
+            grid.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        HashSet<string> done = new HashSet<string>(earned);
+        int count = 0;
+
+        foreach (Achievement achievement in Achievements.All)
+        {
+            bool has = done.Contains(achievement.Id);
+            count += has ? 1 : 0;
+            Label label = new Label
+            {
+                Text = (has ? "* " : "- ") + achievement.Title,
+                TooltipText = achievement.Text,
+                MouseFilter = MouseFilterEnum.Pass,
+                Modulate = has ? new Color(1f, 0.9f, 0.45f) : Dim,
+            };
+            grid.AddChild(label);
+        }
+
+        rows.GetNode<Label>("AchievementsTitle").Text = "Achievements  " + count + " of " + Achievements.All.Count;
     }
 
     private static ProgressBar Bar(long value, long max)

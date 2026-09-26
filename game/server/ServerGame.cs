@@ -82,6 +82,8 @@ public partial class ServerGame : Node
     private ServerWhois _whois = null!;
     private ServerDrones _drones = null!;
     private ServerGarden _garden = null!;
+    private ServerAchievements _achievements = null!;
+    private AchievementStore _achievementStore = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -152,6 +154,9 @@ public partial class ServerGame : Node
         _parties = new ServerParties(partyNetwork, network, _chat, () => _sessions.Values);
         _terminals = new ServerTerminals(networks.Terminal, network, () => _sessions.Values);
         _terminals.Clock = () => TimeSpan.FromSeconds(_clock.SecondsOfDay(DateTime.UtcNow)).ToString(@"hh\:mm", System.Globalization.CultureInfo.InvariantCulture);
+        _achievementStore = new AchievementStore(database);
+        _achievements = new ServerAchievements(networks.Progress, network, _worker, _achievementStore);
+        _achievements.Post = _terminals.Post;
         ServerIntents intents = new ServerIntents(network);
         _shops = new ServerShops(networks.Shop, network, intents, SendInventory);
         ServerHandover handover = new ServerHandover(intents, network, _groundItems, world, FindSession, SendInventory);
@@ -184,6 +189,7 @@ public partial class ServerGame : Node
             _progress.Award(session, SkillId.ElectricalRepair, SkillAwards.ElectricalRepairPerBox);
             _progress.MissionDone(session);
             _terminals.Post(session.Record!.DisplayName + " repaired the street lights on Main Street.");
+            _achievements.Grant(session, Rules.Achievements.Achievements.StreetLights);
         };
         _town.LightsBroke += () =>
         {
@@ -228,6 +234,20 @@ public partial class ServerGame : Node
         _interactions.Subway = subway;
         networks.Subway.PageRequested += (peer, page) => WithSession(peer, session => subway.ReadBook(session, page));
         subway.Load();
+        subway.Achieved = _achievements.Grant;
+        _hacking.Achieved = _achievements.Grant;
+        _drones.Achieved = _achievements.Grant;
+        _garden.Achieved = _achievements.Grant;
+        _rides.Achieved = _achievements.Grant;
+        _social.Achieved = _achievements.Grant;
+        _maps.Achieved = _achievements.Grant;
+        _progress.CareerChanged += session =>
+        {
+            if (session.Progress.Career.Career.HasValue)
+            {
+                _achievements.Grant(session, Rules.Achievements.Achievements.Career);
+            }
+        };
         networks.Social.WhoisSearchRequested += (peer, text) => WithSession(peer, session => _whois.Search(session, text));
         networks.Social.WhoisOpenRequested += (peer, id) => WithSession(peer, session => _whois.Open(session, id));
         networks.Social.WhoisPropsRequested += (peer, id) => WithSession(peer, session => _whois.ToggleProps(session, id));
@@ -639,6 +659,7 @@ public partial class ServerGame : Node
                     record.Discovered = _discoveries.Load(record.PlayerId);
                     record.Contacts = _contacts.Load(record.PlayerId);
                     record.Progress = _progressStore.Load(record.PlayerId);
+                    record.Achievements = _achievementStore.Load(record.PlayerId);
                     record.Page = _whoisStore.LoadSettings(record.PlayerId);
                 }
 
@@ -708,6 +729,7 @@ public partial class ServerGame : Node
         session.Dollars = record.Dollars;
         session.Contacts = record.Contacts;
         session.Progress = record.Progress;
+        session.Achievements = record.Achievements;
         session.Page = record.Page;
         _diagnostics?.Tag(peer, "player.name", record.DisplayName);
         _diagnostics?.Tag(peer, "player.id", record.PlayerId.ToString());
@@ -768,6 +790,7 @@ public partial class ServerGame : Node
         SendClock(session);
         _maps.Send(session);
         _progress.Send(session);
+        _achievements.Send(session);
         _parties.EnteredWorld(session);
 
         if (!session.HasEnteredWorld)
