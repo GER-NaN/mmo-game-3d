@@ -80,6 +80,7 @@ properties/0/replication_mode = 1
 
 [node name="taxi" type="Node3D"]
 script = ExtResource("1_zone")
+Surface = ""
 ItemAreaSize = Vector2(1, 1)
 ItemStock = 0
 

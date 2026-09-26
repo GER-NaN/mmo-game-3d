@@ -44,6 +44,9 @@ public partial class Player : CharacterBody3D
     private const double InterpolationDelay = 0.1;
     private const int SnapshotCount = 8;
 
+    // Metres between footsteps. A placeholder until heard with the walk.
+    private const float StepLength = 0.8f;
+
     // The owner sends a changing walk at most this often. A stop goes out at once.
     private const double InputSendInterval = 0.05;
 
@@ -72,6 +75,7 @@ public partial class Player : CharacterBody3D
     private CharacterModel? _model;
     private float _seenSpeed;
     private float _seenRise;
+    private float _sinceStep;
 
     // Server only.
     private double _gestureLeft;
@@ -455,6 +459,35 @@ public partial class Player : CharacterBody3D
         else
         {
             _model.Play(CharacterModel.Idle);
+        }
+
+        if (!IsOnline && Mathf.Abs(_seenRise) <= AirborneFrom)
+        {
+            Step(new Vector2(moved.X, moved.Z).Length());
+        }
+    }
+
+    // A footstep every StepLength walked on the ground, sounding like the zone's ground.
+    private void Step(float walked)
+    {
+        if (_seenSpeed <= WalkFrom || Audio.AudioDirector.Current == null)
+        {
+            return;
+        }
+
+        _sinceStep += walked;
+
+        if (_sinceStep < StepLength)
+        {
+            return;
+        }
+
+        _sinceStep = 0f;
+        Zones.Zone? zone = GetParent()?.GetParent() as Zones.Zone;
+
+        if (zone != null && zone.Surface.Length > 0)
+        {
+            Audio.AudioDirector.Current.PlayAt("step." + zone.Surface, GlobalPosition);
         }
     }
 

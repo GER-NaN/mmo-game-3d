@@ -49,6 +49,7 @@ size = Vector3(16.6, 0.3, 12.6)
 
 [node name="shop" type="Node3D"]
 script = ExtResource("1_zone")
+Surface = "tile"
 ItemAreaSize = Vector2(2, 2)
 ItemStock = 0
 

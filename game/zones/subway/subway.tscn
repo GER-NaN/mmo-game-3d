@@ -69,6 +69,7 @@ size = Vector3(26.6, 0.3, 12.6)
 
 [node name="subway" type="Node3D"]
 script = ExtResource("1_zone")
+Surface = "tile"
 ItemAreaSize = Vector2(2, 2)
 ItemStock = 0
 

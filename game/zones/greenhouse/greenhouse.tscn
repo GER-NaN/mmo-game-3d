@@ -60,6 +60,7 @@ size = Vector3(16.6, 0.3, 12.6)
 
 [node name="greenhouse" type="Node3D"]
 script = ExtResource("1_zone")
+Surface = "dirt"
 ItemAreaSize = Vector2(2, 2)
 ItemStock = 0
 

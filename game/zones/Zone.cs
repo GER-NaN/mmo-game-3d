@@ -25,6 +25,11 @@ public partial class Zone : Node3D
     [Export]
     public Vector2 MapSize { get; set; } = Vector2.Zero;
 
+    // What the ground mostly is, for footsteps: the catalog's "step.<surface>". Empty
+    // is silent (a ride).
+    [Export]
+    public string Surface { get; set; } = "rock";
+
     public string ZoneId
     {
         get { return Name; }
