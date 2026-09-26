@@ -26,6 +26,22 @@ From Tiny Treats Collection 1 (CC0, Isa Lousberg, www.isalousberg.com), at
 | `tinytreats/License.txt` | `License.txt` |
 | `tinytreats/house_plants/` | `House Plants/Assets/gltf/` (every file) |
 
+Sounds, from the sound library at `C:\game-sound`, go in `audio/` with the same paths.
+Only the files the game uses are copied, by `tools/audio-subset/copy.py`, which reads
+the catalog (`game/audio/sounds.json`) and brings each pack's licence along. The packs
+and what their licences ask:
+
+| Pack | Licence | Credit |
+| --- | --- | --- |
+| `music/abstraction-troubadeck-loops` | CC0 | "Abstraction" (appreciated, not required) |
+| `ambience/helton-yan-surreal-drones` | CC BY 4.0 | Helton Yan (required) |
+| `ui/nathan-gibson-universal-ui` | CC BY 4.0 | Nathan Gibson (required) |
+| `ui/bleeoop-interface-bleeps` | Bleeoop EULA | royalty free in games; the raw files must not be passed on |
+| `sfx/jdwasabi-8bit-16bit` | free for games | jdwasabi (asked for) |
+| `sfx/nox-sound-essentials` | CC0 | Nox Sound (appreciated) |
+
+The CC BY credits must be shown in the game before it goes out (a credits screen).
+
 After copying, open the project in the Godot editor once (or run Godot with
 `--headless --import`) so it imports them.
 

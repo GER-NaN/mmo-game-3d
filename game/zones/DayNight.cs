@@ -37,6 +37,12 @@ public partial class DayNight : Node
         _environment = GetNode<WorldEnvironment>("../Environment").Environment;
     }
 
+    // Dark enough that the street lamps are on: night music and night sounds.
+    public bool IsNight
+    {
+        get { return _known && _lampsOn; }
+    }
+
     // "14:05", or empty until the server has said the time.
     public string ClockText
     {

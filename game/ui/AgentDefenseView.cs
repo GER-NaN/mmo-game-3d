@@ -127,6 +127,7 @@ public partial class AgentDefenseView : Control
         }
 
         _presses.Add(new DefensePress(at, lane));
+        Audio.AudioDirector.Current?.Play("term.hit");
         _flash[lane] = 0.12;
         _preview = AgentDefense.Score(_chart, _presses);
     }

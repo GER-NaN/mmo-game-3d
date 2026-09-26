@@ -272,6 +272,11 @@ public partial class TerminalScreen : Control
 
     public void ShowCrack(string[] guesses, int[] exact, int[] partial, string[] positions, int left, int status)
     {
+        if (_crackGuesses != null && guesses.Length > _crackGuesses.Length)
+        {
+            Audio.AudioDirector.Current?.Play(status == 1 ? "term.complete" : (status == 2 ? "term.denied" : "term.data"));
+        }
+
         _crackGuesses = guesses;
         _crackExact = exact;
         _crackPartial = partial;
@@ -641,6 +646,7 @@ public partial class TerminalScreen : Control
                 if (!IsCrackGuess(text))
                 {
                     problem.Text = "Four digits, each 0 to 5.";
+                    Audio.AudioDirector.Current?.Play("term.denied");
                     return;
                 }
 

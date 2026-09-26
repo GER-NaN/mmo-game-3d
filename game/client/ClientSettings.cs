@@ -33,6 +33,13 @@ public class ClientSettings
     // How far behind the player the camera sits; the wheel changes it too.
     public float CameraDistance { get; set; } = 8f;
 
+    // The audio buses a player can turn down, and how loud each is, 0 to 1.
+    public static readonly string[] VolumeBuses = { "Master", "Music", "Ambience", "Effects", "Interface" };
+    public Dictionary<string, float> Volumes { get; } = new Dictionary<string, float>
+    {
+        { "Master", 0.8f }, { "Music", 0.7f }, { "Ambience", 0.8f }, { "Effects", 0.8f }, { "Interface", 0.8f },
+    };
+
     // Only the keys the player moved; the rest are the defaults in project.godot.
     private readonly Dictionary<string, Key> _keys = new Dictionary<string, Key>();
 
@@ -47,6 +54,11 @@ public class ClientSettings
             settings.Address = (string)settings._file.GetValue("network", "address", "127.0.0.1");
             settings.MouseSensitivity = Mathf.Clamp((float)settings._file.GetValue("controls", "mouse_sensitivity", 1f), MinSensitivity, MaxSensitivity);
             settings.CameraDistance = (float)settings._file.GetValue("controls", "camera_distance", 8f);
+
+            foreach (string bus in VolumeBuses)
+            {
+                settings.Volumes[bus] = Mathf.Clamp((float)settings._file.GetValue("audio", bus.ToLowerInvariant(), settings.Volumes[bus]), 0f, 1f);
+            }
 
             foreach (string action in Rebindable)
             {
@@ -155,6 +167,11 @@ public class ClientSettings
         _file.SetValue("controls", "mouse_sensitivity", MouseSensitivity);
         _file.SetValue("controls", "camera_distance", CameraDistance);
 
+        foreach (string bus in VolumeBuses)
+        {
+            _file.SetValue("audio", bus.ToLowerInvariant(), Volumes[bus]);
+        }
+
         if (_file.HasSection("keys"))
         {
             _file.EraseSection("keys");
@@ -166,6 +183,21 @@ public class ClientSettings
         }
 
         _file.Save(Path);
+    }
+
+    // Each bus at its volume; all the way down mutes it.
+    public void ApplyVolumes()
+    {
+        foreach (string bus in VolumeBuses)
+        {
+            int index = AudioServer.GetBusIndex(bus);
+
+            if (index >= 0)
+            {
+                AudioServer.SetBusVolumeDb(index, Mathf.LinearToDb(Mathf.Max(Volumes[bus], 0.0001f)));
+                AudioServer.SetBusMute(index, Volumes[bus] <= 0.001f);
+            }
+        }
     }
 
     public void Apply()

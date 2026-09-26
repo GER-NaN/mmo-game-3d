@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "about": "Every sound the game plays, by id. Files are paths in the sound library (C:/game-sound), copied to assets/audio/ by tools/audio-subset. Several files: one is picked at random each time. Level is in dB, a placeholder until heard in the game.",
+  "sounds": {
+    "ui.click": { "files": ["ui/nathan-gibson-universal-ui/wav/Minimalist3.wav"], "bus": "Interface", "level": -8 },
+    "ui.open": { "files": ["ui/nathan-gibson-universal-ui/wav/Modern2.wav"], "bus": "Interface", "level": -8 },
+    "ui.close": { "files": ["ui/nathan-gibson-universal-ui/wav/Modern3.wav"], "bus": "Interface", "level": -8 },
+    "ui.notice": { "files": ["ui/nathan-gibson-universal-ui/wav/Minimalist7.wav"], "bus": "Interface", "level": -10 },
+    "ui.message": { "files": ["ui/nathan-gibson-universal-ui/wav/Modern10.wav"], "bus": "Interface", "level": -6 },
+    "ui.achievement": { "files": ["ui/nathan-gibson-universal-ui/wav/Modern12.wav"], "bus": "Interface", "level": -4 },
+    "ui.levelup": { "files": ["sfx/jdwasabi-8bit-16bit/Big Egg collect 1.wav"], "bus": "Interface", "level": -6 },
+    "ui.coin": { "files": ["sfx/jdwasabi-8bit-16bit/Fruit collect 1.wav"], "bus": "Interface", "level": -8 },
+
+    "term.click": { "files": ["ui/bleeoop-interface-bleeps/Click_02.wav"], "bus": "Interface", "level": -8 },
+    "term.online": { "files": ["ui/bleeoop-interface-bleeps/Sequence_02.wav"], "bus": "Interface", "level": -6 },
+    "term.offline": { "files": ["ui/bleeoop-interface-bleeps/Sequence_07.wav"], "bus": "Interface", "level": -8 },
+    "term.data": { "files": ["ui/bleeoop-interface-bleeps/Data_Point_02.wav"], "bus": "Interface", "level": -8 },
+    "term.denied": { "files": ["ui/bleeoop-interface-bleeps/Denied_01.wav"], "bus": "Interface", "level": -6 },
+    "term.complete": { "files": ["ui/bleeoop-interface-bleeps/Complete_01.wav"], "bus": "Interface", "level": -4 },
+    "term.hit": { "files": ["ui/bleeoop-interface-bleeps/Bleep_07.wav"], "bus": "Interface", "level": -10 },
+
+    "fx.emp": { "files": ["sfx/jdwasabi-8bit-16bit/Blow 1V2.wav"], "bus": "Effects", "level": -4, "range": 30 },
+    "fx.zap": { "files": ["sfx/jdwasabi-8bit-16bit/Hit damage 1.wav"], "bus": "Effects", "level": -6, "range": 20 },
+    "fx.drone_down": { "files": ["sfx/jdwasabi-8bit-16bit/Boss hit 1.wav"], "bus": "Effects", "level": -4, "range": 30 },
+    "fx.door": { "files": ["sfx/nox-sound-essentials/sample-a-sound-effect/Household_Door_Wood_Open_Stereo.wav"], "bus": "Effects", "level": -8 },
+    "fx.pickup": { "files": ["sfx/nox-sound-essentials/sample-a-sound-effect/Backpack_Small_Polyester_PickUp_Stereo.wav"], "bus": "Effects", "level": -8 },
+    "fx.chest": { "files": ["sfx/nox-sound-essentials/sample-a-sound-effect/Household_Closet_Key_Insertion_Stereo.wav"], "bus": "Effects", "level": -8, "range": 15 },
+    "fx.recycle": { "files": ["sfx/jdwasabi-8bit-16bit/Suck 1V2.wav"], "bus": "Effects", "level": -8 },
+    "fx.car_door": { "files": ["sfx/nox-sound-essentials/vehicles/car/Vehicle_Car_Door_Opening_Exterior_Mono_01.wav"], "bus": "Effects", "level": -6 },
+    "fx.sparks": { "files": ["sfx/nox-sound-essentials/electromagnetic/Electromagnetic_Electric_Box_Loop_Mono_Elektrousi_01.wav"], "bus": "Effects", "level": -10, "loop": true, "range": 12 },
+
+    "step.rock": { "files": ["sfx/nox-sound-essentials/footsteps/rock/walk/Footsteps_Rock_Walk_01.wav", "sfx/nox-sound-essentials/footsteps/rock/walk/Footsteps_Rock_Walk_02.wav", "sfx/nox-sound-essentials/footsteps/rock/walk/Footsteps_Rock_Walk_03.wav", "sfx/nox-sound-essentials/footsteps/rock/walk/Footsteps_Rock_Walk_04.wav"], "bus": "Effects", "level": -14, "range": 15 },
+    "step.grass": { "files": ["sfx/nox-sound-essentials/footsteps/grass/walk/Footsteps_Walk_Grass_Mono_01.wav", "sfx/nox-sound-essentials/footsteps/grass/walk/Footsteps_Walk_Grass_Mono_02.wav", "sfx/nox-sound-essentials/footsteps/grass/walk/Footsteps_Walk_Grass_Mono_03.wav"], "bus": "Effects", "level": -14, "range": 15 },
+    "step.tile": { "files": ["sfx/nox-sound-essentials/footsteps/tile/walk/Footsteps_Tile_Walk_01.wav", "sfx/nox-sound-essentials/footsteps/tile/walk/Footsteps_Tile_Walk_02.wav", "sfx/nox-sound-essentials/footsteps/tile/walk/Footsteps_Tile_Walk_03.wav"], "bus": "Effects", "level": -14, "range": 15 },
+    "step.dirt": { "files": ["sfx/nox-sound-essentials/footsteps/dirty-ground/walk/Footsteps_DirtyGround_Walk_01.wav", "sfx/nox-sound-essentials/footsteps/dirty-ground/walk/Footsteps_DirtyGround_Walk_02.wav", "sfx/nox-sound-essentials/footsteps/dirty-ground/walk/Footsteps_DirtyGround_Walk_03.wav"], "bus": "Effects", "level": -14, "range": 15 },
+
+    "music.menu": { "files": ["music/abstraction-troubadeck-loops/Troubadeck 31 Thinking Back.ogg"], "bus": "Music", "level": -10, "loop": true },
+    "music.town": { "files": ["music/abstraction-troubadeck-loops/Troubadeck 01 A Simple Snail.ogg"], "bus": "Music", "level": -12, "loop": true },
+    "music.town_night": { "files": ["music/abstraction-troubadeck-loops/Troubadeck 27 Heartstrings.ogg"], "bus": "Music", "level": -14, "loop": true },
+    "music.outskirts": { "files": ["music/abstraction-troubadeck-loops/Troubadeck 20 Long Lonely Road.ogg"], "bus": "Music", "level": -12, "loop": true },
+    "music.shop": { "files": ["music/abstraction-troubadeck-loops/Troubadeck 06 Squeaky Wagon.ogg"], "bus": "Music", "level": -10, "loop": true },
+    "music.college": { "files": ["music/abstraction-troubadeck-loops/Troubadeck 28 Quaint Questions.ogg"], "bus": "Music", "level": -10, "loop": true },
+    "music.greenhouse": { "files": ["music/abstraction-troubadeck-loops/Troubadeck 40 In My Shell.ogg"], "bus": "Music", "level": -10, "loop": true },
+    "music.taxi": { "files": ["music/abstraction-troubadeck-loops/Troubadeck 47 Hoof It.ogg"], "bus": "Music", "level": -12, "loop": true },
+    "music.subway": { "files": ["ambience/helton-yan-surreal-drones/DSGNDron_Tonal-Tube Wind_HY_SD.wav"], "bus": "Music", "level": -12, "loop": true },
+    "music.terminal": { "files": ["ambience/helton-yan-surreal-drones/DSGNDron_Tonal-Always Observing_HY_SD.wav"], "bus": "Music", "level": -12, "loop": true },
+
+    "amb.town": { "files": ["sfx/nox-sound-essentials/nature/Ambiance_Wind_Calm_Loop_Stereo.wav"], "bus": "Ambience", "level": -18, "loop": true },
+    "amb.night": { "files": ["sfx/nox-sound-essentials/nature/Ambiance_Night_Loop_Stereo.wav"], "bus": "Ambience", "level": -16, "loop": true },
+    "amb.outskirts": { "files": ["sfx/nox-sound-essentials/nature/Ambiance_Forest_Birds_Loop_Stereo.wav"], "bus": "Ambience", "level": -16, "loop": true },
+    "amb.shop": { "files": ["sfx/nox-sound-essentials/electromagnetic/Electromagnetic_Computer_Idle_Loop_Mono_Elektrousi_01.wav"], "bus": "Ambience", "level": -20, "loop": true },
+    "amb.greenhouse": { "files": ["sfx/nox-sound-essentials/sample-a-sound-effect/Ambiance_Nature_Rain_Calm_Leaves_Loop_Stereo.wav"], "bus": "Ambience", "level": -18, "loop": true },
+    "amb.taxi": { "files": ["sfx/nox-sound-essentials/vehicles/car/Vehicle_Car_Drive_Interior_Loop_Stereo_01.wav"], "bus": "Ambience", "level": -14, "loop": true },
+    "amb.subway": { "files": ["sfx/nox-sound-essentials/sample-a-sound-effect/Atmosphere_Scifi_Bunker_Loop_Stereo.wav"], "bus": "Ambience", "level": -18, "loop": true },
+    "amb.college": { "files": ["ambience/helton-yan-surreal-drones/DSGNDron_Tonal-Too Quiet_HY_SD.wav"], "bus": "Ambience", "level": -24, "loop": true }
+  }
+}

@@ -61,6 +61,26 @@ public partial class SettingsPanel : Control
         distance.Value = settings.CameraDistance;
         distance.ValueChanged += OnDistanceChanged;
 
+        // Sound: a slider a bus, applied as it moves.
+        VBoxContainer general = GetNode<VBoxContainer>("Center/Panel/Margin/Rows/Columns/General");
+        general.AddChild(new Label { Text = "Sound" });
+
+        foreach (string bus in ClientSettings.VolumeBuses)
+        {
+            string named = bus;
+            HBoxContainer row = new HBoxContainer();
+            row.AddChild(new Label { Text = bus, CustomMinimumSize = new Vector2(90, 0) });
+            HSlider slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.05, Value = settings.Volumes[bus], SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(140, 0) };
+            slider.ValueChanged += value =>
+            {
+                _settings.Volumes[named] = (float)value;
+                _settings.ApplyVolumes();
+                _settings.Save();
+            };
+            row.AddChild(slider);
+            general.AddChild(row);
+        }
+
         GridContainer keys = GetNode<GridContainer>("%Keys");
 
         foreach (string action in ClientSettings.Rebindable)

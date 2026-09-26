@@ -48,6 +48,7 @@ public partial class Chest : Interactable
     // The empty chest bounces open and a handful of bright bits fly out. A placeholder look.
     private void ShowOpened()
     {
+        Audio.AudioDirector.Current?.PlayAt("fx.chest", GlobalPosition);
         Node3D empty = GetNode<Node3D>("Empty");
         empty.Scale = new Vector3(1.15f, 0.8f, 1.15f);
         Tween tween = empty.CreateTween();

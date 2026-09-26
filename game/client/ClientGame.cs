@@ -60,6 +60,7 @@ public partial class ClientGame : Node
     private ProgressNetwork _progressNetwork = null!;
     private GardenNetwork _gardenNetwork = null!;
     private Networks _networks = null!;
+    private Audio.AudioDirector? _audio;
     private SubwayNetwork _subwayNetwork = null!;
     private VisitorBookPanel? _book;
     private GardenScreen? _garden;
@@ -159,6 +160,14 @@ public partial class ClientGame : Node
 
         _ui = new CanvasLayer { Name = "Ui" };
         AddChild(_ui);
+        _settings.ApplyVolumes();
+
+        // A headless client (a bot, a test) has nobody to hear it.
+        if (DisplayServer.GetName() != "headless")
+        {
+            _audio = new Audio.AudioDirector { Name = "Audio" };
+            AddChild(_audio);
+        }
 
         if (options.ReportEverySeconds > 0)
         {
@@ -294,6 +303,7 @@ public partial class ClientGame : Node
         }
 
         ShowJob(self);
+        UpdateSoundscape();
 
         if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null || _plantCard != null || _book != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
@@ -311,6 +321,41 @@ public partial class ClientGame : Node
         {
             CloseGive();
         }
+    }
+
+    // Music and the ambience bed follow where the player is, the hour, and being online.
+    private void UpdateSoundscape()
+    {
+        if (_audio == null)
+        {
+            return;
+        }
+
+        if (_world == null)
+        {
+            _audio.Music("music.menu");
+            _audio.Ambience("");
+            return;
+        }
+
+        string scene = ZoneIds.SceneOf(_zoneId);
+        bool night = _world.GetNode<DayNight>("DayNight").IsNight;
+        string music = "music." + scene;
+        string ambience = "amb." + scene;
+
+        switch (scene)
+        {
+            case ZoneIds.Town:
+                music = night ? "music.town_night" : "music.town";
+                ambience = night ? "amb.night" : "amb.town";
+                break;
+            case ZoneIds.Outskirts:
+                ambience = night ? "amb.night" : "amb.outskirts";
+                break;
+        }
+
+        _audio.Music(_terminal != null ? "music.terminal" : music);
+        _audio.Ambience(ambience);
     }
 
     // The job line, top right: what to do, and in town which way and how far.
@@ -789,6 +834,12 @@ public partial class ClientGame : Node
 
     private void OnInventoryReceived(int[] packed, int dollars, string[] ids, int[] meta, float[] charges)
     {
+        // Money coming in has a sound; the first bag after login does not.
+        if (_stacks.Count + _instances.Count > 0 && dollars > _dollars)
+        {
+            _audio?.Play("ui.coin");
+        }
+
         _stacks = InventoryWire.Unpack(packed);
         _dollars = dollars;
         _instances = InstanceWire.Unpack(ids, meta, charges);
@@ -1021,6 +1072,8 @@ public partial class ClientGame : Node
         CloseCollege();
         CloseGarden();
         ClosePlantCard();
+        bool byCar = ZoneIds.SceneOf(zoneId) == ZoneIds.Taxi || ZoneIds.SceneOf(_zoneId) == ZoneIds.Taxi;
+        _audio?.Play(byCar ? "fx.car_door" : "fx.door");
         ColorRect fade = new ColorRect { Color = new Color(0f, 0f, 0f, 0f), MouseFilter = Control.MouseFilterEnum.Ignore };
         fade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _ui.AddChild(fade);
@@ -1077,6 +1130,8 @@ public partial class ClientGame : Node
             return;
         }
 
+        _audio?.PlayAt("fx.zap", to);
+
         float length = from.DistanceTo(to);
         StandardMaterial3D material = new StandardMaterial3D
         {
@@ -1109,6 +1164,8 @@ public partial class ClientGame : Node
             return;
         }
 
+        _audio?.PlayAt("fx.emp", at);
+
         StandardMaterial3D material = new StandardMaterial3D
         {
             ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
@@ -1134,6 +1191,12 @@ public partial class ClientGame : Node
     private void OnDirectReceived(string partnerId, string partnerName, string text, bool incoming)
     {
         GD.Print("Chat: " + (incoming ? "[From " : "[To ") + partnerName + "] " + text);
+
+        if (incoming)
+        {
+            _audio?.Play("ui.message");
+        }
+
         _chat?.AddDirect(partnerId, partnerName, text, incoming);
         ChatLine line = new ChatLine(partnerName, (incoming ? "[From " : "[To ") + partnerName + "] " + text, ChatKind.Direct);
         _chatLog.Add(line);
@@ -1165,6 +1228,7 @@ public partial class ClientGame : Node
     private void OnTerminalOpened(int terminalType, string terminalName)
     {
         GD.Print("Online at " + terminalName);
+        _audio?.Play("term.online");
         CloseTerminal();
         ClosePanels();
 
@@ -1218,6 +1282,7 @@ public partial class ClientGame : Node
         }
 
         GD.Print("Offline");
+        _audio?.Play("term.offline");
         _terminal.QueueFree();
         _terminal = null;
 
@@ -1227,10 +1292,43 @@ public partial class ClientGame : Node
         }
     }
 
+    // A notice sounds like what it says. The texts are the server's; a new kind of notice
+    // falls back to the plain one.
+    private static string NoticeSound(string text)
+    {
+        if (text.StartsWith("Achievement:"))
+        {
+            return "ui.achievement";
+        }
+
+        if (text.Contains(" is now level ") || text.StartsWith("Your professor signs it off"))
+        {
+            return "ui.levelup";
+        }
+
+        if (text.StartsWith("Phone:"))
+        {
+            return "ui.message";
+        }
+
+        if (text.StartsWith("Found ") || text.StartsWith("Picked up"))
+        {
+            return "fx.pickup";
+        }
+
+        if (text.Contains("drop out of the sky") || text.Contains("drone drops out"))
+        {
+            return "fx.drone_down";
+        }
+
+        return "ui.notice";
+    }
+
     private void OnNoticeReceived(string text)
     {
         GD.Print("Notice: " + text);
         _hud?.ShowNotice(text);
+        _audio?.Play(NoticeSound(text));
         _terminal?.ShowNotice(text);
     }
 
