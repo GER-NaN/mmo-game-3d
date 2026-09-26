@@ -552,6 +552,7 @@ public partial class ClientGame : Node
         _ui.AddChild(_hud);
         _hud.ShowIdentity(displayName, ZoneIds.SceneOf(zoneId));
         _world.GetNode<Players.ChaseCamera>("Camera").Zoomed += distance => _settings.CameraDistance = distance;
+        _hud.ActionPressed += OnHudAction;
         ApplyControls();
 
         _chat = ChatScene.Instantiate<ChatBox>();
@@ -623,6 +624,49 @@ public partial class ClientGame : Node
         }
         _hud?.ShowDollars(dollars);
         _shop?.ShowDollars(dollars);
+        ShowBattery();
+    }
+
+    private void ShowBattery()
+    {
+        Belongings mine = new Belongings(new Inventory(), _instances);
+        ItemInstance? phone = mine.Equipped(SlotType.Device);
+        ItemInstance? battery = mine.DeviceBattery();
+        _hud?.ShowBattery(phone == null ? -1 : (battery == null ? 0 : Power.Percent(battery.Charge)), ClientSettings.KeyName);
+    }
+
+    // The action bar: the same as the keys.
+    private void OnHudAction(string action)
+    {
+        switch (action)
+        {
+            case "inventory":
+                ToggleInventory();
+                break;
+            case "skills":
+                ToggleSkills();
+                break;
+            case "social":
+                ToggleSocial();
+                break;
+            case "map":
+                ToggleMap();
+                break;
+            case "phone":
+                _itemNetwork.SendUsePhone();
+                break;
+            case "ui_cancel":
+                if (_inGameMenu == null)
+                {
+                    OpenInGameMenu();
+                }
+                else
+                {
+                    CloseInGameMenu();
+                }
+
+                break;
+        }
     }
 
     private void OnWorkbenchOpened()
@@ -1096,6 +1140,7 @@ public partial class ClientGame : Node
         camera.Sensitivity = _settings.MouseSensitivity;
         camera.Distance = _settings.CameraDistance;
         _hud.UseKey = ClientSettings.KeyName("interact");
+        ShowBattery();
         _hud.ShowHint(
             ClientSettings.KeyName("move_forward") + "/" + ClientSettings.KeyName("move_back") + " walk   "
             + ClientSettings.KeyName("turn_left") + "/" + ClientSettings.KeyName("turn_right") + " turn   "

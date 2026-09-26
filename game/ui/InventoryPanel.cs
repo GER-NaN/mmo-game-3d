@@ -91,6 +91,24 @@ public partial class InventoryPanel : PanelContainer
     }
 
     // Only the things at the top: a battery inside a phone shows as the phone's charge.
+    // "Phone  battery 43%", "Battery  60%", "EMP Emitter".
+    private static string Describe(Belongings mine, ItemInstance item)
+    {
+        string text = ItemCatalog.Describe(item.Type, item.Tier);
+
+        if (item.Type == ItemType.Phone)
+        {
+            ItemInstance? battery = mine.Inside(item, SlotType.Battery);
+            text += battery == null ? "  (no battery)" : "  battery " + Power.Percent(battery.Charge) + "%";
+        }
+        else if (item.Charge != null)
+        {
+            text += "  " + Power.Percent(item.Charge) + "%";
+        }
+
+        return text;
+    }
+
     private void ShowThings(Belongings mine)
     {
         VBoxContainer things = GetNode<VBoxContainer>("%Things");
@@ -100,30 +118,42 @@ public partial class InventoryPanel : PanelContainer
             old.QueueFree();
         }
 
+        Label equippedTitle = new Label { Text = "Equipped" };
+        equippedTitle.AddThemeFontSizeOverride("font_size", 16);
+        things.AddChild(equippedTitle);
+
+        foreach (SlotType slot in Belongings.PlayerSlots)
+        {
+            ItemInstance? worn = mine.Equipped(slot);
+            HBoxContainer slotRow = new HBoxContainer();
+            string slotText = slot + ":  " + (worn == null ? "empty" : Describe(mine, worn));
+            slotRow.AddChild(new Label { Text = slotText, SizeFlagsHorizontal = SizeFlags.ExpandFill, Modulate = worn == null ? new Color(1f, 1f, 1f, 0.5f) : Colors.White });
+
+            if (worn != null)
+            {
+                Guid wornId = worn.Id;
+                Button unequip = new Button { Text = "Unequip", FocusMode = FocusModeEnum.None };
+                unequip.Pressed += () => UnequipPressed?.Invoke(wornId);
+                slotRow.AddChild(unequip);
+            }
+
+            things.AddChild(slotRow);
+        }
+
+        Label bagTitle = new Label { Text = "In the bag" };
+        bagTitle.AddThemeFontSizeOverride("font_size", 16);
+        things.AddChild(bagTitle);
+
         foreach (ItemInstance item in mine.Instances)
         {
-            if (item.ParentId != null)
+            // Inside something, or worn: shown above.
+            if (item.ParentId != null || item.Slot != null)
             {
                 continue;
             }
 
             HBoxContainer row = new HBoxContainer();
-            string text = ItemCatalog.Describe(item.Type, item.Tier);
-
-            if (item.Type == ItemType.Phone)
-            {
-                ItemInstance? battery = mine.Inside(item, SlotType.Battery);
-                text += battery == null ? "  (no battery)" : "  battery " + Power.Percent(battery.Charge) + "%";
-            }
-            else if (item.Charge != null)
-            {
-                text += "  " + Power.Percent(item.Charge) + "%";
-            }
-
-            if (item.Slot != null)
-            {
-                text += "  [equipped]";
-            }
+            string text = Describe(mine, item);
 
             row.AddChild(new Label { Text = text, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = ItemCatalog.Get(item.Type).Description, MouseFilter = MouseFilterEnum.Pass });
 

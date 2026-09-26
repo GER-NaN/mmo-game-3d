@@ -7,6 +7,7 @@ public enum SlotType
     Device,
     Battery,
     Tool,
+    Drone,
 }
 
 /// <summary>
@@ -70,6 +71,10 @@ public class Belongings
 
         return new List<ItemInstance> { phone, battery };
     }
+
+    // The player's own slots, in the order the inventory shows them. All show from the
+    // start, empty until something fills them (world.md 7).
+    public static readonly SlotType[] PlayerSlots = { SlotType.Device, SlotType.Tool, SlotType.Drone };
 
     public ItemInstance? Find(Guid id)
     {
