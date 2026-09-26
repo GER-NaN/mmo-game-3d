@@ -47,7 +47,15 @@ size = Vector3(5, 4, 0.3)
 [sub_resource type="BoxShape3D" id="Shape_WallPiece"]
 size = Vector3(5, 4, 0.3)
 
+[sub_resource type="StandardMaterial3D" id="Material_Glass"]
+transparency = 1
+cull_mode = 2
+albedo_color = Color(0.75, 0.92, 0.95, 0.16)
+metallic_specular = 0.8
+roughness = 0.1
+
 [sub_resource type="BoxMesh" id="Mesh_Roof"]
+material = SubResource("Material_Glass")
 size = Vector3(16.6, 0.3, 12.6)
 
 [node name="greenhouse" type="Node3D"]
@@ -118,7 +126,7 @@ shape = SubResource("Shape_WallPiece")
 
 [node name="Roof" type="MeshInstance3D" parent="Room"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.15, 0)
-cast_shadow = 3
+cast_shadow = 0
 mesh = SubResource("Mesh_Roof")
 
 [node name="Light" type="OmniLight3D" parent="Room"]

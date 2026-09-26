@@ -210,7 +210,7 @@ transform = Transform3D(0.2494, 0, -0.9684, 0, 1, 0, 0.9684, 0, 0.2494, -0.5197,
 transform = Transform3D(-0.9455, 0, 0.3255, 0, 1, 0, -0.3255, 0, -0.9455, -1.9987, 0, -23.2194)
 
 [node name="Bush4" parent="Nature" instance=ExtResource("32_bush")]
-transform = Transform3D(0.8747, 0, 0.4847, 0, 1, 0, -0.4847, 0, 0.8747, 31.4655, 0, 29.2105)
+transform = Transform3D(0.8747, 0, 0.4847, 0, 1, 0, -0.4847, 0, 0.8747, 34.6, 0, 26.8)
 
 [node name="Bush5" parent="Nature" instance=ExtResource("32_bush")]
 transform = Transform3D(0.2828, 0, 0.9592, 0, 1, 0, -0.9592, 0, 0.2828, -28.6447, 0, -4.9747)
