@@ -1,5 +1,8 @@
 # Builds the C# code, then starts the game as a headless server in its own window,
-# which shows the server's log.
+# which shows the server's log. It needs Postgres running with the mmo3d database.
+#
+# Stop it with .\scripts\server-stop.ps1, which lets it save the players online.
+# Ctrl+C or closing the window is a hard stop that skips that save.
 param(
     [string]$Godot = "C:\Users\geral\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
 )
@@ -12,5 +15,5 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# Arguments after "--" are the game's own; Main reads --server from them.
+# Arguments after "--" are the game's own; see game/LaunchOptions.cs.
 Start-Process $Godot -ArgumentList "--headless", "--path", "`"$root`"", "--", "--server"
