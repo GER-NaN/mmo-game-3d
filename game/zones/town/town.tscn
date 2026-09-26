@@ -3,6 +3,8 @@
 [ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
 [ext_resource type="PackedScene" path="res://game/terminals/Terminal.tscn" id="2_terminal"]
 [ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="90_door"]
+[ext_resource type="PackedScene" path="res://game/town/TownState.tscn" id="91_state"]
+[ext_resource type="PackedScene" path="res://game/town/JunctionBox.tscn" id="92_box"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/RoadStraight.tscn" id="2_p"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/RoadJunction.tscn" id="3_p"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingA.tscn" id="4_p"]
@@ -286,7 +288,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.5, 4, 0)
 [node name="Collision" type="CollisionShape3D" parent="Edges/West"]
 shape = SubResource("Shape_EdgeWest")
 
+[node name="TownState" parent="." instance=ExtResource("91_state")]
+
 [node name="Interactables" type="Node3D" parent="."]
+
+[node name="JunctionBox" parent="Interactables" instance=ExtResource("92_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, -6.8)
 
 [node name="LibraryTerminal" parent="Interactables" instance=ExtResource("2_terminal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 5)

@@ -25,6 +25,9 @@ public class ServerTerminals
     private readonly Func<IEnumerable<Session>> _sessions;
     private double _sinceRoster;
 
+    // Raised when a player goes online, by any door.
+    public event Action<Session>? Opened;
+
     public ServerTerminals(TerminalNetwork network, Network session, Func<IEnumerable<Session>> sessions)
     {
         _network = network;
@@ -48,6 +51,7 @@ public class ServerTerminals
         session.Body!.IsOnline = true;
         _network.SendOpened(session.PeerId, terminal.TypeId, terminal.Name);
         SendRoster(session);
+        Opened?.Invoke(session);
     }
 
     // The phone is a door of its own: one per player, so its key is the player's. The
@@ -66,6 +70,7 @@ public class ServerTerminals
         session.Body!.IsOnline = true;
         _network.SendOpened(session.PeerId, (int)TerminalType.Phone, "Phone");
         SendRoster(session);
+        Opened?.Invoke(session);
     }
 
     public bool IsOnPhone(Session session)

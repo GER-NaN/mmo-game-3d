@@ -2,6 +2,7 @@ namespace MmoGame3d.Zones;
 
 using Godot;
 using MmoGame3d.Rules.Time;
+using MmoGame3d.Town;
 
 /// <summary>
 /// Lights the world for the hour: the sun climbs from the east and sets in the west,
@@ -85,16 +86,17 @@ public partial class DayNight : Node
         _moon.LightColor = MoonLight;
         _moon.LightEnergy = MoonEnergy * (1f - strength);
 
-        // Street lamps come on at dusk. The repair job will decide which ones work.
-        bool dark = strength < LampsOnBelow;
+        // Street lamps come on at dusk, if the town's lights work: the repair job decides.
+        TownState? town = GetTree().GetFirstNodeInGroup(TownState.Group) as TownState;
+        bool lit = strength < LampsOnBelow && (town == null || town.LightsWorking);
 
-        if (dark != _lampsOn)
+        if (lit != _lampsOn)
         {
-            _lampsOn = dark;
+            _lampsOn = lit;
 
             foreach (Node lamp in GetTree().GetNodesInGroup("street_lamps"))
             {
-                ((Node3D)lamp).Visible = dark;
+                ((Node3D)lamp).Visible = lit;
             }
         }
 

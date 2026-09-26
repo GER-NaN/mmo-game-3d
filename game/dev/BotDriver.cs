@@ -187,6 +187,7 @@ public partial class BotDriver : Node
         if (goOffline != null)
         {
             _onlineFor += delta;
+            TakeJob();
 
             if (_onlineFor >= OnlineSeconds && goOffline.IsVisibleInTree())
             {
@@ -202,7 +203,7 @@ public partial class BotDriver : Node
         Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
 
         bool usable = prompt != null && prompt.Visible
-            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench"));
+            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair"));
 
         if (prompt != null && usable && _nextInteract <= 0)
         {
@@ -211,6 +212,40 @@ public partial class BotDriver : Node
             Input.ActionPress("interact");
             _interactHeldFor = 0;
             _nextInteract = 2;
+        }
+    }
+
+    // Online: open Town repairs, and take the job if it is offered.
+    private void TakeJob()
+    {
+        Button? take = GetTree().GetFirstNodeInGroup(TerminalScreen.TakeJobGroup) as Button;
+
+        if (take != null && take.IsVisibleInTree())
+        {
+            if (_onlineFor > ReadDelay * 3)
+            {
+                GD.Print("Bot: clicking Take the job");
+                Click(take.GetGlobalRect().GetCenter());
+                _onlineFor = ReadDelay;
+            }
+
+            return;
+        }
+
+        if (_onlineFor > ReadDelay && _onlineFor < ReadDelay * 2)
+        {
+            foreach (Node node in GetTree().Root.FindChildren("*", "Button", true, false))
+            {
+                Button? app = node as Button;
+
+                if (app != null && app.Text == "Town repairs" && app.IsVisibleInTree())
+                {
+                    GD.Print("Bot: opening Town repairs");
+                    Click(app.GetGlobalRect().GetCenter());
+                    _onlineFor = ReadDelay * 2;
+                    return;
+                }
+            }
         }
     }
 

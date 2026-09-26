@@ -6,6 +6,7 @@ using Godot;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
 using MmoGame3d.Data.Players;
+using MmoGame3d.Data.Town;
 using MmoGame3d.Interact;
 using MmoGame3d.Items;
 using MmoGame3d.Networking;
@@ -15,6 +16,7 @@ using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
 using MmoGame3d.Rules.Shops;
 using MmoGame3d.Rules.Time;
+using MmoGame3d.Town;
 using MmoGame3d.Rules.World;
 using MmoGame3d.Zones;
 
@@ -54,6 +56,7 @@ public partial class ServerGame : Node
     private ServerInteractions _interactions = null!;
     private ServerShops _shops = null!;
     private ServerEquipment _equipment = null!;
+    private ServerTown _town = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -114,6 +117,13 @@ public partial class ServerGame : Node
         _equipment = new ServerEquipment(networks.Items, network, _terminals, () => _sessions.Values, SendInventory);
         _interactions = new ServerInteractions(world, network, _terminals, _shops, _equipment);
 
+        TownState townState = _world.GetZone(ZoneIds.Town)!.GetNode<TownState>("TownState");
+        _gate.Watch(townState.Synchronizer, ZoneIds.Town);
+        _town = new ServerTown(townState, new TownStore(database), _worker, network, networks.Terminal, _chat, _clock, () => _sessions.Values, SendInventory);
+        _town.Load();
+        _interactions.Town = _town;
+        _terminals.Opened += _town.SendTown;
+
         // Things standing in the zones sync their state (a terminal in use) only to the
         // players in that zone, like everything else.
         foreach (string zoneId in ZoneIds.All)
@@ -151,6 +161,7 @@ public partial class ServerGame : Node
         partyNetwork.ChatRequested += (peer, text) => WithSession(peer, session => _parties.Chat(session, text));
         _network.InteractRequested += (peer, name) => WithSession(peer, session => _interactions.Use(session, name));
         networks.Terminal.LeaveRequested += peer => WithSession(peer, session => _terminals.Leave(session));
+        networks.Terminal.TakeJobRequested += (peer, job) => WithSession(peer, session => _town.TakeJob(session));
         networks.Shop.BuyRequested += (peer, intent, shop, offer) => WithSession(peer, session => _shops.Buy(session, intent, shop, offer));
         networks.Items.EquipRequested += (peer, id) => WithSession(peer, session => _equipment.Equip(session, id));
         networks.Items.UnequipRequested += (peer, id) => WithSession(peer, session => _equipment.Unequip(session, id));
@@ -172,6 +183,7 @@ public partial class ServerGame : Node
         _parties.Tick(delta);
         _terminals.Tick(delta);
         _equipment.Tick(delta);
+        _town.Tick(delta);
 
         if (_stopSignals != null && _stopSignals.StopRequested())
         {

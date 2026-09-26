@@ -10,6 +10,7 @@ using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
 using MmoGame3d.Rules.Shops;
 using MmoGame3d.Rules.Terminals;
+using MmoGame3d.Rules.Town;
 using MmoGame3d.Ui;
 using MmoGame3d.Zones;
 
@@ -120,6 +121,7 @@ public partial class ClientGame : Node
         _terminalNetwork.Opened += OnTerminalOpened;
         _terminalNetwork.Closed += CloseTerminal;
         _terminalNetwork.RosterReceived += (names, zones, online) => _terminal?.ShowRoster(names, zones, online);
+        _terminalNetwork.TownReceived += (working, taken, log) => _terminal?.ShowTown(working, taken, log);
         // Deferred, like the login answers above: these fire inside the engine's network
         // poll, and closing the peer or freeing the world is better done after it.
         Multiplayer.ConnectedToServer += () => Callable.From(OnConnected).CallDeferred();
@@ -510,6 +512,7 @@ public partial class ClientGame : Node
         _terminal.Open((TerminalType)terminalType, terminalName, _chatLog);
         _terminal.GoOfflinePressed += _terminalNetwork.SendLeave;
         _terminal.ChatSubmitted += _network.SendChat;
+        _terminal.TakeJobPressed += () => _terminalNetwork.SendTakeJob(StreetLights.JobId);
 
         if (_finder != null)
         {

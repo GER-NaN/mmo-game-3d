@@ -6,6 +6,7 @@ using Godot;
 using MmoGame3d.Client;
 using MmoGame3d.Rules.Chat;
 using MmoGame3d.Rules.Terminals;
+using MmoGame3d.Rules.Town;
 
 /// <summary>
 /// The terminal OS: a full-screen space with its own look, the app list on the left and
@@ -29,8 +30,16 @@ public partial class TerminalScreen : Control
     private string _openApp = TerminalApps.Chat;
     private RichTextLabel? _chatView;
 
+    // Bots find the Take the job button by this group, then click it like a person.
+    public const string TakeJobGroup = "terminal_take_job";
+
+    private bool _lightsWorking;
+    private bool _jobTaken;
+    private string[] _townLog = Array.Empty<string>();
+
     public event Action? GoOfflinePressed;
     public event Action<string>? ChatSubmitted;
+    public event Action? TakeJobPressed;
 
     public override void _Ready()
     {
@@ -116,6 +125,18 @@ public partial class TerminalScreen : Control
         }
     }
 
+    public void ShowTown(bool lightsWorking, bool jobTaken, string[] log)
+    {
+        _lightsWorking = lightsWorking;
+        _jobTaken = jobTaken;
+        _townLog = log;
+
+        if (_openApp == TerminalApps.TodoList || _openApp == TerminalApps.TownLog)
+        {
+            ShowApp(new TerminalApp(_openApp, _openApp == TerminalApps.TodoList ? "Town repairs" : "Town log", ""));
+        }
+    }
+
     public void ShowRoster(string[] names, string[] zones, int[] online)
     {
         _rosterNames = names;
@@ -156,11 +177,19 @@ public partial class TerminalScreen : Control
                 ShowOnline(content);
                 break;
             case TerminalApps.TodoList:
-                AddLine(content, "Street lights on Main Street are out.", Text, 17);
-                AddLine(content, "The repair job opens in a later build.", Dim, 15);
+                ShowRepairs(content);
                 break;
             case TerminalApps.TownLog:
-                AddLine(content, "Nothing has been repaired here yet.", Text, 17);
+                if (_townLog.Length == 0)
+                {
+                    AddLine(content, "Nothing has been repaired here yet.", Text, 17);
+                }
+
+                foreach (string entry in _townLog)
+                {
+                    AddLine(content, entry, Text, 16);
+                }
+
                 break;
             case TerminalApps.StatusBoard:
                 AddLine(content, "Data centre raid in progress: Ashford", Text, 17);
@@ -197,6 +226,31 @@ public partial class TerminalScreen : Control
         };
         content.AddChild(input);
         _chatView = view;
+    }
+
+    // The town's TODO list: the one job there is, and what state it is in.
+    private void ShowRepairs(VBoxContainer content)
+    {
+        if (_lightsWorking)
+        {
+            AddLine(content, "Nothing needs repairing right now.", Text, 17);
+            AddLine(content, "The street lights on Main Street are working.", Dim, 15);
+            return;
+        }
+
+        AddLine(content, StreetLights.JobTitle, Text, 18);
+        AddLine(content, StreetLights.JobText, Dim, 15);
+
+        if (_jobTaken)
+        {
+            AddLine(content, "You have this job. The junction box is on Main Street, west of the crossing.", Locked, 16);
+            return;
+        }
+
+        Button take = new Button { Text = "Take the job", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        take.AddToGroup(TakeJobGroup);
+        take.Pressed += () => TakeJobPressed?.Invoke();
+        content.AddChild(take);
     }
 
     private void ShowOnline(VBoxContainer content)

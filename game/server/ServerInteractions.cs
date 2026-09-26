@@ -6,6 +6,7 @@ using MmoGame3d.Networking;
 using MmoGame3d.Vendors;
 using MmoGame3d.Workbenches;
 using MmoGame3d.Terminals;
+using MmoGame3d.Town;
 using MmoGame3d.Zones;
 
 /// <summary>
@@ -24,6 +25,13 @@ public class ServerInteractions
     private readonly ServerTerminals _terminals;
     private readonly ServerShops _shops;
     private readonly ServerEquipment _equipment;
+    private ServerTown? _town;
+
+    // The town comes up after the interactions it takes part in.
+    public ServerTown? Town
+    {
+        set { _town = value; }
+    }
 
     public ServerInteractions(World world, Network session, ServerTerminals terminals, ServerShops shops, ServerEquipment equipment)
     {
@@ -65,6 +73,9 @@ public class ServerInteractions
                 break;
             case Workbench workbench:
                 _equipment.OpenWorkbench(session, workbench);
+                break;
+            case JunctionBox:
+                _town?.Repair(session);
                 break;
             default:
                 GD.PrintErr("Nothing handles the interactable " + interactableName + " of type " + thing.GetType().Name);
