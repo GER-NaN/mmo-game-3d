@@ -170,6 +170,23 @@ public sealed class ServerDiagnostics : IRpcLog, IDisposable
         _rpcs.Write(LogLevel.Debug, fields);
     }
 
+    public void SentToMany(string node, StringName method, int peers, Variant[] args)
+    {
+        object?[] values = new object?[args.Length];
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            values[i] = args[i].Obj;
+        }
+
+        Fields fields = new Fields("rpc out", 5)
+            .With("rpc.service", node)
+            .With("rpc.method", method.ToString())
+            .With("net.peers", peers)
+            .With("rpc.args", values);
+        _rpcs.Write(LogLevel.Debug, fields);
+    }
+
     // A record every few seconds on the traffic and on what the logging dropped, so a
     // gap in the log is visible as a gap rather than silence.
     public void Tick(double delta)

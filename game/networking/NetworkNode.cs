@@ -1,5 +1,6 @@
 namespace MmoGame3d.Networking;
 
+using System.Collections.Generic;
 using System.Diagnostics;
 using Godot;
 
@@ -27,6 +28,24 @@ public partial class NetworkNode : Node
         RpcId(peer, method, args);
     }
 
+    // The same RPC to many peers: the arguments are made into Godot values once and logged
+    // once, not once a peer. For a roster of a hundred sent to a hundred, that was most
+    // of the server's worst frame.
+    protected void SendToMany(IReadOnlyList<long> peers, StringName method, params Variant[] args)
+    {
+        if (peers.Count == 0)
+        {
+            return;
+        }
+
+        Log?.SentToMany(NodeName(), method, peers.Count, args);
+
+        foreach (long peer in peers)
+        {
+            RpcId(peer, method, args);
+        }
+    }
+
     private string NodeName()
     {
         if (_name == null)
@@ -43,4 +62,6 @@ public interface IRpcLog
     Activity? Received(string node, StringName method, long peer, object?[] args);
 
     void Sent(string node, StringName method, long peer, Variant[] args);
+
+    void SentToMany(string node, StringName method, int peers, Variant[] args);
 }

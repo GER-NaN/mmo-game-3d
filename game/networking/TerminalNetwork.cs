@@ -1,6 +1,7 @@
 namespace MmoGame3d.Networking;
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Godot;
 
@@ -238,6 +239,11 @@ public partial class TerminalNetwork : NetworkNode
     public void SendRoster(long peer, string[] names, string[] zones, int[] online)
     {
         SendTo(peer, MethodName.ReceiveRoster, names, zones, online);
+    }
+
+    public void SendRoster(IReadOnlyList<long> peers, string[] names, string[] zones, int[] online)
+    {
+        SendToMany(peers, MethodName.ReceiveRoster, names, zones, online);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]

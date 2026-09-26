@@ -25,6 +25,7 @@ public class ServerTerminals
     private readonly Network _session;
     private readonly Func<IEnumerable<Session>> _sessions;
     private double _sinceRoster;
+    private string _rosterKey = "";
 
     // The world clock as "hh:mm", for the status board.
     public Func<string> Clock { get; set; } = () => "";
@@ -131,13 +132,32 @@ public class ServerTerminals
 
         _sinceRoster = 0;
 
+        // Built once for everyone, and sent only when it changed: with everyone online
+        // and a roster built per viewer, this was the whole server's worst frame (a
+        // hundred rosters of a hundred, 13 ms, every 2 s).
+        string[] names;
+        string[] zones;
+        int[] online;
+        BuildRoster(out names, out zones, out online);
+        string key = string.Join("/", names) + "|" + string.Join("/", zones) + "|" + string.Join(",", online);
+
+        if (key == _rosterKey)
+        {
+            return;
+        }
+
+        _rosterKey = key;
+        List<long> peers = new List<long>();
+
         foreach (Session session in _sessions())
         {
             if (session.Record != null && _access.IsOnline(session.Record.PlayerId))
             {
-                SendRoster(session);
+                peers.Add(session.PeerId);
             }
         }
+
+        _network.SendRoster(peers, names, zones, online);
     }
 
     private bool Release(Session session)
@@ -175,20 +195,31 @@ public class ServerTerminals
 
     private void SendRoster(Session viewer)
     {
-        List<string> names = new List<string>();
-        List<string> zones = new List<string>();
-        List<int> online = new List<int>();
+        string[] names;
+        string[] zones;
+        int[] online;
+        BuildRoster(out names, out zones, out online);
+        _network.SendRoster(viewer.PeerId, names, zones, online);
+    }
+
+    private void BuildRoster(out string[] names, out string[] zones, out int[] online)
+    {
+        List<string> nameList = new List<string>();
+        List<string> zoneList = new List<string>();
+        List<int> onlineList = new List<int>();
 
         foreach (Session session in _sessions())
         {
             if (session.State == SessionState.InWorld && session.Record != null)
             {
-                names.Add(session.Record.DisplayName);
-                zones.Add(session.Record.Zone);
-                online.Add(_access.IsOnline(session.Record.PlayerId) ? 1 : 0);
+                nameList.Add(session.Record.DisplayName);
+                zoneList.Add(session.Record.Zone);
+                onlineList.Add(_access.IsOnline(session.Record.PlayerId) ? 1 : 0);
             }
         }
 
-        _network.SendRoster(viewer.PeerId, names.ToArray(), zones.ToArray(), online.ToArray());
+        names = nameList.ToArray();
+        zones = zoneList.ToArray();
+        online = onlineList.ToArray();
     }
 }
