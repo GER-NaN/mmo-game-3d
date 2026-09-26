@@ -25,18 +25,28 @@ public partial class ChaseCamera : Camera3D
     private const float FollowRate = 8f;
     private const float LookReturnRate = 3f;
 
-    // How far in front of a wall the camera stops, so it does not see through it.
+    // How far in front of a wall the camera stops, so it does not see through it; and
+    // how fast it moves back out, a second, once the wall is behind it.
     private const float WallGap = 0.3f;
+    private const float EaseOutRate = 4f;
 
     // The point looked at, above the feet.
     private static readonly Vector3 LookHeight = new Vector3(0f, 1.5f, 0f);
 
     private float _distance = StartDistance;
+    private float _shownDistance = StartDistance;
     private float _pitch = StartPitch;
     private float _lookYaw;
     private float _yaw;
     private bool _dragging;
     private bool _placed;
+
+    // After the bodies, so the camera follows where the player is this frame, not where
+    // they were last frame. Bodies run at the default priority, 0.
+    public override void _Ready()
+    {
+        ProcessPriority = 100;
+    }
 
     public override void _UnhandledInput(InputEvent @event)
     {
@@ -88,24 +98,30 @@ public partial class ChaseCamera : Camera3D
         Basis orbit = new Basis(Vector3.Up, _yaw) * new Basis(Vector3.Right, _pitch);
         Vector3 target = player.GlobalPosition + LookHeight;
 
-        Vector3 wanted = target + (orbit * new Vector3(0f, 0f, _distance));
-        Position = Unblocked(target, wanted);
+        // In at once when a wall is in the way, so it never looks through; back out gently,
+        // so passing a corner does not throw the view about.
+        Vector3 back = orbit * new Vector3(0f, 0f, 1f);
+        float allowed = Unblocked(target, back, _distance);
+        _shownDistance = allowed < _shownDistance ? allowed : Mathf.Lerp(_shownDistance, allowed, 1f - Mathf.Exp(-EaseOutRate * step));
+
+        Position = target + (back * _shownDistance);
         LookAt(target, Vector3.Up);
     }
 
-    // Indoors or by a building, the wanted spot can be behind a wall: then the camera
-    // comes in to just in front of it, the way a spring arm does.
-    private Vector3 Unblocked(Vector3 target, Vector3 wanted)
+    // How far back along the view the camera may be: its distance, or less where a
+    // building or a wall is in the way. Only CameraBlock things count; thin ones (trunks,
+    // posts) would make it snap in and out as it passed them.
+    private float Unblocked(Vector3 target, Vector3 back, float distance)
     {
-        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(target, wanted, PhysicsLayers.World);
+        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(target, target + (back * distance), PhysicsLayers.CameraBlock);
         Godot.Collections.Dictionary hit = GetWorld3D().DirectSpaceState.IntersectRay(query);
 
         if (hit.Count == 0)
         {
-            return wanted;
+            return distance;
         }
 
         Vector3 point = (Vector3)hit["position"];
-        return point + ((target - point).Normalized() * WallGap);
+        return Mathf.Max(0.5f, point.DistanceTo(target) - WallGap);
     }
 }

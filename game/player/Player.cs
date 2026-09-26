@@ -6,14 +6,19 @@ using MmoGame3d.Rules.Movement;
 using MmoGame3d.Rules.Social;
 
 /// <summary>
-/// A player's body. The server moves it; the owning client turns its own heading and
-/// sends the direction it wants to walk. The server writes where the body is into
-/// NetPosition and NetYaw, the synchronizer carries those to the clients that may see
-/// it, and each client glides the body towards them.
+/// A player's body. The server is the authority: it moves every body and writes where
+/// each is into NetPosition and NetYaw, which the synchronizer carries to the clients
+/// that may see it, 20 times a second.
 ///
-/// Why synced copies and not position itself: the server sends 20 times a second, not
-/// every frame, to keep the bandwidth down. Setting position straight from each update
-/// would make every body jump 20 times a second, so the client smooths instead.
+/// How a client draws it, and why:
+/// - Your own body is predicted. It moves at once from your keys, by the same Step the
+///   server runs, against the zone's own collision, so it is smooth every frame. It is
+///   corrected to the server only when they part by a lot (a door, a fall, a wall the
+///   server saw) or once you stand still: correcting while walking would pull you back,
+///   since the server is always a little behind your keys.
+/// - Everyone else is drawn a tenth of a second in the past, between the two updates on
+///   either side of that moment (snapshot interpolation), so they move at an even speed.
+///   Gliding towards the newest update instead made motion pulse 20 times a second.
 /// </summary>
 public partial class Player : CharacterBody3D
 {
@@ -25,10 +30,19 @@ public partial class Player : CharacterBody3D
     // Below this the body fell off the world, and goes back to the zone's spawn.
     private const float FallLimit = -10f;
 
-    // How fast a body closes the gap to its last synced position, per second; and the
-    // gap past which it jumps there at once (a door, a respawn).
-    private const float SmoothingRate = 15f;
-    private const float SnapDistance = 4f;
+    // Past this gap, a body jumps to the server's position at once (a door, a respawn,
+    // a prediction gone wrong).
+    private const float SnapDistance = 3f;
+
+    // Your own body, once you stand still, closes the gap to the server at this rate a
+    // second; and waits this long after the last walk before starting to.
+    private const float SettleRate = 6f;
+    private const double SettleAfter = 0.25;
+
+    // Others are drawn this far in the past: two updates' worth, so there is nearly
+    // always an update on each side of the moment drawn.
+    private const double InterpolationDelay = 0.1;
+    private const int SnapshotCount = 8;
 
     // The owner sends a changing walk at most this often. A stop goes out at once.
     private const double InputSendInterval = 0.05;
@@ -43,6 +57,16 @@ public partial class Player : CharacterBody3D
     private Vector2 _sentDirection;
     private float _sentHeading;
     private double _sinceSend;
+    private double _sinceWalked;
+    private Network? _network;
+
+    // Client only: the updates as they arrived, for drawing others in the past.
+    private readonly double[] _snapTimes = new double[SnapshotCount];
+    private readonly Vector3[] _snapPositions = new Vector3[SnapshotCount];
+    private readonly float[] _snapYaws = new float[SnapshotCount];
+    private int _snapNewest = -1;
+    private int _snapCount;
+    private bool _recording;
 
     // Client only: how the body is seen to move, smoothed, for the animation.
     private CharacterModel? _model;
@@ -54,6 +78,9 @@ public partial class Player : CharacterBody3D
     private Vector2 _moveDirection;
     private float _moveHeading;
     private bool _jumpRequested;
+
+    private Vector3 _netPosition;
+    private float _netYaw;
 
     [Export]
     public string DisplayName { get; set; } = "";
@@ -72,11 +99,32 @@ public partial class Player : CharacterBody3D
     [Export]
     public string PlayerIdText { get; set; } = "";
 
+    // Set by the server each step; on a client each update is kept for interpolation.
     [Export]
-    public Vector3 NetPosition { get; set; }
+    public Vector3 NetPosition
+    {
+        get
+        {
+            return _netPosition;
+        }
+
+        set
+        {
+            _netPosition = value;
+
+            if (_recording)
+            {
+                Record(value);
+            }
+        }
+    }
 
     [Export]
-    public float NetYaw { get; set; }
+    public float NetYaw
+    {
+        get { return _netYaw; }
+        set { _netYaw = value; }
+    }
 
     // Where the server puts a body that fell off the world.
     public Vector3 RespawnPoint { get; set; }
@@ -97,8 +145,6 @@ public partial class Player : CharacterBody3D
 
     // Load-test bots walk from this instead of the keyboard; null for a person.
     public IPlayerInput? InputSource { get; set; }
-
-    private Network? _network;
 
     // The node is named after the peer id of the client that owns it.
     public long OwnerPeerId
@@ -130,6 +176,8 @@ public partial class Player : CharacterBody3D
         // A spawn arrives with the synced values already set.
         Position = NetPosition;
         Rotation = new Vector3(0f, NetYaw, 0f);
+        _recording = true;
+        Record(NetPosition);
 
         if (DrawModels)
         {
@@ -165,21 +213,13 @@ public partial class Player : CharacterBody3D
 
     public override void _PhysicsProcess(double delta)
     {
-        if (!Multiplayer.HasMultiplayerPeer())
-        {
-            return;
-        }
-
-        if (Multiplayer.IsServer())
+        if (Multiplayer.HasMultiplayerPeer() && Multiplayer.IsServer())
         {
             Simulate((float)delta);
         }
-        else if (IsOwnedHere)
-        {
-            ReadInput(delta);
-        }
     }
 
+    // A client draws every frame: your own body from your keys, others from the past.
     public override void _Process(double delta)
     {
         if (!Multiplayer.HasMultiplayerPeer() || Multiplayer.IsServer())
@@ -189,24 +229,142 @@ public partial class Player : CharacterBody3D
 
         Vector3 before = Position;
 
-        if (Position.DistanceTo(NetPosition) > SnapDistance)
+        if (IsOwnedHere)
         {
-            Position = NetPosition;
+            Predict(delta);
+            Rotation = new Vector3(0f, Heading, 0f);
         }
         else
         {
-            Position = Position.Lerp(NetPosition, 1f - Mathf.Exp(-SmoothingRate * (float)delta));
+            Interpolate();
         }
 
         Animate(before, (float)delta);
+    }
 
-        // Your own body faces your heading at once; others turn smoothly to theirs.
-        float yaw = IsOwnedHere ? Heading : Mathf.LerpAngle(Rotation.Y, NetYaw, 1f - Mathf.Exp(-SmoothingRate * (float)delta));
+    // The one walking step, the same on server and client: the walk sets the horizontal
+    // speed, gravity pulls when off the floor, a jump only leaves the floor.
+    private void Step(Vector2 walk, bool jump, float delta)
+    {
+        Vector3 velocity = Velocity;
+        velocity.X = walk.X * Speed;
+        velocity.Z = walk.Y * Speed;
+
+        if (IsOnFloor())
+        {
+            if (jump)
+            {
+                velocity.Y = JumpSpeed;
+            }
+        }
+        else
+        {
+            velocity += GetGravity() * delta;
+        }
+
+        Velocity = velocity;
+        MoveAndSlide();
+    }
+
+    // Owner only: move now from the keys, send them on, and settle onto the server's
+    // position when standing still or far out.
+    private void Predict(double delta)
+    {
+        Vector2 walk;
+        bool jump;
+        ReadInput(delta, out walk, out jump);
+
+        // Online, the server holds the body at the terminal; predicting a walk would
+        // only be corrected back.
+        if (IsOnline)
+        {
+            walk = Vector2.Zero;
+            jump = false;
+        }
+
+        Step(walk, jump, (float)delta);
+
+        _sinceWalked = walk != Vector2.Zero || !IsOnFloor() ? 0 : _sinceWalked + delta;
+        Vector3 gap = NetPosition - Position;
+
+        if (gap.Length() > SnapDistance)
+        {
+            Position = NetPosition;
+            Velocity = Vector3.Zero;
+        }
+        else if (_sinceWalked >= SettleAfter)
+        {
+            Position = Position.Lerp(NetPosition, 1f - Mathf.Exp(-SettleRate * (float)delta));
+        }
+    }
+
+    // Others: the position a tenth of a second ago, between the updates either side.
+    private void Interpolate()
+    {
+        if (_snapCount == 0)
+        {
+            return;
+        }
+
+        double drawAt = Now() - InterpolationDelay;
+        int newest = _snapNewest;
+
+        if (drawAt >= _snapTimes[newest] || _snapCount == 1)
+        {
+            Place(_snapPositions[newest], _snapYaws[newest]);
+            return;
+        }
+
+        for (int i = 0; i < _snapCount - 1; i++)
+        {
+            int later = (newest - i + SnapshotCount) % SnapshotCount;
+            int earlier = (later - 1 + SnapshotCount) % SnapshotCount;
+
+            if (_snapTimes[earlier] <= drawAt)
+            {
+                double span = _snapTimes[later] - _snapTimes[earlier];
+                float t = span > 0 ? (float)((drawAt - _snapTimes[earlier]) / span) : 1f;
+
+                // A jump between two updates (a respawn) is not walked across.
+                if (_snapPositions[earlier].DistanceTo(_snapPositions[later]) > SnapDistance)
+                {
+                    t = 1f;
+                }
+
+                Place(_snapPositions[earlier].Lerp(_snapPositions[later], t), Mathf.LerpAngle(_snapYaws[earlier], _snapYaws[later], t));
+                return;
+            }
+        }
+
+        int oldest = (newest - _snapCount + 1 + SnapshotCount) % SnapshotCount;
+        Place(_snapPositions[oldest], _snapYaws[oldest]);
+    }
+
+    private void Place(Vector3 position, float yaw)
+    {
+        Position = position;
         Rotation = new Vector3(0f, yaw, 0f);
     }
 
+    // An update as it arrives, with when. The yaw is the latest known: the synchronizer
+    // sets position and yaw one after the other, so this may be one update behind, which
+    // is invisible in a turn.
+    private void Record(Vector3 position)
+    {
+        _snapNewest = (_snapNewest + 1) % SnapshotCount;
+        _snapTimes[_snapNewest] = Now();
+        _snapPositions[_snapNewest] = position;
+        _snapYaws[_snapNewest] = _netYaw;
+        _snapCount = Mathf.Min(_snapCount + 1, SnapshotCount);
+    }
+
+    private static double Now()
+    {
+        return Time.GetTicksUsec() / 1000000.0;
+    }
+
     // The look follows what the body is seen doing, so it works the same for every body
-    // on the screen, yours included, from the synced position alone.
+    // on the screen, yours included.
     private void Animate(Vector3 before, float delta)
     {
         if (_model == null || delta <= 0f)
@@ -267,14 +425,15 @@ public partial class Player : CharacterBody3D
         return _network;
     }
 
+    // Reads the keys (or the input source), turns the heading, and sends the walk on.
     // While a text field or a menu has focus, the keys belong to it, not to walking.
-    private void ReadInput(double delta)
+    private void ReadInput(double delta, out Vector2 walk, out bool jump)
     {
         bool keysFree = InputSource == null && GetViewport().GuiGetFocusOwner() == null;
         float turn = keysFree ? Input.GetAxis("turn_right", "turn_left") : 0f;
         float forward = keysFree ? Input.GetAxis("move_back", "move_forward") : 0f;
         float strafe = keysFree ? Input.GetAxis("strafe_left", "strafe_right") : 0f;
-        bool jump = keysFree && Input.IsActionJustPressed("jump");
+        jump = keysFree && Input.IsActionJustPressed("jump");
 
         if (InputSource != null)
         {
@@ -289,7 +448,7 @@ public partial class Player : CharacterBody3D
         float x;
         float z;
         Walking.Direction(Heading, forward, strafe, out x, out z);
-        Vector2 direction = new Vector2(x, z);
+        walk = new Vector2(x, z);
 
         Network? network = SessionNetwork();
 
@@ -305,17 +464,17 @@ public partial class Player : CharacterBody3D
 
         _sinceSend += delta;
 
-        if (direction == Vector2.Zero && _sentDirection != Vector2.Zero)
+        if (walk == Vector2.Zero && _sentDirection != Vector2.Zero)
         {
             network.SendStop(Heading);
             _sentDirection = Vector2.Zero;
             _sentHeading = Heading;
             _sinceSend = 0;
         }
-        else if ((direction != _sentDirection || !Mathf.IsEqualApprox(Heading, _sentHeading)) && _sinceSend >= InputSendInterval)
+        else if ((walk != _sentDirection || !Mathf.IsEqualApprox(Heading, _sentHeading)) && _sinceSend >= InputSendInterval)
         {
-            network.SendWalk(direction, Heading);
-            _sentDirection = direction;
+            network.SendWalk(walk, Heading);
+            _sentDirection = walk;
             _sentHeading = Heading;
             _sinceSend = 0;
         }
@@ -362,41 +521,20 @@ public partial class Player : CharacterBody3D
     {
         // Online, the body stands at the terminal: the walk it last asked for waits.
         Vector2 walk = IsOnline ? Vector2.Zero : _moveDirection;
+        bool jump = _jumpRequested && !IsOnline;
+        _jumpRequested = false;
 
         if (GestureId.Length > 0)
         {
             _gestureLeft -= delta;
 
-            if (walk != Vector2.Zero || _jumpRequested || (Gestures.Find(GestureId)?.Seconds > 0 && _gestureLeft <= 0))
+            if (walk != Vector2.Zero || jump || (Gestures.Find(GestureId)?.Seconds > 0 && _gestureLeft <= 0))
             {
                 GestureId = "";
             }
         }
 
-        if (IsOnline)
-        {
-            _jumpRequested = false;
-        }
-
-        Vector3 velocity = Velocity;
-        velocity.X = walk.X * Speed;
-        velocity.Z = walk.Y * Speed;
-
-        if (IsOnFloor())
-        {
-            if (_jumpRequested)
-            {
-                velocity.Y = JumpSpeed;
-            }
-        }
-        else
-        {
-            velocity += GetGravity() * delta;
-        }
-
-        _jumpRequested = false;
-        Velocity = velocity;
-        MoveAndSlide();
+        Step(walk, jump, delta);
         Rotation = new Vector3(0f, _moveHeading, 0f);
 
         if (Position.Y < FallLimit)

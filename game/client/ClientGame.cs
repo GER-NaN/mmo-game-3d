@@ -356,6 +356,11 @@ public partial class ClientGame : Node
             shot.Start(_options.ScreenshotPath, _options.Overview, _options.ScreenshotAfterSeconds);
         }
 
+        if (_options.WalkTest)
+        {
+            AddChild(new WalkTest { Name = "WalkTest", Watch = _options.WatchTest });
+        }
+
         if (_options.LoadBot)
         {
             LoadBot legs = new LoadBot(Name.GetHashCode() ^ _options.Profile.GetHashCode()) { Name = "LoadBot", Say = _network.SendChat };

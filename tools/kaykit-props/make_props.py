@@ -27,11 +27,12 @@ CITY_SCALE = 5.0
 FURNITURE_SCALE = 0.8
 
 # (pack folder, model name, scale, collision): collision is "box", "trunk", "flat" or
-# "none".
+# "none". "block" is a box that also stops the chase camera (buildings): the camera
+# comes in front of it rather than looking through.
 PROPS = []
 
 for letter in "ABCDEFGH":
-    PROPS.append(("city_builder_bits", "building_" + letter, CITY_SCALE, "box"))
+    PROPS.append(("city_builder_bits", "building_" + letter, CITY_SCALE, "block"))
 
 for name in ["road_straight", "road_straight_crossing", "road_corner", "road_corner_curved",
              "road_junction", "road_tsplit", "base", "park_base"]:
@@ -45,8 +46,10 @@ for name in ["tree_A", "tree_B", "tree_C", "tree_D", "tree_E", "streetlight",
     PROPS.append(("city_builder_bits", name, CITY_SCALE, "trunk"))
 
 for name in ["car_sedan", "car_hatchback", "car_taxi", "car_police", "car_stationwagon",
-             "bench", "dumpster", "trash_A", "trash_B", "box_A", "box_B", "watertower"]:
+             "bench", "dumpster", "trash_A", "trash_B", "box_A", "box_B"]:
     PROPS.append(("city_builder_bits", name, CITY_SCALE, "box"))
+
+PROPS.append(("city_builder_bits", "watertower", CITY_SCALE, "block"))
 
 for name in ["desk", "desk_decorated", "monitor", "keyboard", "chair_desk_A", "table_medium",
              "table_small", "shelf_B_large_decorated", "cabinet_medium", "couch"]:
@@ -122,6 +125,11 @@ def write_prop(pack, model, scale, collision):
     center = [(high[k] + low[k]) / 2 * scale for k in range(3)]
     name = scene_name(model)
 
+    blocks_camera = collision == "block"
+
+    if blocks_camera:
+        collision = "box"
+
     if collision == "trunk":
         width = max(TRUNK_MIN, min(size[0], size[2]) * TRUNK_FRACTION)
         size = [width, size[1], width]
@@ -140,6 +148,10 @@ def write_prop(pack, model, scale, collision):
         lines.append("size = Vector3(%s, %s, %s)" % tuple(number(v) for v in size))
         lines.append("")
         lines.append('[node name="%s" type="StaticBody3D"]' % name)
+
+        # World (1) plus CameraBlock (4); see game/PhysicsLayers.cs.
+        if blocks_camera:
+            lines.append("collision_layer = 5")
     else:
         lines.append('[node name="%s" type="Node3D"]' % name)
 

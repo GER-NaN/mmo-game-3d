@@ -6,6 +6,7 @@
 size = Vector3(10, 14.85, 10.102)
 
 [node name="BuildingD" type="StaticBody3D"]
+collision_layer = 5
 
 [node name="Model" parent="." instance=ExtResource("1_model")]
 transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0)

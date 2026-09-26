@@ -64,6 +64,7 @@ mesh = SubResource("Mesh_Ground")
 [node name="Room" type="Node3D" parent="."]
 
 [node name="Back" type="StaticBody3D" parent="Room"]
+collision_layer = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -6)
 
 [node name="Mesh" type="MeshInstance3D" parent="Room/Back"]
@@ -73,6 +74,7 @@ mesh = SubResource("Mesh_WallLong")
 shape = SubResource("Shape_WallLong")
 
 [node name="Left" type="StaticBody3D" parent="Room"]
+collision_layer = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="Room/Left"]
@@ -82,6 +84,7 @@ mesh = SubResource("Mesh_WallShort")
 shape = SubResource("Shape_WallShort")
 
 [node name="Right" type="StaticBody3D" parent="Room"]
+collision_layer = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="Room/Right"]
@@ -91,6 +94,7 @@ mesh = SubResource("Mesh_WallShort")
 shape = SubResource("Shape_WallShort")
 
 [node name="FrontLeft" type="StaticBody3D" parent="Room"]
+collision_layer = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 2, 6)
 
 [node name="Mesh" type="MeshInstance3D" parent="Room/FrontLeft"]
@@ -100,6 +104,7 @@ mesh = SubResource("Mesh_WallPiece")
 shape = SubResource("Shape_WallPiece")
 
 [node name="FrontRight" type="StaticBody3D" parent="Room"]
+collision_layer = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 2, 6)
 
 [node name="Mesh" type="MeshInstance3D" parent="Room/FrontRight"]

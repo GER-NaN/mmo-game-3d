@@ -25,6 +25,9 @@ using MmoGame3d.Rules.Time;
 ///   --load-test 50      run 50 bot clients in this one process (profiles load-0...)
 ///   --load-first 0      the first load bot's number, so processes do not share bots
 ///   --stats-every 10    the server prints players, frame times and traffic this often
+///   --walk-test         the player walks circles and the client prints how smoothly it
+///                       draws the walk (needs a window)
+///   --watch-test        the same, standing still and measuring another player's walk
 /// </summary>
 public class LaunchOptions
 {
@@ -49,6 +52,8 @@ public class LaunchOptions
     public int LoadFirst { get; private set; }
     public bool LoadBot { get; private set; }
     public double StatsEverySeconds { get; private set; }
+    public bool WalkTest { get; private set; }
+    public bool WatchTest { get; private set; }
 
     // One load-test bot: its own player, connecting at once, walking by itself.
     public LaunchOptions ForLoadBot(int number)
@@ -136,6 +141,15 @@ public class LaunchOptions
                 case "--stats-every":
                     options.StatsEverySeconds = double.Parse(next, System.Globalization.CultureInfo.InvariantCulture);
                     i++;
+                    break;
+                case "--watch-test":
+                    options.WatchTest = true;
+                    options.WalkTest = true;
+                    options.AutoConnect = true;
+                    break;
+                case "--walk-test":
+                    options.WalkTest = true;
+                    options.AutoConnect = true;
                     break;
                 case "--overview":
                     options.Overview = true;
