@@ -532,12 +532,21 @@ public partial class TerminalScreen : Control
             AddLine(content, _crackLeft + " guesses left", Dim, 15);
             LineEdit input = new LineEdit { PlaceholderText = "Guess, then Enter", MaxLength = 4 };
             input.AddToGroup(CrackInputGroup);
+            Label problem = AddLine(content, "", Locked, 15);
             input.TextSubmitted += text =>
             {
+                // Checked here too, so a slip keeps what was typed and says why.
+                if (!IsCrackGuess(text))
+                {
+                    problem.Text = "Four digits, each 0 to 5.";
+                    return;
+                }
+
                 CrackGuessSubmitted?.Invoke(text);
                 input.Text = "";
             };
             content.AddChild(input);
+            content.MoveChild(problem, content.GetChildCount() - 1);
             input.CallDeferred(Control.MethodName.GrabFocus);
             return;
         }
@@ -551,6 +560,45 @@ public partial class TerminalScreen : Control
         start.AddToGroup(CrackStartGroup);
         start.Pressed += () => CrackStartPressed?.Invoke();
         content.AddChild(start);
+    }
+
+    private static bool IsCrackGuess(string text)
+    {
+        if (text.Length != 4)
+        {
+            return false;
+        }
+
+        foreach (char digit in text)
+        {
+            if (digit < '0' || digit > '5')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // The HUD's notices are under the terminal: a refusal shows here too.
+    public void ShowNotice(string text)
+    {
+        HBoxContainer header = GetNode<HBoxContainer>("Margin/Rows/Header");
+        Label? notice = header.GetNodeOrNull<Label>("Notice");
+
+        if (notice == null)
+        {
+            notice = new Label { Name = "Notice" };
+            notice.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.45f));
+            header.AddChild(notice);
+            header.MoveChild(notice, header.GetChildCount() - 2);
+        }
+
+        notice.Text = text;
+        notice.Modulate = Colors.White;
+        Tween tween = notice.CreateTween();
+        tween.TweenInterval(4.0);
+        tween.TweenProperty(notice, "modulate:a", 0f, 1.0);
     }
 
     private void ShowOnline(VBoxContainer content)
@@ -576,11 +624,12 @@ public partial class TerminalScreen : Control
         view.AddText(line.Kind == ChatKind.System || line.Kind == ChatKind.Direct ? line.Text : prefix + line.Sender + ": " + line.Text);
     }
 
-    private static void AddLine(VBoxContainer content, string text, Color color, int size)
+    private static Label AddLine(VBoxContainer content, string text, Color color, int size)
     {
         Label label = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
         label.AddThemeColorOverride("font_color", color);
         label.AddThemeFontSizeOverride("font_size", size);
         content.AddChild(label);
+        return label;
     }
 }

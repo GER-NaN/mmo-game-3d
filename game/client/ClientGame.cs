@@ -1093,7 +1093,7 @@ public partial class ClientGame : Node
     {
         GD.Print("Notice: " + text);
         _hud?.ShowNotice(text);
-
+        _terminal?.ShowNotice(text);
     }
 
     private void ToggleInventory()
