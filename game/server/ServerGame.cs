@@ -209,7 +209,7 @@ public partial class ServerGame : Node
 
         _fixables = new ServerFixables(fixables, network, _progress);
         _interactions.Fixables = _fixables;
-        _hacking = new ServerHacking(networks.Terminal, network, _terminals, _progress);
+        _hacking = new ServerHacking(networks.Terminal, network, _terminals, _progress, _worker, new Data.Scores.ScoreStore(database));
         _college = new ServerCollege(networks.Progress, network, _progress);
         _college.Post = _terminals.Post;
         _whois = new ServerWhois(networks.Social, network, _worker, _whoisStore, _terminals, () => _sessions.Values);

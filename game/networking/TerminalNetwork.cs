@@ -106,6 +106,20 @@ public partial class TerminalNetwork : NetworkNode
         TownReceived?.Invoke(lightsWorking, jobTaken, log);
     }
 
+    // Client side: an objective's leaderboard: the top lines, then "Your best: ...".
+    public event Action<string, string[]>? BoardReceived;
+
+    public void SendBoard(long peer, string objective, string[] lines)
+    {
+        SendTo(peer, MethodName.ReceiveBoard, objective, lines);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveBoard(string objective, string[] lines)
+    {
+        BoardReceived?.Invoke(objective, lines);
+    }
+
     // Client side: the status board, newest first.
     public event Action<string[]>? StatusReceived;
 

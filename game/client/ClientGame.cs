@@ -204,6 +204,11 @@ public partial class ClientGame : Node
 
             _hasLightsJob = taken && !working;
         };
+        _terminalNetwork.BoardReceived += (objective, lines) =>
+        {
+            GD.Print("Leaderboard " + objective + ": " + string.Join(" | ", lines));
+            _terminal?.ShowBoard(objective, lines);
+        };
         _terminalNetwork.StatusReceived += lines =>
         {
             GD.Print("Status board: " + (lines.Length > 0 ? lines[0] : "all quiet"));

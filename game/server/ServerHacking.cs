@@ -2,6 +2,9 @@ namespace MmoGame3d.Server;
 
 using System;
 using System.Collections.Generic;
+using Godot;
+using MmoGame3d.Data;
+using MmoGame3d.Data.Scores;
 using MmoGame3d.Networking;
 using MmoGame3d.Rules.Skills;
 using MmoGame3d.Rules.Terminals;
@@ -21,11 +24,16 @@ public class ServerHacking
     private readonly Network _session;
     private readonly ServerTerminals _terminals;
     private readonly ServerProgress _progress;
+    private readonly PersistenceWorker _worker;
+    private readonly ScoreStore _scores;
     private readonly Dictionary<Session, CodeCracker> _codes = new Dictionary<Session, CodeCracker>();
+    private readonly Dictionary<Session, DateTime> _started = new Dictionary<Session, DateTime>();
     private readonly Random _random = new Random();
 
-    public ServerHacking(TerminalNetwork network, Network session, ServerTerminals terminals, ServerProgress progress)
+    public ServerHacking(TerminalNetwork network, Network session, ServerTerminals terminals, ServerProgress progress, PersistenceWorker worker, ScoreStore scores)
     {
+        _worker = worker;
+        _scores = scores;
         _network = network;
         _session = session;
         _terminals = terminals;
@@ -40,7 +48,9 @@ public class ServerHacking
         }
 
         _codes[session] = new CodeCracker(_random);
+        _started[session] = DateTime.UtcNow;
         Send(session, _codes[session]);
+        SendBoard(session);
     }
 
     public void Guess(Session session, string guess)
@@ -64,6 +74,7 @@ public class ServerHacking
         {
             _session.SendNotice(session.PeerId, "Code cracked.");
             _progress.Award(session, SkillId.Hacking, SkillAwards.HackingPerCode);
+            Record(session, code.Guesses.Count);
         }
 
         Send(session, code);
@@ -72,6 +83,48 @@ public class ServerHacking
     public void Forget(Session session)
     {
         _codes.Remove(session);
+        _started.Remove(session);
+    }
+
+    // The result goes on the board, then the player sees the board with it.
+    private void Record(Session session, int guesses)
+    {
+        DateTime started;
+        double seconds = _started.TryGetValue(session, out started) ? (DateTime.UtcNow - started).TotalSeconds : 0;
+        Guid playerId = session.Record!.PlayerId;
+        string name = session.Record.DisplayName;
+        _worker.Enqueue(
+            () =>
+            {
+                _scores.Add(Leaderboards.CodeCracker, playerId, name, guesses, seconds);
+                return true;
+            },
+            saved => SendBoard(session),
+            e => GD.PrintErr("Saving a code cracker score failed: " + e.Message));
+    }
+
+    private void SendBoard(Session session)
+    {
+        Guid playerId = session.Record!.PlayerId;
+        long peer = session.PeerId;
+        bool lower = Leaderboards.LowerIsBetter(Leaderboards.CodeCracker);
+        _worker.Enqueue(
+            () =>
+            {
+                List<string> lines = new List<string>();
+                List<ScoreRecord> top = _scores.Top(Leaderboards.CodeCracker, lower, Leaderboards.Shown);
+
+                for (int i = 0; i < top.Count; i++)
+                {
+                    lines.Add((i + 1) + ". " + top[i].PlayerName + "   " + Leaderboards.Result(Leaderboards.CodeCracker, top[i].Score, top[i].Seconds));
+                }
+
+                ScoreRecord? best = _scores.Best(Leaderboards.CodeCracker, playerId, lower);
+                lines.Add(best == null ? "Your best: none yet" : "Your best: " + Leaderboards.Result(Leaderboards.CodeCracker, best.Score, best.Seconds));
+                return lines.ToArray();
+            },
+            lines => _network.SendBoard(peer, Leaderboards.CodeCracker, lines),
+            e => GD.PrintErr("Reading the code cracker board failed: " + e.Message));
     }
 
     private bool AtPublicTerminal(Session session)

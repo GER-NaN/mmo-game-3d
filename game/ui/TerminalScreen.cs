@@ -103,6 +103,7 @@ public partial class TerminalScreen : Control
     private int _crackLeft;
     private int _crackStatus;
     private string[] _status = new string[0];
+    private string[] _crackBoard = new string[0];
 
     public override void _Ready()
     {
@@ -200,6 +201,21 @@ public partial class TerminalScreen : Control
         if (_openApp == TerminalApps.TodoList || _openApp == TerminalApps.TownLog)
         {
             ShowApp(new TerminalApp(_openApp, _openApp == TerminalApps.TodoList ? "Town repairs" : "Town log", ""));
+        }
+    }
+
+    public void ShowBoard(string objective, string[] lines)
+    {
+        if (objective != Rules.Terminals.Leaderboards.CodeCracker)
+        {
+            return;
+        }
+
+        _crackBoard = lines;
+
+        if (_openApp == TerminalApps.CodeCracker)
+        {
+            ShowApp(new TerminalApp(TerminalApps.CodeCracker, "Code cracker", ""));
         }
     }
 
@@ -584,6 +600,24 @@ public partial class TerminalScreen : Control
         start.AddToGroup(CrackStartGroup);
         start.Pressed += () => CrackStartPressed?.Invoke();
         content.AddChild(start);
+        ShowCrackBoard(content);
+    }
+
+    // Fewest guesses, then fastest; the last line is your own best.
+    private void ShowCrackBoard(VBoxContainer content)
+    {
+        if (_crackBoard.Length == 0)
+        {
+            return;
+        }
+
+        AddLine(content, "", Dim, 8);
+        AddLine(content, "Top ten: fewest guesses, then fastest", Dim, 14);
+
+        for (int i = 0; i < _crackBoard.Length; i++)
+        {
+            AddLine(content, _crackBoard[i], i == _crackBoard.Length - 1 ? Dim : Text, 15);
+        }
     }
 
     private static bool IsCrackGuess(string text)

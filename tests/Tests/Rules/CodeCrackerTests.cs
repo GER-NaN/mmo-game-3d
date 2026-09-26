@@ -43,4 +43,12 @@ public class CodeCrackerTests
         Assert.True(cracker.Over);
         Assert.False(cracker.Solved);
     }
+
+    [Fact]
+    public void AResultReadsInGuessesAndMinutes()
+    {
+        Assert.Equal("3 guesses, 1:05", Leaderboards.Result(Leaderboards.CodeCracker, 3, 64.6));
+        Assert.Equal("1 guess, 0:07", Leaderboards.Result(Leaderboards.CodeCracker, 1, 7));
+        Assert.True(Leaderboards.LowerIsBetter(Leaderboards.CodeCracker));
+    }
 }
