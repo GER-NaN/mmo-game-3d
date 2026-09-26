@@ -29,16 +29,47 @@ public class ServerChat
 
     public void Say(Session speaker, string text)
     {
-        if (speaker.State != SessionState.InWorld || speaker.Record == null || text.Length > MaxRawLength)
+        string? clean = Prepare(speaker, text);
+
+        if (clean != null)
+        {
+            Broadcast(speaker.Record!.DisplayName, clean, ChatKind.Say);
+        }
+    }
+
+    // A line for some players only (a party). It passes the same filters and the same
+    // rate limit as a line to everyone.
+    public void SayTo(Session speaker, string text, ChatKind kind, IEnumerable<Session> listeners)
+    {
+        string? clean = Prepare(speaker, text);
+
+        if (clean == null)
         {
             return;
+        }
+
+        foreach (Session listener in listeners)
+        {
+            if (listener.State == SessionState.InWorld)
+            {
+                _network.SendChatLine(listener.PeerId, speaker.Record!.DisplayName, clean, (int)kind);
+            }
+        }
+    }
+
+    // The line as it may go out, or null when it may not.
+    private string? Prepare(Session speaker, string text)
+    {
+        if (speaker.State != SessionState.InWorld || speaker.Record == null || text.Length > MaxRawLength)
+        {
+            return null;
         }
 
         string clean = _filters.Apply(text);
 
         if (clean.Length == 0)
         {
-            return;
+            return null;
         }
 
         ChatRateLimit? limit;
@@ -52,10 +83,10 @@ public class ServerChat
         if (!limit.TryTake(Time.GetTicksMsec() / 1000.0))
         {
             _network.SendNotice(speaker.PeerId, "You are sending too fast. Wait a moment.");
-            return;
+            return null;
         }
 
-        Broadcast(speaker.Record.DisplayName, clean, ChatKind.Say);
+        return clean;
     }
 
     public void Announce(string text)

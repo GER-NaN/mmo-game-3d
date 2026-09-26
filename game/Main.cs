@@ -8,8 +8,8 @@ using MmoGame3d.Zones;
 
 /// <summary>
 /// Starts the game as the server or as a client, from the command line. Both sides
-/// build the same tree under Main: "Network" for the session RPCs and "World" for the
-/// zones, because RPCs and sync find their nodes by path.
+/// build the same tree under Main: "Network" and "PartyNetwork" for the RPCs and "World"
+/// for the zones, because RPCs and sync find their nodes by path.
 /// </summary>
 public partial class Main : Node
 {
@@ -19,6 +19,7 @@ public partial class Main : Node
     {
         LaunchOptions options = LaunchOptions.Parse(OS.GetCmdlineUserArgs());
         Network network = GetNode<Network>("Network");
+        PartyNetwork partyNetwork = GetNode<PartyNetwork>("PartyNetwork");
 
         if (options.IsServer)
         {
@@ -28,13 +29,13 @@ public partial class Main : Node
 
             ServerGame server = new ServerGame { Name = "ServerGame" };
             AddChild(server);
-            server.Start(options, network, world);
+            server.Start(options, network, partyNetwork, world);
         }
         else
         {
             ClientGame client = new ClientGame { Name = "ClientGame" };
             AddChild(client);
-            client.Start(options, network, this);
+            client.Start(options, network, partyNetwork, this);
         }
     }
 }

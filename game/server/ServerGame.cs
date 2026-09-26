@@ -43,10 +43,11 @@ public partial class ServerGame : Node
     private VisibilityGate _gate = null!;
     private GroundItems _groundItems = null!;
     private ServerChat _chat = null!;
+    private ServerParties _parties = null!;
     private bool _stocked;
     private double _sinceSave;
 
-    public void Start(LaunchOptions options, Network network, World world)
+    public void Start(LaunchOptions options, Network network, PartyNetwork partyNetwork, World world)
     {
         _options = options;
         _network = network;
@@ -80,6 +81,7 @@ public partial class ServerGame : Node
         _gate = new VisibilityGate(CanSee);
         _groundItems = new GroundItems(_gate, OnItemPickedUp);
         _chat = new ServerChat(network, () => _sessions.Values);
+        _parties = new ServerParties(partyNetwork, network, _chat, () => _sessions.Values);
 
         ENetMultiplayerPeer peer = new ENetMultiplayerPeer();
         Error error = peer.CreateServer(options.Port, options.MaxPlayers);
@@ -97,6 +99,10 @@ public partial class ServerGame : Node
         _network.LoginRequested += OnLoginRequested;
         _network.WorldReadyReceived += OnWorldReady;
         _network.ChatRequested += OnChatRequested;
+        partyNetwork.InviteRequested += (peer, target) => WithSession(peer, session => _parties.Invite(session, FindSession(target)));
+        partyNetwork.ResponseReceived += (peer, inviter, accept) => WithSession(peer, session => _parties.Respond(session, inviter, accept));
+        partyNetwork.LeaveRequested += peer => WithSession(peer, session => _parties.Leave(session));
+        partyNetwork.ChatRequested += (peer, text) => WithSession(peer, session => _parties.Chat(session, text));
 
         GD.Print("Server listening on port " + options.Port + " for up to " + options.MaxPlayers + " players");
     }
@@ -109,6 +115,7 @@ public partial class ServerGame : Node
         }
 
         _worker.RunCompletions();
+        _parties.Tick(delta);
 
         if (_stopSignals != null && _stopSignals.StopRequested())
         {
@@ -193,6 +200,7 @@ public partial class ServerGame : Node
         {
             Save(session);
             session.Body.QueueFree();
+            _parties.LeftWorld(session);
             _chat.Announce(session.Record!.DisplayName + " left.");
         }
 
@@ -313,6 +321,7 @@ public partial class ServerGame : Node
         Player body = PlayerScene.Instantiate<Player>();
         body.Name = peer.ToString();
         body.DisplayName = record.DisplayName;
+        body.PlayerIdText = record.PlayerId.ToString();
         body.Position = SpaceQueries.FreeSpotNear(zone, new Vector3(record.PositionX, record.PositionY, record.PositionZ));
         body.Rotation = new Vector3(0f, record.Yaw, 0f);
         body.RespawnPoint = zone.SpawnPoint;
@@ -326,7 +335,26 @@ public partial class ServerGame : Node
         // the players and items already standing there spawn on this client.
         _gate.Refresh(zone.ZoneId);
         SendInventory(session);
+        _parties.EnteredWorld(session);
         _chat.Announce(record.DisplayName + " joined.");
+    }
+
+    private Session? FindSession(long peer)
+    {
+        _sessions.TryGetValue(peer, out Session? session);
+        return session;
+    }
+
+    // Runs a request for a peer that has a session; a request from anything else is
+    // dropped, which is the closed-by-default answer.
+    private void WithSession(long peer, Action<Session> handle)
+    {
+        Session? session = FindSession(peer);
+
+        if (session != null && session.State == SessionState.InWorld)
+        {
+            handle(session);
+        }
     }
 
     private void OnChatRequested(long peer, string text)

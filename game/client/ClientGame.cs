@@ -28,6 +28,7 @@ public partial class ClientGame : Node
 
     private LaunchOptions _options = null!;
     private Network _network = null!;
+    private PartyNetwork _partyNetwork = null!;
     private Node _main = null!;
     private ClientSettings _settings = null!;
     private Profile _profile = null!;
@@ -39,6 +40,7 @@ public partial class ClientGame : Node
     private Hud? _hud;
     private InventoryPanel? _inventoryPanel;
     private ChatBox? _chat;
+    private ClientParty? _party;
     private BotDriver? _bot;
 
     // What the server last said this player carries.
@@ -46,10 +48,11 @@ public partial class ClientGame : Node
     private string _pendingName = "";
     private string _address = "";
 
-    public void Start(LaunchOptions options, Network network, Node main)
+    public void Start(LaunchOptions options, Network network, PartyNetwork partyNetwork, Node main)
     {
         _options = options;
         _network = network;
+        _partyNetwork = partyNetwork;
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load();
@@ -57,6 +60,12 @@ public partial class ClientGame : Node
         if (DisplayServer.GetName() != "headless")
         {
             _settings.Apply();
+        }
+        else
+        {
+            // A headless client's window is 64 by 64 pixels, so centred panels hang off
+            // its edges and a bot's click lands beside the button. Give it a real size.
+            GetTree().Root.Size = new Vector2I(1280, 720);
         }
 
         _ui = new CanvasLayer { Name = "Ui" };
@@ -232,7 +241,11 @@ public partial class ClientGame : Node
 
         _chat = ChatScene.Instantiate<ChatBox>();
         _ui.AddChild(_chat);
-        _chat.Submitted += _network.SendChat;
+        _chat.Submitted += OnChatSubmitted;
+
+        _party = new ClientParty { Name = "Party" };
+        AddChild(_party);
+        _party.Start(_partyNetwork, _ui, _world);
 
         _network.SendWorldReady();
 
@@ -247,6 +260,19 @@ public partial class ClientGame : Node
     {
         _stacks = InventoryWire.Unpack(packed);
         _inventoryPanel?.ShowStacks(_stacks);
+    }
+
+    // "/p " speaks to the party; anything else to everyone.
+    private void OnChatSubmitted(string text)
+    {
+        if (text.StartsWith("/p ", System.StringComparison.OrdinalIgnoreCase) && _party != null)
+        {
+            _party.SendChat(text.Substring(3));
+        }
+        else
+        {
+            _network.SendChat(text);
+        }
     }
 
     private void OnChatReceived(string sender, string text, int kind)
@@ -334,6 +360,12 @@ public partial class ClientGame : Node
         {
             _chat.QueueFree();
             _chat = null;
+        }
+
+        if (_party != null)
+        {
+            _party.QueueFree();
+            _party = null;
         }
 
         _stacks = new List<ItemStack>();

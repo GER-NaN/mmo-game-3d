@@ -27,5 +27,5 @@ scroll_following = true
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-placeholder_text = "Say something. Enter sends, Esc cancels."
+placeholder_text = "Say something. /p for party. Enter sends, Esc cancels."
 max_length = 120

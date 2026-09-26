@@ -46,6 +46,10 @@ public partial class Player : CharacterBody3D
     [Export]
     public string DisplayName { get; set; } = "";
 
+    // The persistent player id, public: party rosters on clients name members by it.
+    [Export]
+    public string PlayerIdText { get; set; } = "";
+
     [Export]
     public Vector3 NetPosition { get; set; }
 
@@ -100,6 +104,23 @@ public partial class Player : CharacterBody3D
             Heading = NetYaw;
             GetNode<MeshInstance3D>("Body").MaterialOverride = new StandardMaterial3D { AlbedoColor = OwnColor };
             AddToGroup(LocalGroup);
+        }
+    }
+
+    // Client only: how the name label reads. Selected wins over party.
+    public void MarkLabel(bool selected, bool partyMember)
+    {
+        Label3D label = GetNode<Label3D>("NameLabel");
+
+        if (selected)
+        {
+            label.Modulate = new Color(1f, 0.9f, 0.3f);
+            label.Text = "> " + DisplayName + " <";
+        }
+        else
+        {
+            label.Modulate = partyMember ? new Color(0.5f, 1f, 0.6f) : Colors.White;
+            label.Text = DisplayName;
         }
     }
 
