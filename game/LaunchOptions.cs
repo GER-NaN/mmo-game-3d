@@ -15,8 +15,9 @@ using MmoGame3d.Rules.Time;
 ///   --diagnostics path  where the server writes its logs and traces (JSON lines);
 ///                       "off" for none. Default: a new file per run under
 ///                       user://diagnostics
-///   --log-packets       also log every packet in and out, replication included. Costly:
-///                       see docs/engineering/diagnostics.md
+///   --log-packets       also log every packet in and out, replication included. Needs
+///                       the native build (scripts/native-build.ps1); about 6 MB of
+///                       log a second at 100 players
 ///   --profile name      which player this client is (default "default"; "fresh" is a
 ///                       new player every launch)
 ///   --name Gerald       the display name for a new player

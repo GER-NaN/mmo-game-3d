@@ -1,0 +1,11 @@
+; Loaded by the server at runtime, only with --log-packets (see NativePacketLog.cs), so
+; the editor and clients never look for the DLL. One optimized build serves both keys.
+[configuration]
+
+entry_symbol = "packet_log_library_init"
+compatibility_minimum = "4.5"
+
+[libraries]
+
+windows.debug.x86_64 = "res://native/bin/packet_log.windows.template_release.x86_64.dll"
+windows.release.x86_64 = "res://native/bin/packet_log.windows.template_release.x86_64.dll"

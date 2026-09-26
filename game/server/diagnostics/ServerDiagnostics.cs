@@ -10,7 +10,7 @@ using MmoGame3d.Networking;
 using MmoGame3d.Rules;
 
 /// <summary>
-/// The server's logs and traces: every packet in and out (LoggedPeer), every RPC
+/// The server's logs and traces: every packet in and out (NativePacketLog), every RPC
 /// received (a span) and sent (a record), everything Godot prints (EngineLog), and the
 /// spans the game opens itself (Source). Records about a peer carry that peer's context
 /// (who they are, where they are), set by the game with Tag, so a viewer can group the
@@ -52,6 +52,7 @@ public sealed class ServerDiagnostics : IRpcLog, IDisposable
     private long _packetsOut;
     private long _bytesIn;
     private long _bytesOut;
+    private long _packetsDropped;
 
     public ServerDiagnostics(string filePath)
     {
@@ -120,6 +121,12 @@ public sealed class ServerDiagnostics : IRpcLog, IDisposable
         _packets.Write(LogLevel.Debug, fields);
     }
 
+    // Packets the native packet log could not keep: its buffer was full.
+    public void PacketsDropped(long count)
+    {
+        _packetsDropped += count;
+    }
+
     public Activity? Received(string node, StringName method, long peer, object?[] args)
     {
         string methodName = method.ToString();
@@ -174,12 +181,13 @@ public sealed class ServerDiagnostics : IRpcLog, IDisposable
             return;
         }
 
-        Fields fields = new Fields("diagnostics", 7)
+        Fields fields = new Fields("diagnostics", 8)
             .With("interval_s", _sinceHealth)
             .With("net.packets_in", _packetsIn)
             .With("net.packets_out", _packetsOut)
             .With("net.bytes_in", _bytesIn)
             .With("net.bytes_out", _bytesOut)
+            .With("net.packets_dropped_total", _packetsDropped)
             .With("logs.dropped_total", _telemetry.LogsDropped)
             .With("spans.dropped_total", _telemetry.SpansDropped);
         _health.Write(LogLevel.Information, fields);

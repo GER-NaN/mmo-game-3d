@@ -78,6 +78,7 @@ public partial class ServerGame : Node
     private ulong _physicsFramesAtStats;
     private ENetMultiplayerPeer? _peer;
     private ServerDiagnostics? _diagnostics;
+    private NativePacketLog? _packetLog;
 
     public void Start(LaunchOptions options, Networks networks, World world)
     {
@@ -180,20 +181,16 @@ public partial class ServerGame : Node
 
         _peer = peer;
 
-        // The packet log wraps the ENet peer in C#. Godot's replication then asks the peer
-        // for its id once per synchronizer per client per frame, each time a call into C#:
-        // at a hundred players about 19,000 a frame, which cut the server from about 130
-        // frames a second to about 25. So it is only there when asked for.
+        // The packet log wraps the ENet peer in native code: through a C# wrapper the
+        // engine's per-synchronizer calls cost more than the rest of the server (see
+        // docs/engineering/diagnostics.md).
         if (_diagnostics != null && _options.LogPackets)
         {
-            LoggedPeer logged = new LoggedPeer();
-            logged.Wrap(peer, _diagnostics);
-            Multiplayer.MultiplayerPeer = logged;
+            _packetLog = NativePacketLog.Wrap(peer, _diagnostics);
         }
-        else
-        {
-            Multiplayer.MultiplayerPeer = peer;
-        }
+
+        Multiplayer.MultiplayerPeer = _packetLog != null ? _packetLog.Peer : peer;
+
         Multiplayer.PeerConnected += OnPeerConnected;
         Multiplayer.PeerDisconnected += OnPeerDisconnected;
         _network.LoginRequested += OnLoginRequested;
@@ -245,6 +242,7 @@ public partial class ServerGame : Node
         _chests.Tick();
         _rides.Tick(delta);
         _maps.Tick(delta);
+        _packetLog?.Drain();
         _diagnostics?.Tick(delta);
 
         if (_stopSignals != null && _stopSignals.StopRequested())

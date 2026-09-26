@@ -15,3 +15,6 @@ TestResults/
 # Art: kept out of git, placed by hand on each machine (see assets/README.md)
 /assets/*
 !/assets/README.md
+
+# Native (C++) build output; the DLLs land in native/bin/, ignored with bin/ above
+/native/build/

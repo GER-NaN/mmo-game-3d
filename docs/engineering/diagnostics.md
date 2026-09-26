@@ -15,7 +15,7 @@ and nothing that writes records changes.
 | Everything Godot prints | Log records under `Engine`: every `GD.Print`, and every engine error and warning with its file and line | `EngineLog`, registered with `OS.AddLogger` |
 | The game's own spans | `Travel`, `SaveEveryone` | `ServerDiagnostics.Source` |
 | Health | A record `diagnostics` every 10 s: packets and bytes in and out, and how many records the logging dropped | `ServerDiagnostics.Tick` |
-| Every packet, replication included (off by default) | A log record `packet in` / `packet out` with the peer, channel, mode, kind (`sync`, `spawn`, `remote_call`...), size and payload | `LoggedPeer`, with `--log-packets` |
+| Every packet, replication included (off by default) | A log record `packet in` / `packet out` with the peer, channel, mode, kind (`sync`, `spawn`, `remote_call`...), size and payload | `PacketLogPeer` (C++, `native/`) drained by `NativePacketLog`, with `--log-packets` |
 
 Context: records about a peer carry `player.name`, `player.id` and `player.zone`, set
 by `ServerGame` with `ServerDiagnostics.Tag`. A log written inside a span carries the
@@ -37,10 +37,13 @@ Measured 2026-09-26 with `scripts/load-test.ps1 -Bots 100`, the same worst case 
 | --- | --- | --- |
 | Diagnostics off (`-NoDiagnostics`) | 126 to 131 | 15 to 29 |
 | Diagnostics on (the default) | 132 to 137 | 16 to 18 |
-| With the packet log (`-LogPackets`) | 24 to 27 | 37 to 53 |
+| With the packet log, C# peer wrapper (first try, removed) | 24 to 27 | 37 to 53 |
+| With the packet log, native peer wrapper (`-LogPackets`) | 134 to 138 | 15 to 18 |
 
-The default costs nothing measurable. The packet log does, and the cost is not the
-logging or the packets.
+The default costs nothing measurable, and neither does the native packet log: about
+40,000 packets out every 10 s were all recorded, none dropped. The first packet log,
+a C# wrapper, cut the server to about 25 fps, and the cost was not the logging or the
+packets:
 
 - With the packet records switched off but the peer still wrapped, the server was
   just as slow. So the cost is the wrapper, a C# `MultiplayerPeerExtension`.
@@ -60,14 +63,19 @@ logging or the packets.
 - Everything else was small: sending the packets 46 ms a second (4,200 calls), the
   packet records 5 to 7 ms a second.
 
-The packet log also writes about 6 MB a second of JSON at that load. So it is for
-small tests (a few players), not for load. Ways to capture packets at load without
-that cost, not decided:
+So the packet log's peer is C++ now (`native/src/packet_log_peer.cpp`), and that is
+the project's rule for anything the engine calls in its inner loops (CLAUDE.local.md,
+"No C# on engine-called hot paths"). Every engine call stays native; the records wait
+in a native buffer, and `NativePacketLog` takes them once a frame, one call into C#
+for all of them. The buffer holds up to 16 MB a frame; past that, packets are dropped
+and counted (`net.packets_dropped_total` in the health record). A record's time is
+when it was drained, at most a frame after the packet.
 
-- Out of process: a UDP relay or a packet capture on the server's port, which then
-  decodes ENet. No cost in the server. It sees ENet frames, not Godot's commands.
-- A native (C++) GDExtension peer wrapper. `get_unique_id` stays native, so the
-  19,000 calls a frame cost what they cost today. But a C++ build in the project.
+What is left is volume: at 100 players the packet log writes about 6 MB a second of
+JSON (446 MB in a 70 s load test). Fine for a test, not for leaving on.
+
+The native extension is built by `scripts/native-build.ps1` (see `native/README.md`).
+Without the build, `--log-packets` prints that and the server runs without it.
 
 ## The file
 
