@@ -48,12 +48,21 @@ public partial class Hud : Control
         GetNode<Label>("%Prompt").AddToGroup(PromptGroup);
     }
 
-    // The "F Go Online" line near the bottom; empty hides it.
+    // The key shown in the prompt: the one "interact" is on.
+    public string UseKey { get; set; } = "F";
+
+    // The "[F] Go Online" line near the bottom; empty hides it.
     public void ShowPrompt(string prompt)
     {
         Label label = GetNode<Label>("%Prompt");
         label.Visible = prompt.Length > 0;
-        label.Text = prompt.Length > 0 ? "[F]  " + prompt : "";
+        label.Text = prompt.Length > 0 ? "[" + UseKey + "]  " + prompt : "";
+    }
+
+    // The key help along the bottom.
+    public void ShowHint(string hint)
+    {
+        GetNode<Label>("Hint").Text = hint;
     }
 
     public void ShowNotice(string text)

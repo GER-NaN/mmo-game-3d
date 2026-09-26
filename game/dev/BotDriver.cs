@@ -16,7 +16,9 @@ using MmoGame3d.Ui;
 /// to, goes online at a terminal it passes (then offline again a little later), buys
 /// the first thing a shopkeeper offers, opens chests, equips its phone and goes online on it, and at a
 /// workbench takes the battery out and puts one in. It drops a stack once, and gives one
-/// thing to a party member it clicks on. Now and then it glances at the map.
+/// thing to a party member it clicks on. Now and then it glances at the map. Once, as it
+/// arrives, it looks at the settings and closes them unchanged: the settings file is the
+/// machine's, shared with the person who plays on it.
 /// </summary>
 public partial class BotDriver : Node
 {
@@ -58,6 +60,8 @@ public partial class BotDriver : Node
     private double _interactHeldFor = -1;
     private double _nextInteract;
     private double _nextMap = 1;
+    private int _settingsStep;
+    private double _settingsIn = 0.5;
     private bool _mapOpen;
 
     // How the bot talks: the same call the chat box makes.
@@ -65,6 +69,11 @@ public partial class BotDriver : Node
 
     public override void _Process(double delta)
     {
+        if (LookAtSettings(delta))
+        {
+            return;
+        }
+
         AcceptInvites(delta);
         Shop(delta);
         Workbench(delta);
@@ -366,6 +375,56 @@ public partial class BotDriver : Node
                 _nextPhoneStep = 20;
                 break;
         }
+    }
+
+    // Esc, Settings, a look, Back, Esc. True while it is still at it.
+    private bool LookAtSettings(double delta)
+    {
+        if (_settingsStep > 3)
+        {
+            return false;
+        }
+
+        _settingsIn -= delta;
+
+        if (_settingsIn > 0)
+        {
+            return true;
+        }
+
+        switch (_settingsStep)
+        {
+            case 0:
+                Press("ui_cancel");
+                _settingsIn = ReadDelay;
+                break;
+            case 1:
+                Button? settings = GetTree().GetFirstNodeInGroup(InGameMenu.SettingsGroup) as Button;
+
+                if (settings != null)
+                {
+                    Click(settings.GetGlobalRect().GetCenter());
+                }
+
+                _settingsIn = 3;
+                break;
+            case 2:
+                Button? back = GetTree().GetFirstNodeInGroup(SettingsPanel.BackGroup) as Button;
+
+                if (back != null)
+                {
+                    Click(back.GetGlobalRect().GetCenter());
+                }
+
+                _settingsIn = ReadDelay;
+                break;
+            default:
+                Press("ui_cancel");
+                break;
+        }
+
+        _settingsStep++;
+        return true;
     }
 
     // Open for a few seconds, then shut, before the phone takes the keys.

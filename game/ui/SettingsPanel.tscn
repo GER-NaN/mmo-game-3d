@@ -29,19 +29,18 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
 theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 24
+theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_bottom = 20
 
 [node name="Rows" type="VBoxContainer" parent="Center/Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Center/Panel/Margin/Rows"]
 layout_mode = 2
@@ -49,10 +48,59 @@ theme_override_font_sizes/font_size = 22
 text = "Settings"
 horizontal_alignment = 1
 
-[node name="Fullscreen" type="CheckBox" parent="Center/Panel/Margin/Rows"]
+[node name="Columns" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="General" type="VBoxContainer" parent="Center/Panel/Margin/Rows/Columns"]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Fullscreen" type="CheckBox" parent="Center/Panel/Margin/Rows/Columns/General"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Fullscreen"
+
+[node name="SensitivityLabel" type="Label" parent="Center/Panel/Margin/Rows/Columns/General"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Mouse sensitivity"
+
+[node name="Sensitivity" type="HSlider" parent="Center/Panel/Margin/Rows/Columns/General"]
+unique_name_in_owner = true
+layout_mode = 2
+step = 0.05
+
+[node name="DistanceLabel" type="Label" parent="Center/Panel/Margin/Rows/Columns/General"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Camera distance"
+
+[node name="Distance" type="HSlider" parent="Center/Panel/Margin/Rows/Columns/General"]
+unique_name_in_owner = true
+layout_mode = 2
+step = 0.5
+
+[node name="KeysColumn" type="VBoxContainer" parent="Center/Panel/Margin/Rows/Columns"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="KeysTitle" type="Label" parent="Center/Panel/Margin/Rows/Columns/KeysColumn"]
+layout_mode = 2
+text = "Keys (click one, then press the new key)"
+
+[node name="Keys" type="GridContainer" parent="Center/Panel/Margin/Rows/Columns/KeysColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 2
+columns = 2
+
+[node name="ResetKeys" type="Button" parent="Center/Panel/Margin/Rows/Columns/KeysColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reset keys"
 
 [node name="Back" type="Button" parent="Center/Panel/Margin/Rows"]
 unique_name_in_owner = true

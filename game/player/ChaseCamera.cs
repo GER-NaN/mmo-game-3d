@@ -11,9 +11,9 @@ using Godot;
 public partial class ChaseCamera : Camera3D
 {
     // The distance and tilt are placeholders until seen in the game.
+    public const float MinDistance = 3f;
+    public const float MaxDistance = 25f;
     private const float StartDistance = 8f;
-    private const float MinDistance = 3f;
-    private const float MaxDistance = 25f;
     private const float ZoomStep = 1.12f;
     private const float StartPitch = -0.45f;
     private const float MinPitch = -1.35f;
@@ -41,6 +41,25 @@ public partial class ChaseCamera : Camera3D
     private bool _dragging;
     private bool _placed;
 
+    // Set from the player's settings.
+    public float Sensitivity { get; set; } = 1f;
+
+    // Told when the wheel changes the distance, so it is kept for next time.
+    public event System.Action<float>? Zoomed;
+
+    public float Distance
+    {
+        get
+        {
+            return _distance;
+        }
+
+        set
+        {
+            _distance = Mathf.Clamp(value, MinDistance, MaxDistance);
+        }
+    }
+
     // After the bodies, so the camera follows where the player is this frame, not where
     // they were last frame. Bodies run at the default priority, 0.
     public override void _Ready()
@@ -58,17 +77,20 @@ public partial class ChaseCamera : Camera3D
                     _dragging = button.Pressed;
                     break;
                 case MouseButton.WheelUp:
-                    _distance = Mathf.Clamp(_distance / ZoomStep, MinDistance, MaxDistance);
+                    Distance = _distance / ZoomStep;
+                    Zoomed?.Invoke(_distance);
                     break;
                 case MouseButton.WheelDown:
-                    _distance = Mathf.Clamp(_distance * ZoomStep, MinDistance, MaxDistance);
+                    Distance = _distance * ZoomStep;
+                    Zoomed?.Invoke(_distance);
                     break;
             }
         }
         else if (@event is InputEventMouseMotion motion && _dragging)
         {
-            _lookYaw -= motion.Relative.X * DragRadiansPerPixel;
-            _pitch = Mathf.Clamp(_pitch - (motion.Relative.Y * DragRadiansPerPixel), MinPitch, MaxPitch);
+            float turn = DragRadiansPerPixel * Sensitivity;
+            _lookYaw -= motion.Relative.X * turn;
+            _pitch = Mathf.Clamp(_pitch - (motion.Relative.Y * turn), MinPitch, MaxPitch);
         }
     }
 

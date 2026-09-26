@@ -349,6 +349,8 @@ public partial class ClientGame : Node
         _hud = HudScene.Instantiate<Hud>();
         _ui.AddChild(_hud);
         _hud.ShowIdentity(displayName, ZoneIds.SceneOf(zoneId));
+        _world.GetNode<Players.ChaseCamera>("Camera").Zoomed += distance => _settings.CameraDistance = distance;
+        ApplyControls();
 
         _chat = ChatScene.Instantiate<ChatBox>();
         _ui.AddChild(_chat);
@@ -707,6 +709,30 @@ public partial class ClientGame : Node
         SettingsPanel settings = SettingsScene.Instantiate<SettingsPanel>();
         _ui.AddChild(settings);
         settings.Open(_settings);
+        settings.Changed += ApplyControls;
+    }
+
+    // The settings that act in the world: the camera, and the keys the HUD names.
+    private void ApplyControls()
+    {
+        if (_world == null || _hud == null)
+        {
+            return;
+        }
+
+        Players.ChaseCamera camera = _world.GetNode<Players.ChaseCamera>("Camera");
+        camera.Sensitivity = _settings.MouseSensitivity;
+        camera.Distance = _settings.CameraDistance;
+        _hud.UseKey = ClientSettings.KeyName("interact");
+        _hud.ShowHint(
+            ClientSettings.KeyName("move_forward") + "/" + ClientSettings.KeyName("move_back") + " walk   "
+            + ClientSettings.KeyName("turn_left") + "/" + ClientSettings.KeyName("turn_right") + " turn   "
+            + ClientSettings.KeyName("strafe_left") + "/" + ClientSettings.KeyName("strafe_right") + " step   "
+            + ClientSettings.KeyName("jump") + " jump   Right-drag look   Wheel zoom   Click player to select   "
+            + ClientSettings.KeyName("interact") + " use   "
+            + ClientSettings.KeyName("phone") + " phone   "
+            + ClientSettings.KeyName("inventory") + " inventory   "
+            + ClientSettings.KeyName("map") + " map   Enter chat   Esc menu");
     }
 
     private void Leave()
@@ -719,6 +745,9 @@ public partial class ClientGame : Node
     private void LeaveWorld()
     {
         CloseInGameMenu();
+
+        // The wheel zoom is kept for next time.
+        _settings.Save();
 
         if (_bot != null)
         {
@@ -800,6 +829,7 @@ public partial class ClientGame : Node
 
     private void Quit()
     {
+        _settings.Save();
         Disconnect();
         GetTree().Quit();
     }
