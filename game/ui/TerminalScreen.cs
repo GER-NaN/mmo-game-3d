@@ -611,7 +611,7 @@ public partial class TerminalScreen : Control
 
         for (int i = 0; i < _rosterNames.Length && i < _rosterZones.Length && i < _rosterOnline.Length; i++)
         {
-            string status = _rosterOnline[i] != 0 ? "online" : "in " + _rosterZones[i];
+            string status = _rosterOnline[i] != 0 ? "online" : "in " + Rules.World.ZoneIds.DisplayName(_rosterZones[i]);
             AddLine(content, _rosterNames[i] + "  -  " + status, _rosterOnline[i] != 0 ? Text : Dim, 17);
         }
     }

@@ -25,6 +25,28 @@ public static class ZoneIds
         return scene + "-" + number;
     }
 
+    // A zone as players read it. The first town is Old Town (world.md, "The map").
+    public static string DisplayName(string zoneId)
+    {
+        switch (SceneOf(zoneId))
+        {
+            case Town:
+                return "Old Town";
+            case Outskirts:
+                return "Old Town outskirts";
+            case Shop:
+                return "Electronics shop";
+            case Taxi:
+                return "Robo taxi";
+            case College:
+                return "College";
+            case Greenhouse:
+                return "Greenhouse";
+            default:
+                return zoneId;
+        }
+    }
+
     // The scene a zone is made from: the id itself, or the part before an instance number.
     public static string SceneOf(string zoneId)
     {

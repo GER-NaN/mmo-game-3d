@@ -676,7 +676,7 @@ public partial class ClientGame : Node
 
         _hud = HudScene.Instantiate<Hud>();
         _ui.AddChild(_hud);
-        _hud.ShowIdentity(displayName, ZoneIds.SceneOf(zoneId));
+        _hud.ShowIdentity(displayName, ZoneIds.DisplayName(zoneId));
         _world.GetNode<Players.ChaseCamera>("Camera").Zoomed += distance => _settings.CameraDistance = distance;
         _hud.ActionPressed += OnHudAction;
         ApplyControls();
@@ -987,7 +987,7 @@ public partial class ClientGame : Node
             _world.UnloadZone(_zoneId);
             _world.LoadZone(zoneId, Vector3.Zero);
             _zoneId = zoneId;
-            _hud?.ShowIdentity(_displayName, ZoneIds.SceneOf(zoneId));
+            _hud?.ShowIdentity(_displayName, ZoneIds.DisplayName(zoneId));
             _network.SendWorldReady();
             GD.Print("Now in " + zoneId);
         }));
@@ -1325,7 +1325,7 @@ public partial class ClientGame : Node
         _maps.TryGetValue(_zoneId, out cells);
         _map = MapScene.Instantiate<MapPanel>();
         _ui.AddChild(_map);
-        _map.Open(ZoneIds.SceneOf(_zoneId).Capitalize(), zone.MapSize, cells);
+        _map.Open(ZoneIds.DisplayName(_zoneId), zone.MapSize, cells);
     }
 
     // One panel at a time: opening one closes whichever was open.

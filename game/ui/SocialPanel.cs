@@ -26,7 +26,7 @@ public partial class SocialPanel : PanelContainer
         for (int i = 0; i < friendIds.Length; i++)
         {
             bool online = friendZones[i].Length > 0;
-            HBoxContainer row = AddRow(friends, friendIds[i], friendNames[i], online ? ZoneIds.SceneOf(friendZones[i]) : "offline", online, "Remove");
+            HBoxContainer row = AddRow(friends, friendIds[i], friendNames[i], online ? ZoneIds.DisplayName(friendZones[i]) : "offline", online, "Remove");
 
             if (online)
             {

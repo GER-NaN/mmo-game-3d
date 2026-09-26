@@ -18,4 +18,11 @@ public class ZoneIdTests
     {
         Assert.Equal(ZoneIds.Town, ZoneIds.SceneOf(ZoneIds.Town));
     }
+
+    [Fact]
+    public void TheFirstTownReadsOldTownAndARideReadsAsTheTaxi()
+    {
+        Assert.Equal("Old Town", ZoneIds.DisplayName(ZoneIds.Town));
+        Assert.Equal("Robo taxi", ZoneIds.DisplayName(ZoneIds.Instance(ZoneIds.Taxi, 3)));
+    }
 }
