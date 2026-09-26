@@ -45,9 +45,16 @@ public partial class Drone : Node3D
         get { return GetNode<MultiplayerSynchronizer>("Synchronizer"); }
     }
 
+    private AudioStreamPlayer3D? _hum;
+
     public override void _Ready()
     {
         Position = NetPosition;
+
+        if (!Multiplayer.IsServer())
+        {
+            _hum = Audio.AudioDirector.Current?.Attach("fx.drone_hum", this);
+        }
     }
 
     public override void _Process(double delta)
@@ -72,6 +79,13 @@ public partial class Drone : Node3D
 
         GetNode<OmniLight3D>("Eye/Light").Visible = !Down;
         GetNode<Node3D>("Eye").Visible = !Down;
+
+        // A downed drone goes quiet.
+        if (Down && _hum != null)
+        {
+            _hum.QueueFree();
+            _hum = null;
+        }
     }
 
     private void Fly(float step)

@@ -106,6 +106,32 @@ public partial class AudioDirector : Node
         player.Play();
     }
 
+    // A looping sound that comes from a thing and moves with it (a drone's hum, a lamp's
+    // buzz). The caller frees it when the thing stops making it. Null when the sound is
+    // not on this machine.
+    public AudioStreamPlayer3D? Attach(string id, Node3D thing)
+    {
+        AudioStream? stream = Stream(id);
+
+        if (stream == null)
+        {
+            return null;
+        }
+
+        Sound sound = _sounds[id];
+        AudioStreamPlayer3D player = new AudioStreamPlayer3D
+        {
+            Stream = stream,
+            Bus = sound.Bus,
+            VolumeDb = sound.Level,
+            MaxDistance = sound.Range,
+            UnitSize = sound.Range / 4f,
+            Autoplay = true,
+        };
+        thing.AddChild(player);
+        return player;
+    }
+
     // The music now: the same id carries on; another fades across; "" fades out.
     public void Music(string id)
     {

@@ -16,6 +16,11 @@ public abstract partial class Interactable : StaticBody3D
     [Export]
     public float Reach { get; set; } = 2.5f;
 
+    // Whose voice speaks when this is used (a person): the catalog's voice.<name>.*.
+    // Empty for things.
+    [Export]
+    public string Voice { get; set; } = "";
+
     // What the prompt says on the client ("Go Online: Public terminal"), or empty when
     // there is nothing to do here.
     public abstract string Prompt { get; }

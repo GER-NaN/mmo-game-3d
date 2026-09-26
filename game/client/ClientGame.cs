@@ -323,6 +323,17 @@ public partial class ClientGame : Node
         }
     }
 
+    // A person used says hello in their own voice, from where they stand.
+    private void Greet(string interactableName)
+    {
+        Interact.Interactable? thing = _world?.GetZone(_zoneId)?.GetNodeOrNull<Interact.Interactable>(Interact.Interactable.ParentName + "/" + interactableName);
+
+        if (thing != null && thing.Voice.Length > 0)
+        {
+            _audio?.PlayAt("voice." + thing.Voice + ".greeting", thing.GlobalPosition + new Vector3(0f, 1.6f, 0f));
+        }
+    }
+
     // Music and the ambience bed follow where the player is, the hour, and being online.
     private void UpdateSoundscape()
     {
@@ -798,7 +809,11 @@ public partial class ClientGame : Node
         _finder = new InteractionFinder { Name = "InteractionFinder" };
         AddChild(_finder);
         _finder.PromptChanged += _hud.ShowPrompt;
-        _finder.UseRequested += _network.SendInteract;
+        _finder.UseRequested += name =>
+        {
+            _network.SendInteract(name);
+            Greet(name);
+        };
 
         _network.SendWorldReady();
 

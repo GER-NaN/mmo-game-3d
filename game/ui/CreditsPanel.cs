@@ -21,6 +21,7 @@ public partial class CreditsPanel : Control
         new[] { "Interface Bleeps", "Bleeoop" },
         new[] { "8-bit and 16-bit sound effects", "jdwasabi" },
         new[] { "Sound Essentials", "Nox Sound (CC0)" },
+        new[] { "Super Dialogue Audio Pack", "Dillon Becker (CC BY 4.0)" },
     };
 
     public event Action? Closed;

@@ -100,6 +100,9 @@ public class ServerScenarios
                 StandBy(record, ZoneIds.Town, "Signal0", new Vector3(0f, 0f, -1.3f));
                 _world.GetZone(ZoneIds.Town)!.GetNode<Town.Fixable>("Interactables/Signal0").Broken = true;
                 break;
+            case "shop":
+                StandBy(record, ZoneIds.Shop, "Shopkeeper", new Vector3(0f, 0f, 1.3f));
+                break;
             case "garden":
                 StandBy(record, ZoneIds.Greenhouse, "PottingTable", new Vector3(0f, 0f, 1.5f));
                 break;

@@ -39,8 +39,9 @@ and what their licences ask:
 | `ui/bleeoop-interface-bleeps` | Bleeoop EULA | royalty free in games; the raw files must not be passed on |
 | `sfx/jdwasabi-8bit-16bit` | free for games | jdwasabi (asked for) |
 | `sfx/nox-sound-essentials` | CC0 | Nox Sound (appreciated) |
+| `voice/super-dialogue-audio-pack` | CC BY 4.0 | Dillon Becker (required) |
 
-The CC BY credits must be shown in the game before it goes out (a credits screen).
+The CC BY credits are shown in the game: Credits, on the main menu.
 
 After copying, open the project in the Godot editor once (or run Godot with
 `--headless --import`) so it imports them.

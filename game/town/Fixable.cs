@@ -26,6 +26,7 @@ public partial class Fixable : Interactable
 
     private double _flicker;
     private bool _shownBroken;
+    private AudioStreamPlayer3D? _crackle;
     private bool _shown;
 
     public override void _Ready()
@@ -62,6 +63,17 @@ public partial class Fixable : Interactable
 
         if (!_shown || Broken != _shownBroken)
         {
+            // The sparks crackle while broken.
+            if (Broken && _crackle == null)
+            {
+                _crackle = Audio.AudioDirector.Current?.Attach("fx.sparks", this);
+            }
+            else if (!Broken && _crackle != null)
+            {
+                _crackle.QueueFree();
+                _crackle = null;
+            }
+
             ShowState(_shown);
             _shown = true;
             _shownBroken = Broken;

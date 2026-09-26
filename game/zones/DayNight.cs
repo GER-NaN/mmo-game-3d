@@ -103,6 +103,23 @@ public partial class DayNight : Node
             foreach (Node lamp in GetTree().GetNodesInGroup("street_lamps"))
             {
                 ((Node3D)lamp).Visible = lit;
+
+                // A lit lamp buzzes, close up.
+                AudioStreamPlayer3D? buzz = lamp.GetNodeOrNull<AudioStreamPlayer3D>("Buzz");
+
+                if (lit && buzz == null)
+                {
+                    AudioStreamPlayer3D? player = Audio.AudioDirector.Current?.Attach("fx.lamp", (Node3D)lamp);
+
+                    if (player != null)
+                    {
+                        player.Name = "Buzz";
+                    }
+                }
+                else if (!lit && buzz != null)
+                {
+                    buzz.QueueFree();
+                }
             }
         }
 

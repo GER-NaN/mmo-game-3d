@@ -342,18 +342,21 @@ curve = SubResource("Curve3D_CrossStreet")
 [node name="Interactables" type="Node3D" parent="."]
 
 [node name="Hiker" parent="Interactables" instance=ExtResource("94_person")]
+Voice = "meghan"
 RouteName = "SouthWestBlock"
 StartAt = 0
 PersonName = "Wren, out walking"
 ModelPath = "res://assets/kaykit/characters/Hiker.glb"
 
 [node name="Farmer" parent="Interactables" instance=ExtResource("94_person")]
+Voice = "ian"
 RouteName = "SouthEastBlock"
 StartAt = 30
 PersonName = "Old Tomas"
 ModelPath = "res://assets/kaykit/characters/Farmer_A.glb"
 
 [node name="Driver" parent="Interactables" instance=ExtResource("94_person")]
+Voice = "karen"
 RouteName = "CrossStreet"
 StartAt = 20
 PersonName = "Ines, a driver"

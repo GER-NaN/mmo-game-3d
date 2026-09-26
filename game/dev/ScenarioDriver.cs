@@ -31,6 +31,7 @@ public partial class ScenarioDriver : Node
     private bool _done;
     private bool _pageSeen;
     private bool _plantMade;
+    private bool _bought;
     private string _zone = "";
     private string _lastStatus = "";
     private int _guessesSeen = -1;
@@ -47,6 +48,7 @@ public partial class ScenarioDriver : Node
         _networks.Session.NoticeReceived += text => _notices.Add(text);
         _networks.Subway.PageReceived += (page, pages, lines) => _pageSeen = true;
         _networks.Session.ZoneChanged += zone => _zone = zone;
+        _networks.Session.IntentAnswered += (id, refusal) => _bought = _bought || refusal.Length == 0;
         _networks.Garden.PlantMade += (id, name, reward) => _plantMade = true;
         _networks.Terminal.StatusReceived += lines => _lastStatus = lines.Length > 0 ? lines[0] : "";
         GD.Print("SCENARIO " + _name + ": started");
@@ -108,6 +110,11 @@ public partial class ScenarioDriver : Node
             case "fix":
                 Use("Fix the traffic light");
                 Expect("it fixed", () => Noticed("You fixed the traffic light."));
+                break;
+            case "shop":
+                Use("Talk to Dee");
+                Step("buy the first thing", () => ClickGroup(ShopPanel.BuyGroup));
+                Expect("it bought", () => _bought);
                 break;
             case "garden":
                 Use("Make a house plant");

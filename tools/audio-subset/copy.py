@@ -21,7 +21,7 @@ CATALOG = "game/audio/sounds.json"
 OUT = "assets/audio"
 
 # The licence and readme files a pack keeps beside its sounds.
-PACK_NOTES = ("LICENSE", "LICENSE.txt", "License.txt", "README", "README.txt", "README.md")
+PACK_NOTES = ("LICENSE", "LICENSE.txt", "LICENSE.pdf", "License.txt", "README", "README.txt", "README.md")
 
 
 def pack_of(path):

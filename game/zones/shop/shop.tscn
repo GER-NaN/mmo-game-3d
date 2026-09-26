@@ -149,6 +149,7 @@ transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -7.2, 0, 3)
 [node name="Interactables" type="Node3D" parent="."]
 
 [node name="Shopkeeper" parent="Interactables" instance=ExtResource("91_vendor")]
+Voice = "alex"
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -3)
 ShopId = "electronics"
 KeeperName = "Dee, the shopkeeper"
