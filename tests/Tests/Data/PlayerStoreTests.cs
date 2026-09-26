@@ -70,6 +70,23 @@ public class PlayerStoreTests
     }
 
     [Fact]
+    public void APhoneWithItsBatteryIsSavedAndLoaded()
+    {
+        Guid accountId = _accounts.GetOrCreate(Guid.NewGuid());
+        PlayerRecord player = _players.GetOrCreate(NewPlayer(accountId, "Caller"), out _);
+        player.Instances.AddRange(Belongings.StarterKit());
+        _players.Save(player);
+
+        PlayerRecord loaded = _players.GetOrCreate(NewPlayer(accountId, "Caller"), out _);
+        Belongings mine = new Belongings(new Inventory(), loaded.Instances);
+        ItemInstance phone = loaded.Instances.Single(item => item.Type == ItemType.Phone);
+        ItemInstance battery = mine.Inside(phone, SlotType.Battery)!;
+
+        Assert.Equal(Belongings.StarterCharge, battery.Charge);
+        Assert.False(loaded.Created);
+    }
+
+    [Fact]
     public void MigrationsRunOnceOnly()
     {
         Assert.Empty(MigrationRunner.Run(_database));

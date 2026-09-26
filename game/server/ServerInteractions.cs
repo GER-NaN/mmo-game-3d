@@ -4,6 +4,7 @@ using Godot;
 using MmoGame3d.Interact;
 using MmoGame3d.Networking;
 using MmoGame3d.Vendors;
+using MmoGame3d.Workbenches;
 using MmoGame3d.Terminals;
 using MmoGame3d.Zones;
 
@@ -22,13 +23,15 @@ public class ServerInteractions
     private readonly Network _session;
     private readonly ServerTerminals _terminals;
     private readonly ServerShops _shops;
+    private readonly ServerEquipment _equipment;
 
-    public ServerInteractions(World world, Network session, ServerTerminals terminals, ServerShops shops)
+    public ServerInteractions(World world, Network session, ServerTerminals terminals, ServerShops shops, ServerEquipment equipment)
     {
         _world = world;
         _session = session;
         _terminals = terminals;
         _shops = shops;
+        _equipment = equipment;
     }
 
     public void Use(Session session, string interactableName)
@@ -59,6 +62,9 @@ public class ServerInteractions
                 break;
             case Vendor vendor:
                 _shops.Open(session, vendor);
+                break;
+            case Workbench workbench:
+                _equipment.OpenWorkbench(session, workbench);
                 break;
             default:
                 GD.PrintErr("Nothing handles the interactable " + interactableName + " of type " + thing.GetType().Name);

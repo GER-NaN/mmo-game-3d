@@ -11,10 +11,12 @@ public class Networks
         Party = main.GetNode<PartyNetwork>("PartyNetwork");
         Terminal = main.GetNode<TerminalNetwork>("TerminalNetwork");
         Shop = main.GetNode<ShopNetwork>("ShopNetwork");
+        Items = main.GetNode<ItemNetwork>("ItemNetwork");
     }
 
     public Network Session { get; }
     public PartyNetwork Party { get; }
     public TerminalNetwork Terminal { get; }
     public ShopNetwork Shop { get; }
+    public ItemNetwork Items { get; }
 }

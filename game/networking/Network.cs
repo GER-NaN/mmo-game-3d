@@ -41,9 +41,9 @@ public partial class Network : Node
     public event Action<string, string>? LoginAccepted;
     public event Action<string>? LoginRefused;
 
-    // Client side: the whole bag, packed (see InventoryWire), and the pocket change;
-    // sent to its owner only.
-    public event Action<int[], int>? InventoryReceived;
+    // Client side: the whole bag, sent to its owner only: the stacks packed (see
+    // InventoryWire), the pocket change, and the instances (see InstanceWire).
+    public event Action<int[], int, string[], int[], float[]>? InventoryReceived;
 
     // Client side: a short line for the player ("Picked up 2 GPU core").
     public event Action<string>? NoticeReceived;
@@ -109,9 +109,9 @@ public partial class Network : Node
         ChatReceived?.Invoke(sender, text, kind);
     }
 
-    public void SendInventory(long peer, int[] packed, int dollars)
+    public void SendInventory(long peer, int[] packed, int dollars, string[] ids, int[] meta, float[] charges)
     {
-        RpcId(peer, MethodName.ReceiveInventory, packed, dollars);
+        RpcId(peer, MethodName.ReceiveInventory, packed, dollars, ids, meta, charges);
     }
 
     public void SendNotice(long peer, string text)
@@ -120,9 +120,9 @@ public partial class Network : Node
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void ReceiveInventory(int[] packed, int dollars)
+    private void ReceiveInventory(int[] packed, int dollars, string[] ids, int[] meta, float[] charges)
     {
-        InventoryReceived?.Invoke(packed, dollars);
+        InventoryReceived?.Invoke(packed, dollars, ids, meta, charges);
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]

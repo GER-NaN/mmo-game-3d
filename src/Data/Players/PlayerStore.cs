@@ -48,12 +48,28 @@ public class PlayerStore
             player.Stacks.Add(new ItemStack(Enum.Parse<ItemType>(row.ItemType), Enum.Parse<ItemTier>(row.Tier), row.Quantity));
         }
 
+        IEnumerable<InstanceRow> instances = connection.Query<InstanceRow>(
+            @"select id as Id, parent_id as ParentId, item_type as ItemType, tier as Tier, slot as Slot, charge as Charge
+              from item_instances where player_id = @PlayerId;",
+            new { player.PlayerId });
+
+        foreach (InstanceRow row in instances)
+        {
+            player.Instances.Add(new ItemInstance(row.Id, Enum.Parse<ItemType>(row.ItemType), Enum.Parse<ItemTier>(row.Tier))
+            {
+                ParentId = row.ParentId,
+                Slot = row.Slot == null ? null : Enum.Parse<SlotType>(row.Slot),
+                Charge = row.Charge,
+            });
+        }
+
+        player.Created = created;
         return player;
     }
 
-    // The row and the stacks in one transaction, so a player is never saved with where
-    // they stood from one moment and what they held from another. Stacks are replaced
-    // whole: a bag is small, and a diff would be more code for nothing.
+    // The row, the stacks and the instances in one transaction, so a player is never
+    // saved with where they stood from one moment and what they held from another. The
+    // bag is replaced whole: it is small, and a diff would be more code for nothing.
     public void Save(PlayerRecord player)
     {
         using IDbConnection connection = _database.Open();
@@ -77,7 +93,37 @@ public class PlayerStore
                 transaction);
         }
 
+        connection.Execute("delete from item_instances where player_id = @PlayerId;", new { player.PlayerId }, transaction);
+
+        foreach (ItemInstance instance in player.Instances)
+        {
+            connection.Execute(
+                @"insert into item_instances (id, player_id, parent_id, item_type, tier, slot, charge)
+                  values (@Id, @PlayerId, @ParentId, @ItemType, @Tier, @Slot, @Charge);",
+                new
+                {
+                    instance.Id,
+                    player.PlayerId,
+                    instance.ParentId,
+                    ItemType = instance.Type.ToString(),
+                    Tier = instance.Tier.ToString(),
+                    Slot = instance.Slot?.ToString(),
+                    instance.Charge,
+                },
+                transaction);
+        }
+
         transaction.Commit();
+    }
+
+    private class InstanceRow
+    {
+        public Guid Id { get; set; }
+        public Guid? ParentId { get; set; }
+        public string ItemType { get; set; } = "";
+        public string Tier { get; set; } = "";
+        public string? Slot { get; set; }
+        public float? Charge { get; set; }
     }
 
     private class StackRow

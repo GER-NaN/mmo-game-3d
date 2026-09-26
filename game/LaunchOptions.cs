@@ -21,6 +21,7 @@ using MmoGame3d.Rules.Time;
 ///   --report-every 2    print what the client sees every 2 seconds
 ///   --screenshot x.png  save the window to a PNG a few seconds in, then quit
 ///   --overview          with --screenshot: look down on the whole zone
+///   --screenshot-after 4  seconds in the world before the screenshot (default 4)
 /// </summary>
 public class LaunchOptions
 {
@@ -40,6 +41,7 @@ public class LaunchOptions
     public double ReportEverySeconds { get; private set; }
     public string? ScreenshotPath { get; private set; }
     public bool Overview { get; private set; }
+    public double ScreenshotAfterSeconds { get; private set; } = 4;
 
     public static LaunchOptions Parse(string[] args)
     {
@@ -96,6 +98,10 @@ public class LaunchOptions
                 case "--screenshot":
                     options.ScreenshotPath = next;
                     options.AutoConnect = true;
+                    i++;
+                    break;
+                case "--screenshot-after":
+                    options.ScreenshotAfterSeconds = double.Parse(next, System.Globalization.CultureInfo.InvariantCulture);
                     i++;
                     break;
                 case "--overview":

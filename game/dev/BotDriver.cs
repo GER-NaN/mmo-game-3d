@@ -13,8 +13,9 @@ using MmoGame3d.Ui;
 ///
 /// What it does: walks with pauses and turns, jumps sometimes, says a line in chat now
 /// and then, clicks on a nearby player and invites them, joins any party it is invited
-/// to, goes online at a terminal it passes (then offline again a little later), and buys
-/// the first thing a shopkeeper offers.
+/// to, goes online at a terminal it passes (then offline again a little later), buys
+/// the first thing a shopkeeper offers, equips its phone and goes online on it, and at a
+/// workbench takes the battery out and puts one in.
 /// </summary>
 public partial class BotDriver : Node
 {
@@ -47,6 +48,10 @@ public partial class BotDriver : Node
     private double _onlineFor;
     private double _shopSeenFor;
     private bool _boughtHere;
+    private double _nextPhoneStep = 6;
+    private int _phoneStep;
+    private double _benchSeenFor;
+    private int _benchClicks;
     private double _interactHeldFor = -1;
     private double _nextInteract;
 
@@ -57,6 +62,7 @@ public partial class BotDriver : Node
     {
         AcceptInvites(delta);
         Shop(delta);
+        Workbench(delta);
         UseTerminals(delta);
 
         // Online, the body stands still and the keys belong to the terminal.
@@ -65,6 +71,7 @@ public partial class BotDriver : Node
             return;
         }
 
+        UsePhone(delta);
         Recruit(delta);
         Talk(delta);
         Wander(delta);
@@ -194,7 +201,8 @@ public partial class BotDriver : Node
         _onlineFor = 0;
         Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
 
-        bool usable = prompt != null && prompt.Visible && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to"));
+        bool usable = prompt != null && prompt.Visible
+            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench"));
 
         if (prompt != null && usable && _nextInteract <= 0)
         {
@@ -234,9 +242,93 @@ public partial class BotDriver : Node
         else if (_shopSeenFor > ReadDelay * 4)
         {
             GD.Print("Bot: closing the shop");
-            InputEventAction close = new InputEventAction { Action = "ui_cancel", Pressed = true };
-            Input.ParseInputEvent(close);
+            Press("ui_cancel");
         }
+    }
+
+    // Open the inventory, equip the phone if it is loose, close the inventory, then go
+    // online on the phone now and then. The terminal step clicks Go Offline later.
+    private void UsePhone(double delta)
+    {
+        _nextPhoneStep -= delta;
+
+        if (_nextPhoneStep > 0)
+        {
+            return;
+        }
+
+        _nextPhoneStep = 1.5;
+
+        switch (_phoneStep)
+        {
+            case 0:
+                Press("inventory");
+                _phoneStep = 1;
+                break;
+            case 1:
+                Button? equip = GetTree().GetFirstNodeInGroup(InventoryPanel.EquipGroup) as Button;
+
+                if (equip != null && equip.IsVisibleInTree())
+                {
+                    GD.Print("Bot: clicking Equip");
+                    Click(equip.GetGlobalRect().GetCenter());
+                }
+
+                _phoneStep = 2;
+                break;
+            case 2:
+                Press("inventory");
+                _phoneStep = 3;
+                break;
+            default:
+                GD.Print("Bot: pressing P");
+                Press("phone");
+                _nextPhoneStep = 20;
+                break;
+        }
+    }
+
+    // At a workbench: take the battery out, then put one in, then close.
+    private void Workbench(double delta)
+    {
+        Button? remove = GetTree().GetFirstNodeInGroup(WorkbenchPanel.RemoveGroup) as Button;
+        Button? insert = GetTree().GetFirstNodeInGroup(WorkbenchPanel.InsertGroup) as Button;
+        Button? button = remove ?? insert;
+
+        if (button == null || !button.IsVisibleInTree())
+        {
+            _benchSeenFor = 0;
+            return;
+        }
+
+        _benchSeenFor += delta;
+
+        if (_benchSeenFor < ReadDelay)
+        {
+            return;
+        }
+
+        _benchSeenFor = 0;
+
+        if (_benchClicks < 2)
+        {
+            _benchClicks++;
+            GD.Print("Bot: clicking " + button.Text);
+            Click(button.GetGlobalRect().GetCenter());
+        }
+        else
+        {
+            _benchClicks = 0;
+            Press("ui_cancel");
+        }
+    }
+
+    // A key press as an input event, for what the game takes from events (menus, the
+    // inventory, the phone) rather than from polled actions.
+    private static void Press(string action)
+    {
+        Input.ParseInputEvent(new InputEventAction { Action = action, Pressed = true });
+        Input.ParseInputEvent(new InputEventAction { Action = action, Pressed = false });
     }
 
     private void Talk(double delta)

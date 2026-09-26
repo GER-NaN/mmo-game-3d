@@ -8,8 +8,12 @@ using MmoGame3d.Rules.Items;
 /// </summary>
 public class PlayerRecord
 {
-    // What they carry.
+    // What they carry: counts of identical things, and things with an identity.
     public List<ItemStack> Stacks { get; set; } = new List<ItemStack>();
+    public List<ItemInstance> Instances { get; set; } = new List<ItemInstance>();
+
+    // True when GetOrCreate made this player just now. Not stored.
+    public bool Created { get; set; }
 
     public Guid PlayerId { get; set; }
     public Guid AccountId { get; set; }

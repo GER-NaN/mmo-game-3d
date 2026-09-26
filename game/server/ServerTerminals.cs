@@ -19,6 +19,7 @@ public class ServerTerminals
 
     private readonly TerminalAccess _access = new TerminalAccess();
     private readonly Dictionary<string, Terminal> _terminalsByKey = new Dictionary<string, Terminal>();
+    private readonly HashSet<Guid> _onPhone = new HashSet<Guid>();
     private readonly TerminalNetwork _network;
     private readonly Network _session;
     private readonly Func<IEnumerable<Session>> _sessions;
@@ -47,6 +48,29 @@ public class ServerTerminals
         session.Body!.IsOnline = true;
         _network.SendOpened(session.PeerId, terminal.TypeId, terminal.Name);
         SendRoster(session);
+    }
+
+    // The phone is a door of its own: one per player, so its key is the player's. The
+    // caller has checked the phone can go online (equipped, with charge).
+    public void UsePhone(Session session)
+    {
+        string? refusal = _access.Use(session.Record!.PlayerId, "phone/" + session.Record.PlayerId, true);
+
+        if (refusal != null)
+        {
+            _session.SendNotice(session.PeerId, refusal);
+            return;
+        }
+
+        _onPhone.Add(session.Record.PlayerId);
+        session.Body!.IsOnline = true;
+        _network.SendOpened(session.PeerId, (int)TerminalType.Phone, "Phone");
+        SendRoster(session);
+    }
+
+    public bool IsOnPhone(Session session)
+    {
+        return session.Record != null && _onPhone.Contains(session.Record.PlayerId);
     }
 
     // Going offline by choice, which closes the screen.
@@ -97,6 +121,8 @@ public class ServerTerminals
         {
             return false;
         }
+
+        _onPhone.Remove(session.Record.PlayerId);
 
         Terminal? terminal;
 

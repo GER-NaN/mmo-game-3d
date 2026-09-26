@@ -45,11 +45,17 @@ public partial class TerminalScreen : Control
 
     public void Open(TerminalType door, string terminalName, IReadOnlyList<ChatLine> chatSoFar)
     {
+        bool phone = door == TerminalType.Phone;
         Label title = GetNode<Label>("%Title");
-        title.Text = "TownOS  //  " + door + " terminal  //  " + terminalName;
+        title.Text = phone ? "TownOS" : "TownOS  //  " + door + " terminal  //  " + terminalName;
         title.AddThemeColorOverride("font_color", Text);
 
         _chat.AddRange(chatSoFar);
+
+        if (phone)
+        {
+            ShrinkToPhone();
+        }
 
         VBoxContainer apps = GetNode<VBoxContainer>("%Apps");
 
@@ -60,6 +66,10 @@ public partial class TerminalScreen : Control
                 Text = (app.State == AppState.Locked ? "[locked] " : "") + app.Name,
                 Alignment = HorizontalAlignment.Left,
                 FocusMode = FocusModeEnum.None,
+
+                // On a phone the column is narrow: long names are cut, not widening it.
+                ClipText = phone,
+                TooltipText = app.Name,
             };
             button.AddThemeColorOverride("font_color", app.State == AppState.Locked ? Locked : Text);
             TerminalApp chosen = app;
@@ -68,6 +78,32 @@ public partial class TerminalScreen : Control
         }
 
         ShowApp(TerminalApps.For(door)[0]);
+    }
+
+    // world.md: the phone does not take the whole screen. It is held up in the middle,
+    // and the world goes on around it, seen but not reachable. The size is a placeholder.
+    private void ShrinkToPhone()
+    {
+        Vector2 half = new Vector2(210f, 320f);
+
+        foreach (string part in new[] { "Background", "Margin" })
+        {
+            Control control = GetNode<Control>(part);
+            control.SetAnchorsPreset(LayoutPreset.Center);
+            control.OffsetLeft = -half.X;
+            control.OffsetRight = half.X;
+            control.OffsetTop = -half.Y;
+            control.OffsetBottom = half.Y;
+        }
+
+        GetNode<Control>("Margin").AddThemeConstantOverride("margin_left", 16);
+        GetNode<Control>("Margin").AddThemeConstantOverride("margin_right", 16);
+        GetNode<Control>("%Apps").CustomMinimumSize = new Vector2(130f, 0f);
+        GetNode<Control>("%Apps").SizeFlagsStretchRatio = 0.6f;
+        GetNode<Control>("%Apps").SizeFlagsHorizontal = SizeFlags.ExpandFill;
+
+        // The world around the phone takes no clicks while you are on it.
+        MouseFilter = MouseFilterEnum.Stop;
     }
 
     public void AddChatLine(ChatLine line)

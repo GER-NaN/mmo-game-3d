@@ -53,6 +53,7 @@ public partial class ServerGame : Node
     private ServerTerminals _terminals = null!;
     private ServerInteractions _interactions = null!;
     private ServerShops _shops = null!;
+    private ServerEquipment _equipment = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -110,7 +111,8 @@ public partial class ServerGame : Node
         _parties = new ServerParties(partyNetwork, network, _chat, () => _sessions.Values);
         _terminals = new ServerTerminals(networks.Terminal, network, () => _sessions.Values);
         _shops = new ServerShops(networks.Shop, network, SendInventory);
-        _interactions = new ServerInteractions(world, network, _terminals, _shops);
+        _equipment = new ServerEquipment(networks.Items, network, _terminals, () => _sessions.Values, SendInventory);
+        _interactions = new ServerInteractions(world, network, _terminals, _shops, _equipment);
 
         // Things standing in the zones sync their state (a terminal in use) only to the
         // players in that zone, like everything else.
@@ -150,6 +152,11 @@ public partial class ServerGame : Node
         _network.InteractRequested += (peer, name) => WithSession(peer, session => _interactions.Use(session, name));
         networks.Terminal.LeaveRequested += peer => WithSession(peer, session => _terminals.Leave(session));
         networks.Shop.BuyRequested += (peer, intent, shop, offer) => WithSession(peer, session => _shops.Buy(session, intent, shop, offer));
+        networks.Items.EquipRequested += (peer, id) => WithSession(peer, session => _equipment.Equip(session, id));
+        networks.Items.UnequipRequested += (peer, id) => WithSession(peer, session => _equipment.Unequip(session, id));
+        networks.Items.PhoneRequested += peer => WithSession(peer, session => _equipment.UsePhone(session));
+        networks.Items.RemoveBatteryRequested += (peer, id) => WithSession(peer, session => _equipment.RemoveBattery(session, id));
+        networks.Items.InsertBatteryRequested += (peer, id) => WithSession(peer, session => _equipment.InsertBattery(session, id));
 
         GD.Print("Server listening on port " + options.Port + " for up to " + options.MaxPlayers + " players");
     }
@@ -164,6 +171,7 @@ public partial class ServerGame : Node
         _worker.RunCompletions();
         _parties.Tick(delta);
         _terminals.Tick(delta);
+        _equipment.Tick(delta);
 
         if (_stopSignals != null && _stopSignals.StopRequested())
         {
@@ -367,6 +375,15 @@ public partial class ServerGame : Node
             session.Inventory.Add(stack.Type, stack.Tier, stack.Quantity);
         }
 
+        // A new player arrives as if just out of the Training Grounds: a phone at 10%, in
+        // the bag rather than equipped, and pocket change.
+        if (record.Created)
+        {
+            record.Instances.AddRange(Belongings.StarterKit());
+        }
+
+        session.Instances = record.Instances;
+
         session.State = SessionState.Accepted;
         _network.SendLoginAccepted(peer, record.Zone, record.DisplayName);
         GD.Print("Peer " + peer + " logged in as " + record.DisplayName + " (player " + record.PlayerId + ")");
@@ -494,7 +511,11 @@ public partial class ServerGame : Node
 
     private void SendInventory(Session session)
     {
-        _network.SendInventory(session.PeerId, InventoryWire.Pack(session.Inventory!.Stacks), session.Dollars);
+        string[] ids;
+        int[] meta;
+        float[] charges;
+        InstanceWire.Pack(session.Instances, out ids, out meta, out charges);
+        _network.SendInventory(session.PeerId, InventoryWire.Pack(session.Inventory!.Stacks), session.Dollars, ids, meta, charges);
     }
 
     private bool CanSee(long viewer, string zoneId)
@@ -550,6 +571,16 @@ public partial class ServerGame : Node
         foreach (ItemStack stack in session.Inventory!.Stacks)
         {
             snapshot.Stacks.Add(new ItemStack(stack.Type, stack.Tier, stack.Quantity));
+        }
+
+        foreach (ItemInstance instance in session.Instances)
+        {
+            snapshot.Instances.Add(new ItemInstance(instance.Id, instance.Type, instance.Tier)
+            {
+                ParentId = instance.ParentId,
+                Slot = instance.Slot,
+                Charge = instance.Charge,
+            });
         }
 
         _worker.Enqueue(() => _players.Save(snapshot), e => GD.PrintErr("Saving " + snapshot.DisplayName + " failed: " + e.Message));

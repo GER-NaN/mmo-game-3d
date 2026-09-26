@@ -3,24 +3,24 @@ namespace MmoGame3d.Dev;
 using Godot;
 
 /// <summary>
-/// Saves what the window shows to a PNG a few seconds after entering the world, then
+/// Saves what the window shows to a PNG some seconds after entering the world, then
 /// quits, so a change can be looked at without anyone driving the game. With overview,
 /// the camera looks down on the whole zone from above instead of following the player.
 /// Needs a real window: a headless client draws nothing.
 /// </summary>
 public partial class Screenshot : Node
 {
-    private const double Delay = 4;
-
     private string _path = "";
+    private double _delay;
     private bool _overview;
     private double _elapsed;
     private bool _taken;
 
-    public void Start(string path, bool overview)
+    public void Start(string path, bool overview, double delaySeconds)
     {
         _path = path;
         _overview = overview;
+        _delay = delaySeconds;
     }
 
     public override void _Process(double delta)
@@ -41,7 +41,7 @@ public partial class Screenshot : Node
 
         _elapsed += delta;
 
-        if (_elapsed < Delay)
+        if (_elapsed < _delay)
         {
             return;
         }

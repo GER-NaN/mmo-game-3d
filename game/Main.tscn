@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://game/networking/PartyNetwork.cs" id="3_party"]
 [ext_resource type="Script" path="res://game/networking/TerminalNetwork.cs" id="4_terminal"]
 [ext_resource type="Script" path="res://game/networking/ShopNetwork.cs" id="5_shop"]
+[ext_resource type="Script" path="res://game/networking/ItemNetwork.cs" id="6_items"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -20,3 +21,6 @@ script = ExtResource("4_terminal")
 
 [node name="ShopNetwork" type="Node" parent="."]
 script = ExtResource("5_shop")
+
+[node name="ItemNetwork" type="Node" parent="."]
+script = ExtResource("6_items")

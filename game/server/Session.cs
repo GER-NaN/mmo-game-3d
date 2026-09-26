@@ -1,10 +1,12 @@
 namespace MmoGame3d.Server;
 
+using System.Collections.Generic;
 using MmoGame3d.Data.Players;
 using MmoGame3d.Players;
 using MmoGame3d.Rules.Intents;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Vendors;
+using MmoGame3d.Workbenches;
 
 /// <summary>
 /// One connected client, from connect to disconnect. The peer id is the session's
@@ -36,6 +38,12 @@ public class Session
 
     // The shopkeeper last used; a buy is taken only while they are in reach.
     public Vendor? OpenVendor { get; set; }
+
+    // Things with an identity (a phone, a battery), live. Set with the record.
+    public List<ItemInstance> Instances { get; set; } = new List<ItemInstance>();
+
+    // The workbench last used; work is taken only while it is in reach.
+    public Workbench? OpenWorkbench { get; set; }
 
     // Set once the client has its world loaded and the body is spawned. Null again while
     // the player goes through a door, until the next zone is loaded.

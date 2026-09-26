@@ -28,9 +28,10 @@ public partial class ClientGame : Node
     private static readonly PackedScene ChatScene = GD.Load<PackedScene>("res://game/ui/ChatBox.tscn");
     private static readonly PackedScene TerminalScene = GD.Load<PackedScene>("res://game/ui/TerminalScreen.tscn");
     private static readonly PackedScene ShopScene = GD.Load<PackedScene>("res://game/ui/ShopPanel.tscn");
+    private static readonly PackedScene WorkbenchScene = GD.Load<PackedScene>("res://game/ui/WorkbenchPanel.tscn");
 
-    // Walking this far from where a shop was opened closes it.
-    private const float ShopWalkAway = 4f;
+    // Walking this far from where a shop or a workbench was opened closes it.
+    private const float PanelWalkAway = 4f;
 
     // How much chat the client keeps, for a screen opened later.
     private const int ChatKept = 100;
@@ -41,6 +42,7 @@ public partial class ClientGame : Node
     private PartyNetwork _partyNetwork = null!;
     private TerminalNetwork _terminalNetwork = null!;
     private ShopNetwork _shopNetwork = null!;
+    private ItemNetwork _itemNetwork = null!;
     private Node _main = null!;
     private ClientSettings _settings = null!;
     private Profile _profile = null!;
@@ -57,7 +59,9 @@ public partial class ClientGame : Node
     private TerminalScreen? _terminal;
     private ShopPanel? _shop;
     private string _shopId = "";
-    private Vector3 _shopOpenedAt;
+    private WorkbenchPanel? _workbench;
+    private Vector3 _panelOpenedAt;
+    private List<ItemInstance> _instances = new List<ItemInstance>();
     private ClientIntents? _intents;
     private int _dollars;
     private readonly List<ChatLine> _chatLog = new List<ChatLine>();
@@ -77,6 +81,7 @@ public partial class ClientGame : Node
         _partyNetwork = networks.Party;
         _terminalNetwork = networks.Terminal;
         _shopNetwork = networks.Shop;
+        _itemNetwork = networks.Items;
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load();
@@ -110,6 +115,7 @@ public partial class ClientGame : Node
         _network.ClockReceived += OnClockReceived;
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
         _shopNetwork.ShopOpened += OnShopOpened;
+        _itemNetwork.WorkbenchOpened += OnWorkbenchOpened;
         _shopNetwork.IntentAnswered += (id, refusal) => _intents?.Answer(id, refusal);
         _terminalNetwork.Opened += OnTerminalOpened;
         _terminalNetwork.Closed += CloseTerminal;
@@ -139,9 +145,10 @@ public partial class ClientGame : Node
 
         Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
 
-        if (_shop != null && self != null && self.GlobalPosition.DistanceTo(_shopOpenedAt) > ShopWalkAway)
+        if ((_shop != null || _workbench != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
             CloseShop();
+            CloseWorkbench();
         }
     }
 
@@ -164,10 +171,18 @@ public partial class ClientGame : Node
             return;
         }
 
-        if (_shop != null && @event.IsActionPressed("ui_cancel"))
+        if ((_shop != null || _workbench != null) && @event.IsActionPressed("ui_cancel"))
         {
             GetViewport().SetInputAsHandled();
             CloseShop();
+            CloseWorkbench();
+            return;
+        }
+
+        if (@event.IsActionPressed("phone"))
+        {
+            GetViewport().SetInputAsHandled();
+            _itemNetwork.SendUsePhone();
             return;
         }
 
@@ -335,7 +350,7 @@ public partial class ClientGame : Node
         {
             Screenshot shot = new Screenshot { Name = "Screenshot" };
             AddChild(shot);
-            shot.Start(_options.ScreenshotPath, _options.Overview);
+            shot.Start(_options.ScreenshotPath, _options.Overview, _options.ScreenshotAfterSeconds);
         }
 
         if (_options.Bot)
@@ -345,20 +360,50 @@ public partial class ClientGame : Node
         }
     }
 
-    private void OnInventoryReceived(int[] packed, int dollars)
+    private void OnInventoryReceived(int[] packed, int dollars, string[] ids, int[] meta, float[] charges)
     {
         _stacks = InventoryWire.Unpack(packed);
         _dollars = dollars;
-        _inventoryPanel?.ShowStacks(_stacks, _dollars);
+        _instances = InstanceWire.Unpack(ids, meta, charges);
+        _inventoryPanel?.ShowBag(_stacks, _dollars, _instances);
+        _workbench?.ShowBench(_stacks, _instances);
         _hud?.ShowDollars(dollars);
         _shop?.ShowDollars(dollars);
+    }
+
+    private void OnWorkbenchOpened()
+    {
+        CloseWorkbench();
+        CloseShop();
+        _panelOpenedAt = SelfPosition();
+        _workbench = WorkbenchScene.Instantiate<WorkbenchPanel>();
+        _ui.AddChild(_workbench);
+        _workbench.ShowBench(_stacks, _instances);
+        _workbench.Closed += CloseWorkbench;
+        _workbench.RemovePressed += id => _itemNetwork.SendRemoveBattery(id.ToString());
+        _workbench.InsertPressed += id => _itemNetwork.SendInsertBattery(id.ToString());
+    }
+
+    private void CloseWorkbench()
+    {
+        if (_workbench != null)
+        {
+            _workbench.QueueFree();
+            _workbench = null;
+        }
+    }
+
+    private Vector3 SelfPosition()
+    {
+        Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
+        return self != null ? self.GlobalPosition : Vector3.Zero;
     }
 
     private void OnShopOpened(string shopId)
     {
         CloseShop();
-        Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
-        _shopOpenedAt = self != null ? self.GlobalPosition : Vector3.Zero;
+        CloseWorkbench();
+        _panelOpenedAt = SelfPosition();
         _shopId = shopId;
         _shop = ShopScene.Instantiate<ShopPanel>();
         _ui.AddChild(_shop);
@@ -508,7 +553,9 @@ public partial class ClientGame : Node
 
         _inventoryPanel = InventoryScene.Instantiate<InventoryPanel>();
         _ui.AddChild(_inventoryPanel);
-        _inventoryPanel.ShowStacks(_stacks, _dollars);
+        _inventoryPanel.ShowBag(_stacks, _dollars, _instances);
+        _inventoryPanel.EquipPressed += id => _itemNetwork.SendEquip(id.ToString());
+        _inventoryPanel.UnequipPressed += id => _itemNetwork.SendUnequip(id.ToString());
     }
 
     private void OpenInGameMenu()
@@ -597,6 +644,8 @@ public partial class ClientGame : Node
         }
 
         CloseShop();
+        CloseWorkbench();
+        _instances = new List<ItemInstance>();
         _chatLog.Clear();
 
         _stacks = new List<ItemStack>();
