@@ -1,0 +1,163 @@
+namespace MmoGame3d.Server;
+
+using System;
+using System.Collections.Generic;
+using Godot;
+using MmoGame3d.Networking;
+using MmoGame3d.Rules.Chat;
+
+/// <summary>
+/// Global chat: a line from a player goes through the filters and the player's rate
+/// limit, then to everyone in the world. The server also speaks here for joins and
+/// leaves. Lines reach only players in the world, never a client still at login.
+/// </summary>
+public class ServerChat
+{
+    // Anything longer is not a chat line; it is dropped before the filters see it.
+    private const int MaxRawLength = 1000;
+
+    private readonly Network _network;
+    private readonly Func<IEnumerable<Session>> _sessions;
+    private readonly ChatFilterPipeline _filters = ChatFilterPipeline.Default();
+    private readonly Dictionary<long, ChatRateLimit> _limits = new Dictionary<long, ChatRateLimit>();
+
+    public ServerChat(Network network, Func<IEnumerable<Session>> sessions)
+    {
+        _network = network;
+        _sessions = sessions;
+    }
+
+    public void Say(Session speaker, string text)
+    {
+        string? clean = Prepare(speaker, text);
+
+        if (clean != null)
+        {
+            Broadcast(speaker, speaker.Record!.DisplayName, clean, ChatKind.Say);
+        }
+    }
+
+    // A line for some players only (a party). It passes the same filters and the same
+    // rate limit as a line to everyone.
+    public void SayTo(Session speaker, string text, ChatKind kind, IEnumerable<Session> listeners)
+    {
+        string? clean = Prepare(speaker, text);
+
+        if (clean == null)
+        {
+            return;
+        }
+
+        foreach (Session listener in listeners)
+        {
+            if (listener.State == SessionState.InWorld && !ServerSocial.Ignores(listener, speaker))
+            {
+                _network.SendChatLine(listener.PeerId, speaker.Record!.DisplayName, clean, (int)kind);
+            }
+        }
+    }
+
+    // The line as it may go out, or null when it may not.
+    private string? Prepare(Session speaker, string text)
+    {
+        if (speaker.State != SessionState.InWorld || speaker.Record == null || text.Length > MaxRawLength)
+        {
+            return null;
+        }
+
+        string clean = _filters.Apply(text);
+
+        if (clean.Length == 0)
+        {
+            return null;
+        }
+
+        ChatRateLimit? limit;
+
+        if (!_limits.TryGetValue(speaker.PeerId, out limit))
+        {
+            limit = new ChatRateLimit();
+            _limits[speaker.PeerId] = limit;
+        }
+
+        if (!limit.TryTake(Time.GetTicksMsec() / 1000.0))
+        {
+            _network.SendNotice(speaker.PeerId, "You are sending too fast. Wait a moment.");
+            return null;
+        }
+
+        return clean;
+    }
+
+    // A private line to one player, by player id (names are not unique). Same filters and
+    // rate limit as any line. An ignore drops it without saying so, as for invites.
+    public void Direct(Session speaker, string targetIdText, string text)
+    {
+        Guid targetId;
+        Session? target = null;
+
+        if (Guid.TryParse(targetIdText, out targetId))
+        {
+            foreach (Session session in _sessions())
+            {
+                if (session.State == SessionState.InWorld && session.Record != null && session.Record.PlayerId == targetId)
+                {
+                    target = session;
+                }
+            }
+        }
+
+        if (target == null)
+        {
+            _network.SendNotice(speaker.PeerId, "That player is not online.");
+            return;
+        }
+
+        if (target == speaker)
+        {
+            return;
+        }
+
+        string? clean = Prepare(speaker, text);
+
+        if (clean == null)
+        {
+            return;
+        }
+
+        _network.SendDirectLine(speaker.PeerId, target.Record!.PlayerId.ToString(), target.Record.DisplayName, clean, false);
+
+        if (!ServerSocial.Ignores(target, speaker))
+        {
+            _network.SendDirectLine(target.PeerId, speaker.Record!.PlayerId.ToString(), speaker.Record.DisplayName, clean, true);
+        }
+    }
+
+    public void Announce(string text)
+    {
+        Broadcast(null, "", text, ChatKind.System);
+    }
+
+    public void Forget(long peer)
+    {
+        _limits.Remove(peer);
+    }
+
+    // The speaker is null for the server's own lines, which nobody can ignore.
+    // Converted and logged once for everyone who hears it (SendToMany): a line to a
+    // hundred players one copy at a time took most of a millisecond.
+    private void Broadcast(Session? speaker, string sender, string text, ChatKind kind)
+    {
+        List<long> peers = new List<long>();
+
+        foreach (Session session in _sessions())
+        {
+            if (session.State == SessionState.InWorld && (speaker == null || !ServerSocial.Ignores(session, speaker)))
+            {
+                peers.Add(session.PeerId);
+            }
+        }
+
+        _network.SendChatLine(peers, sender, text, (int)kind);
+    }
+}

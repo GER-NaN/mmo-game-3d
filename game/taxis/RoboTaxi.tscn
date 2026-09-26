@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/taxis/RoboTaxi.cs" id="1_taxi"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/CarTaxi.tscn" id="2_car"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_taxi"]
+properties/0/path = NodePath(".:Progress")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+
+[node name="RoboTaxi" type="Node3D"]
+script = ExtResource("1_taxi")
+
+[node name="Car" parent="." instance=ExtResource("2_car")]
+collision_layer = 0
+
+[node name="Label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 0)
+billboard = 1
+modulate = Color(1, 0.9, 0.4, 1)
+outline_size = 8
+font_size = 44
+pixel_size = 0.005
+text = "Robo taxi  (clean)"
+
+[node name="Synchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_interval = 0.1
+replication_config = SubResource("SceneReplicationConfig_taxi")
+visibility_update_mode = 2

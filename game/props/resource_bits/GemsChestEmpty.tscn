@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/kaykit/resource_bits/assets/Gems_Chest_Empty.gltf" id="1_model"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_prop"]
+size = Vector3(0.931, 0.664, 0.679)
+
+[node name="GemsChestEmpty" type="StaticBody3D"]
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+transform = Transform3D(0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0, 0.332, -0.048)
+shape = SubResource("BoxShape3D_prop")

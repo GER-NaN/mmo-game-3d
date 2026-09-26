@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/kaykit/city_builder_bits/assets/trash_B.gltf" id="1_model"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_prop"]
+size = Vector3(0.34, 0.202, 0.354)
+
+[node name="TrashB" type="StaticBody3D"]
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.038, 0.101, 0.015)
+shape = SubResource("BoxShape3D_prop")

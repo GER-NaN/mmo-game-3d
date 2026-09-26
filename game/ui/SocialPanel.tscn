@@ -1,0 +1,46 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/ui/SocialPanel.cs" id="1_social"]
+
+[node name="SocialPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(360, 0)
+offset_left = 16.0
+offset_top = 56.0
+offset_right = 376.0
+offset_bottom = 316.0
+script = ExtResource("1_social")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Rows" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Friends"
+
+[node name="Friends" type="VBoxContainer" parent="Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="IgnoredTitle" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Ignored"
+
+[node name="Ignored" type="VBoxContainer" parent="Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Hint" type="Label" parent="Margin/Rows"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+text = "Select a player to add them as a friend or ignore them"
+autowrap_mode = 3

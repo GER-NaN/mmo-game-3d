@@ -1,0 +1,193 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
+[ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="90_door"]
+[ext_resource type="PackedScene" path="res://game/gardening/PottingTable.tscn" id="91_table"]
+
+[ext_resource type="PackedScene" path="res://assets/tinytreats/house_plants/monstera_plant_large_potted.gltf" id="60_decor"]
+[ext_resource type="PackedScene" path="res://assets/tinytreats/house_plants/yucca_plant_large_potted.gltf" id="61_decor"]
+[ext_resource type="PackedScene" path="res://assets/tinytreats/house_plants/sansevieria_plant_large_potted.gltf" id="62_decor"]
+[ext_resource type="PackedScene" path="res://assets/tinytreats/house_plants/zzplant_plant_large_potted.gltf" id="63_decor"]
+[ext_resource type="PackedScene" path="res://assets/tinytreats/house_plants/pothos_plant_medium_potted.gltf" id="64_decor"]
+[ext_resource type="PackedScene" path="res://assets/tinytreats/house_plants/monstera_plant_medium_potted.gltf" id="65_decor"]
+[ext_resource type="PackedScene" path="res://assets/tinytreats/house_plants/succulent_plant_pot_large.gltf" id="66_decor"]
+[ext_resource type="PackedScene" path="res://assets/tinytreats/house_plants/cacti_plant_pot_large.gltf" id="67_decor"]
+
+[sub_resource type="BoxShape3D" id="Shape_Ground"]
+size = Vector3(16, 1, 12)
+
+[sub_resource type="StandardMaterial3D" id="Material_Ground"]
+albedo_color = Color(0.36, 0.3, 0.24, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_Ground"]
+material = SubResource("Material_Ground")
+size = Vector3(16, 1, 12)
+
+[sub_resource type="StandardMaterial3D" id="Material_Wall"]
+albedo_color = Color(0.78, 0.9, 0.82, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_WallLong"]
+material = SubResource("Material_Wall")
+size = Vector3(16, 4, 0.3)
+
+[sub_resource type="BoxShape3D" id="Shape_WallLong"]
+size = Vector3(16, 4, 0.3)
+
+[sub_resource type="BoxMesh" id="Mesh_WallShort"]
+material = SubResource("Material_Wall")
+size = Vector3(0.3, 4, 12)
+
+[sub_resource type="BoxShape3D" id="Shape_WallShort"]
+size = Vector3(0.3, 4, 12)
+
+[sub_resource type="BoxMesh" id="Mesh_WallPiece"]
+material = SubResource("Material_Wall")
+size = Vector3(5, 4, 0.3)
+
+[sub_resource type="BoxShape3D" id="Shape_WallPiece"]
+size = Vector3(5, 4, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="Material_Glass"]
+transparency = 1
+cull_mode = 2
+albedo_color = Color(0.75, 0.92, 0.95, 0.16)
+metallic_specular = 0.8
+roughness = 0.1
+
+[sub_resource type="BoxMesh" id="Mesh_Roof"]
+material = SubResource("Material_Glass")
+size = Vector3(16.6, 0.3, 12.6)
+
+[node name="greenhouse" type="Node3D"]
+script = ExtResource("1_zone")
+Surface = "dirt"
+ItemAreaSize = Vector2(2, 2)
+ItemStock = 0
+
+[node name="Ground" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("Shape_Ground")
+
+[node name="Mesh" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("Mesh_Ground")
+
+[node name="Room" type="Node3D" parent="."]
+
+[node name="Back" type="StaticBody3D" parent="Room"]
+collision_layer = 5
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -6)
+
+[node name="Mesh" type="MeshInstance3D" parent="Room/Back"]
+mesh = SubResource("Mesh_WallLong")
+
+[node name="Collision" type="CollisionShape3D" parent="Room/Back"]
+shape = SubResource("Shape_WallLong")
+
+[node name="Left" type="StaticBody3D" parent="Room"]
+collision_layer = 5
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Room/Left"]
+mesh = SubResource("Mesh_WallShort")
+
+[node name="Collision" type="CollisionShape3D" parent="Room/Left"]
+shape = SubResource("Shape_WallShort")
+
+[node name="Right" type="StaticBody3D" parent="Room"]
+collision_layer = 5
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Room/Right"]
+mesh = SubResource("Mesh_WallShort")
+
+[node name="Collision" type="CollisionShape3D" parent="Room/Right"]
+shape = SubResource("Shape_WallShort")
+
+[node name="FrontLeft" type="StaticBody3D" parent="Room"]
+collision_layer = 5
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 2, 6)
+
+[node name="Mesh" type="MeshInstance3D" parent="Room/FrontLeft"]
+mesh = SubResource("Mesh_WallPiece")
+
+[node name="Collision" type="CollisionShape3D" parent="Room/FrontLeft"]
+shape = SubResource("Shape_WallPiece")
+
+[node name="FrontRight" type="StaticBody3D" parent="Room"]
+collision_layer = 5
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 2, 6)
+
+[node name="Mesh" type="MeshInstance3D" parent="Room/FrontRight"]
+mesh = SubResource("Mesh_WallPiece")
+
+[node name="Collision" type="CollisionShape3D" parent="Room/FrontRight"]
+shape = SubResource("Shape_WallPiece")
+
+[node name="Roof" type="MeshInstance3D" parent="Room"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.15, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_Roof")
+
+[node name="Light" type="OmniLight3D" parent="Room"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.4, 0)
+light_color = Color(1, 0.95, 0.85, 1)
+light_energy = 1.6
+omni_range = 14.0
+
+[node name="Plant0" parent="Room" instance=ExtResource("60_decor")]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, -6.8, 0, -5)
+
+[node name="Plant1" parent="Room" instance=ExtResource("61_decor")]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, -4.5, 0, -5.2)
+
+[node name="Plant2" parent="Room" instance=ExtResource("62_decor")]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 4.5, 0, -5.2)
+
+[node name="Plant3" parent="Room" instance=ExtResource("63_decor")]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 6.8, 0, -5)
+
+[node name="Plant4" parent="Room" instance=ExtResource("64_decor")]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, -7, 0, 0)
+
+[node name="Plant5" parent="Room" instance=ExtResource("65_decor")]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 7, 0, 0)
+
+[node name="Plant6" parent="Room" instance=ExtResource("66_decor")]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, -7, 0, 3.5)
+
+[node name="Plant7" parent="Room" instance=ExtResource("67_decor")]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 7, 0, 3.5)
+
+[node name="Interactables" type="Node3D" parent="."]
+
+[node name="PottingTable" parent="Interactables" instance=ExtResource("91_table")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
+
+[node name="Doors" type="Node3D" parent="."]
+
+[node name="ToOutskirts" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6.6)
+TargetZone = "outskirts"
+TargetArrival = "FromGreenhouse"
+
+[node name="Arrivals" type="Node3D" parent="."]
+
+[node name="FromTown" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3.5)
+
+[node name="Spawn" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3.5)
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/player/Player.tscn")
+spawn_path = NodePath("../Players")
+
+[node name="Items" type="Node3D" parent="."]
+
+[node name="ItemSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/items/GroundItem.tscn")
+spawn_path = NodePath("../Items")

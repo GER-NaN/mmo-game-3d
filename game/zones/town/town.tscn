@@ -1,0 +1,487 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
+[ext_resource type="PackedScene" path="res://game/terminals/Terminal.tscn" id="2_terminal"]
+[ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="90_door"]
+[ext_resource type="PackedScene" path="res://game/town/TownState.tscn" id="91_state"]
+[ext_resource type="PackedScene" path="res://game/town/JunctionBox.tscn" id="92_box"]
+[ext_resource type="PackedScene" path="res://game/taxis/TaxiStand.tscn" id="93_stand"]
+[ext_resource type="PackedScene" path="res://game/town/Townsperson.tscn" id="94_person"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/RoadStraight.tscn" id="2_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/RoadJunction.tscn" id="3_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingA.tscn" id="4_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingB.tscn" id="5_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingC.tscn" id="6_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingD.tscn" id="7_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingE.tscn" id="8_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingF.tscn" id="9_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingG.tscn" id="10_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingH.tscn" id="11_p"]
+[ext_resource type="PackedScene" path="res://game/zones/props/StreetLamp.tscn" id="12_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TreeA.tscn" id="13_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TreeB.tscn" id="14_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TreeC.tscn" id="15_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TreeD.tscn" id="16_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TreeE.tscn" id="17_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/CarSedan.tscn" id="18_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/CarTaxi.tscn" id="19_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/CarHatchback.tscn" id="20_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/CarStationwagon.tscn" id="21_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/Bench.tscn" id="22_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/Dumpster.tscn" id="23_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/Firehydrant.tscn" id="24_p"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TrashA.tscn" id="25_p"]
+[ext_resource type="PackedScene" path="res://game/town/Fixable.tscn" id="95_fixable"]
+[ext_resource type="PackedScene" path="res://game/town/Recycler.tscn" id="96_recycler"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TrafficlightA.tscn" id="97_signal"]
+[ext_resource type="PackedScene" path="res://game/subway/SubwayEntrance.tscn" id="98_subway"]
+
+[sub_resource type="BoxShape3D" id="Shape_SubwayDoor"]
+size = Vector3(2, 3, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_Ground"]
+size = Vector3(100, 1, 100)
+
+[sub_resource type="StandardMaterial3D" id="Material_Ground"]
+albedo_color = Color(0.42, 0.52, 0.36, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_Ground"]
+material = SubResource("Material_Ground")
+size = Vector3(100, 1, 100)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeNorth"]
+size = Vector3(102, 8, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeSouth"]
+size = Vector3(102, 8, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeEast"]
+size = Vector3(1, 8, 102)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeWest"]
+size = Vector3(1, 8, 102)
+
+[sub_resource type="Curve3D" id="Curve3D_taxi"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -10, 0, 3, 0, 0, 0, 0, 0, 0, -47, 0, 3, 0, 0, 0, 0, 0, 0, -47, 0, 47, 0, 0, 0, 0, 0, 0, 47, 0, 47, 0, 0, 0, 0, 0, 0, 47, 0, -47, 0, 0, 0, 0, 0, 0, 6, 0, -47),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0)
+}
+point_count = 6
+
+[sub_resource type="Curve3D" id="Curve3D_SouthWestBlock"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -9.5, 0, 7.2, 0, 0, 0, 0, 0, 0, -42.8, 0, 7.2, 0, 0, 0, 0, 0, 0, -42.8, 0, 19.3, 0, 0, 0, 0, 0, 0, -9.5, 0, 19.3, 0, 0, 0, 0, 0, 0, -9.5, 0, 7.2),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0)
+}
+point_count = 5
+
+[sub_resource type="Curve3D" id="Curve3D_SouthEastBlock"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 9.5, 0, 7.2, 0, 0, 0, 0, 0, 0, 9.5, 0, 19.3, 0, 0, 0, 0, 0, 0, 42.8, 0, 19.3, 0, 0, 0, 0, 0, 0, 42.8, 0, 7.2, 0, 0, 0, 0, 0, 0, 9.5, 0, 7.2),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0)
+}
+point_count = 5
+
+[sub_resource type="Curve3D" id="Curve3D_CrossStreet"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -6.8, 0, -9.5, 0, 0, 0, 0, 0, 0, -6.8, 0, -42, 0, 0, 0, 0, 0, 0, -7.8, 0, -42, 0, 0, 0, 0, 0, 0, -7.8, 0, -9.5, 0, 0, 0, 0, 0, 0, -6.8, 0, -9.5),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0)
+}
+point_count = 5
+
+[node name="town" type="Node3D"]
+script = ExtResource("1_zone")
+ItemAreaSize = Vector2(90, 90)
+MapSize = Vector2(100, 100)
+ItemStock = 40
+
+[node name="Ground" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("Shape_Ground")
+
+[node name="Mesh" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("Mesh_Ground")
+
+[node name="Roads" type="Node3D" parent="."]
+
+[node name="Buildings" type="Node3D" parent="."]
+
+[node name="Lamps" type="Node3D" parent="."]
+
+[node name="Nature" type="Node3D" parent="."]
+
+[node name="Street" type="Node3D" parent="."]
+
+[node name="MainStreet0" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -40, 0, 0)
+
+[node name="MainStreet1" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -30, 0, 0)
+
+[node name="MainStreet2" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -20, 0, 0)
+
+[node name="MainStreet3" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -10, 0, 0)
+
+[node name="Junction" parent="Roads" instance=ExtResource("3_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="MainStreet5" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 10, 0, 0)
+
+[node name="MainStreet6" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0, 0)
+
+[node name="MainStreet7" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 30, 0, 0)
+
+[node name="MainStreet8" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 40, 0, 0)
+
+[node name="CrossStreet0" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -40)
+
+[node name="CrossStreet1" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -30)
+
+[node name="CrossStreet2" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -20)
+
+[node name="CrossStreet3" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -10)
+
+[node name="CrossStreet5" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10)
+
+[node name="CrossStreet6" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
+
+[node name="CrossStreet7" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 30)
+
+[node name="CrossStreet8" parent="Roads" instance=ExtResource("2_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 40)
+
+[node name="North0" parent="Buildings" instance=ExtResource("4_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37, 0, -13)
+
+[node name="North1" parent="Buildings" instance=ExtResource("5_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, -13)
+
+[node name="North2" parent="Buildings" instance=ExtResource("6_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, -13)
+
+[node name="North3" parent="Buildings" instance=ExtResource("7_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, -13)
+
+[node name="North4" parent="Buildings" instance=ExtResource("8_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, -13)
+
+[node name="North5" parent="Buildings" instance=ExtResource("9_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37, 0, -13)
+
+[node name="South6" parent="Buildings" instance=ExtResource("10_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -37, 0, 13)
+
+[node name="South7" parent="Buildings" instance=ExtResource("11_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -26, 0, 13)
+
+[node name="South8" parent="Buildings" instance=ExtResource("4_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -15, 0, 13)
+
+[node name="South9" parent="Buildings" instance=ExtResource("5_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 15, 0, 13)
+
+[node name="South10" parent="Buildings" instance=ExtResource("6_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 26, 0, 13)
+
+[node name="South11" parent="Buildings" instance=ExtResource("7_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 37, 0, 13)
+
+[node name="West12" parent="Buildings" instance=ExtResource("8_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -13, 0, -30)
+
+[node name="West13" parent="Buildings" instance=ExtResource("9_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -13, 0, 30)
+
+[node name="East14" parent="Buildings" instance=ExtResource("10_p")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 13, 0, -30)
+
+[node name="East15" parent="Buildings" instance=ExtResource("11_p")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 13, 0, 30)
+
+[node name="LampNorth0" parent="Lamps" instance=ExtResource("12_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 0, -6)
+
+[node name="LampSouth0" parent="Lamps" instance=ExtResource("12_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -35, 0, 6)
+
+[node name="LampNorth1" parent="Lamps" instance=ExtResource("12_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -6)
+
+[node name="LampSouth1" parent="Lamps" instance=ExtResource("12_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 0, 6)
+
+[node name="LampNorth2" parent="Lamps" instance=ExtResource("12_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -6)
+
+[node name="LampSouth2" parent="Lamps" instance=ExtResource("12_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0, 6)
+
+[node name="LampNorth3" parent="Lamps" instance=ExtResource("12_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0, -6)
+
+[node name="LampSouth3" parent="Lamps" instance=ExtResource("12_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 35, 0, 6)
+
+[node name="Tree0" parent="Nature" instance=ExtResource("13_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -7)
+
+[node name="Tree1" parent="Nature" instance=ExtResource("14_p")]
+transform = Transform3D(0.682, 0, 0.7314, 0, 1, 0, -0.7314, 0, 0.682, 7, 0, -7)
+
+[node name="Tree2" parent="Nature" instance=ExtResource("15_p")]
+transform = Transform3D(-0.0698, 0, 0.9976, 0, 1, 0, -0.9976, 0, -0.0698, -7, 0, 7)
+
+[node name="Tree3" parent="Nature" instance=ExtResource("16_p")]
+transform = Transform3D(-0.7771, 0, 0.6293, 0, 1, 0, -0.6293, 0, -0.7771, 7, 0, 7)
+
+[node name="Tree4" parent="Nature" instance=ExtResource("17_p")]
+transform = Transform3D(-0.9903, 0, -0.1392, 0, 1, 0, 0.1392, 0, -0.9903, -45, 0, -30)
+
+[node name="Tree5" parent="Nature" instance=ExtResource("13_p")]
+transform = Transform3D(-0.5736, 0, -0.8192, 0, 1, 0, 0.8192, 0, -0.5736, -45, 0, -20)
+
+[node name="Tree6" parent="Nature" instance=ExtResource("14_p")]
+transform = Transform3D(0.2079, 0, -0.9781, 0, 1, 0, 0.9781, 0, 0.2079, 45, 0, 20)
+
+[node name="Tree7" parent="Nature" instance=ExtResource("15_p")]
+transform = Transform3D(0.8572, 0, -0.515, 0, 1, 0, 0.515, 0, 0.8572, 45, 0, 30)
+
+[node name="Tree8" parent="Nature" instance=ExtResource("16_p")]
+transform = Transform3D(0.9613, 0, 0.2756, 0, 1, 0, -0.2756, 0, 0.9613, -30, 0, 44)
+
+[node name="Tree9" parent="Nature" instance=ExtResource("17_p")]
+transform = Transform3D(0.454, 0, 0.891, 0, 1, 0, -0.891, 0, 0.454, -20, 0, 44)
+
+[node name="Tree10" parent="Nature" instance=ExtResource("13_p")]
+transform = Transform3D(-0.342, 0, 0.9397, 0, 1, 0, -0.9397, 0, -0.342, 20, 0, -44)
+
+[node name="Tree11" parent="Nature" instance=ExtResource("14_p")]
+transform = Transform3D(-0.9205, 0, 0.3907, 0, 1, 0, -0.3907, 0, -0.9205, 30, 0, -44)
+
+[node name="Car0" parent="Street" instance=ExtResource("18_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -30, 0.1, -3.2)
+
+[node name="Car1" parent="Street" instance=ExtResource("19_p")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 24, 0.1, 3.2)
+
+[node name="Car2" parent="Street" instance=ExtResource("20_p")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 38, 0.1, -3.2)
+
+[node name="Car3" parent="Street" instance=ExtResource("21_p")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -18, 0.1, 3.2)
+
+[node name="TrashBags0" parent="Street" instance=ExtResource("25_p")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.6, 0, -7.4)
+
+[node name="Bench0" parent="Street" instance=ExtResource("22_p")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -10, 0, 8)
+
+[node name="Edges" type="Node3D" parent="."]
+
+[node name="North" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -50.5)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/North"]
+shape = SubResource("Shape_EdgeNorth")
+
+[node name="South" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 50.5)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/South"]
+shape = SubResource("Shape_EdgeSouth")
+
+[node name="East" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.5, 4, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/East"]
+shape = SubResource("Shape_EdgeEast")
+
+[node name="West" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.5, 4, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/West"]
+shape = SubResource("Shape_EdgeWest")
+
+[node name="TownState" parent="." instance=ExtResource("91_state")]
+
+[node name="TaxiRoute" type="Path3D" parent="."]
+curve = SubResource("Curve3D_taxi")
+
+[node name="Vehicles" type="Node3D" parent="."]
+
+[node name="VehicleSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/taxis/RoboTaxi.tscn")
+spawn_path = NodePath("../Vehicles")
+
+[node name="Routes" type="Node3D" parent="."]
+
+[node name="SouthWestBlock" type="Path3D" parent="Routes"]
+curve = SubResource("Curve3D_SouthWestBlock")
+
+[node name="SouthEastBlock" type="Path3D" parent="Routes"]
+curve = SubResource("Curve3D_SouthEastBlock")
+
+[node name="CrossStreet" type="Path3D" parent="Routes"]
+curve = SubResource("Curve3D_CrossStreet")
+
+[node name="Interactables" type="Node3D" parent="."]
+
+[node name="Hiker" parent="Interactables" instance=ExtResource("94_person")]
+Voice = "meghan"
+RouteName = "SouthWestBlock"
+StartAt = 0
+PersonName = "Wren, out walking"
+ModelPath = "res://assets/kaykit/characters/Hiker.glb"
+
+[node name="Farmer" parent="Interactables" instance=ExtResource("94_person")]
+Voice = "ian"
+RouteName = "SouthEastBlock"
+StartAt = 30
+PersonName = "Old Tomas"
+ModelPath = "res://assets/kaykit/characters/Farmer_A.glb"
+
+[node name="Driver" parent="Interactables" instance=ExtResource("94_person")]
+Voice = "karen"
+RouteName = "CrossStreet"
+StartAt = 20
+PersonName = "Ines, a driver"
+ModelPath = "res://assets/kaykit/characters/Driver.glb"
+
+[node name="TaxiStand" parent="Interactables" instance=ExtResource("93_stand")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 6.2)
+
+[node name="JunctionBox" parent="Interactables" instance=ExtResource("92_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, -6.8)
+
+[node name="LibraryTerminal" parent="Interactables" instance=ExtResource("2_terminal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 5)
+
+[node name="StreetKiosk" parent="Interactables" instance=ExtResource("2_terminal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -7)
+
+[node name="Bench1" parent="Interactables" instance=ExtResource("95_fixable")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -7.4)
+FixableName = "bench"
+
+[node name="Prop" parent="Interactables/Bench1" instance=ExtResource("22_p")]
+
+[node name="Dumpster0" parent="Interactables" instance=ExtResource("95_fixable")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.5, 0, -6.95)
+FixableName = "dumpster lid"
+
+[node name="Prop" parent="Interactables/Dumpster0" instance=ExtResource("23_p")]
+
+[node name="Hydrant0" parent="Interactables" instance=ExtResource("95_fixable")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -6)
+FixableName = "fire hydrant"
+
+[node name="Prop" parent="Interactables/Hydrant0" instance=ExtResource("24_p")]
+
+[node name="Signal0" parent="Interactables" instance=ExtResource("95_fixable")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 6, 0, 6)
+FixableName = "traffic light"
+
+[node name="Prop" parent="Interactables/Signal0" instance=ExtResource("97_signal")]
+
+[node name="Recycler" parent="Interactables" instance=ExtResource("96_recycler")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 0, -7.45)
+
+[node name="Doors" type="Node3D" parent="."]
+
+[node name="ToOutskirts" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -47)
+TargetZone = "outskirts"
+TargetArrival = "FromTown"
+
+[node name="ToShop" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, -7.4)
+TargetZone = "shop"
+TargetArrival = "FromTown"
+
+[node name="Sign" type="Label3D" parent="Doors/ToShop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0.2)
+text = "ELECTRONICS"
+modulate = Color(1, 0.85, 0.5, 1)
+outline_size = 10
+font_size = 64
+pixel_size = 0.01
+
+[node name="ToCollege" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, -7.4)
+TargetZone = "college"
+TargetArrival = "FromTown"
+
+[node name="Sign" type="Label3D" parent="Doors/ToCollege"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0.2)
+text = "COLLEGE"
+modulate = Color(0.7, 0.85, 1, 1)
+outline_size = 10
+font_size = 64
+pixel_size = 0.01
+
+[node name="SubwayEntrance" parent="Street" instance=ExtResource("98_subway")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.5, 0, 6.75)
+
+[node name="ToSubway" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.5, 0, 7.1)
+TargetZone = "subway"
+TargetArrival = "FromTown"
+
+[node name="Shape" parent="Doors/ToSubway" index="0"]
+shape = SubResource("Shape_SubwayDoor")
+
+[node name="Threshold" parent="Doors/ToSubway" index="1"]
+visible = false
+
+[node name="Arrivals" type="Node3D" parent="."]
+
+[node name="FromOutskirts" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -40)
+
+[node name="TaxiDropOff" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 8, 0, -40)
+
+[node name="FromShop" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -15, 0, -4.5)
+
+[node name="FromCollege" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 15, 0, -4.5)
+
+[node name="FromSubway" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.8, 0, 6.2)
+
+[node name="Spawn" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 8)
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/player/Player.tscn")
+spawn_path = NodePath("../Players")
+
+[node name="Drones" type="Node3D" parent="."]
+
+[node name="DroneSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/drones/Drone.tscn")
+spawn_path = NodePath("../Drones")
+
+[node name="Items" type="Node3D" parent="."]
+
+[node name="ItemSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/items/GroundItem.tscn")
+spawn_path = NodePath("../Items")

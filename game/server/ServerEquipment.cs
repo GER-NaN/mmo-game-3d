@@ -1,0 +1,220 @@
+namespace MmoGame3d.Server;
+
+using System;
+using System.Collections.Generic;
+using Godot;
+using MmoGame3d.Networking;
+using MmoGame3d.Rules.Items;
+using MmoGame3d.Rules.Skills;
+using MmoGame3d.Rules.Social;
+using MmoGame3d.Workbenches;
+
+/// <summary>
+/// Equipment on the server: equipping and unequipping, the workbench, going online by
+/// phone, and phone batteries running down. The rules are in Belongings and Power; this
+/// applies them to sessions, sends the owner their new bag, and checks the workbench is
+/// in reach, since a client could ask for a swap from anywhere.
+/// </summary>
+public class ServerEquipment
+{
+    // Batteries are drained once a second; the charge is a real-time thing.
+    private const double DrainIntervalSeconds = 1;
+    private const float ReachSlack = 1.5f;
+
+    private readonly ItemNetwork _network;
+    private readonly Network _session;
+    private readonly ServerTerminals _terminals;
+    private readonly Func<IEnumerable<Session>> _sessions;
+    private readonly Action<Session> _bagChanged;
+    private double _sinceDrain;
+
+    public ServerEquipment(ItemNetwork network, Network session, ServerTerminals terminals, Func<IEnumerable<Session>> sessions, Action<Session> bagChanged)
+    {
+        _network = network;
+        _session = session;
+        _terminals = terminals;
+        _sessions = sessions;
+        _bagChanged = bagChanged;
+    }
+
+    public void Equip(Session session, string instanceId)
+    {
+        Apply(session, instanceId, (mine, id) => mine.Equip(id));
+    }
+
+    public void Unequip(Session session, string instanceId)
+    {
+        // Taking the phone off while online on it takes you offline first.
+        if (_terminals.IsOnPhone(session))
+        {
+            _terminals.Leave(session);
+        }
+
+        Apply(session, instanceId, (mine, id) => mine.Unequip(id));
+    }
+
+    // Raised when workbench work succeeded, for the Workbench skill; true when it was
+    // done from the engineer's repair pack, which also feeds the career.
+    public event Action<Session, bool>? WorkDone;
+
+    // The Mechanical Engineer's ability: workbench work anywhere.
+    public void OpenRepairPack(Session session)
+    {
+        if (session.Progress.Career.Career != CareerId.MechanicalEngineer)
+        {
+            _session.SendNotice(session.PeerId, "Only a Mechanical Engineer carries a repair pack.");
+            return;
+        }
+
+        session.OpenWorkbench = null;
+        session.UsingRepairPack = true;
+        _network.SendWorkbenchOpened(session.PeerId);
+    }
+
+    public void OpenWorkbench(Session session, Workbench workbench)
+    {
+        session.OpenWorkbench = workbench;
+        session.UsingRepairPack = false;
+        _network.SendWorkbenchOpened(session.PeerId);
+    }
+
+    public void RemoveBattery(Session session, string phoneId)
+    {
+        if (AtWorkbench(session))
+        {
+            if (Apply(session, phoneId, (mine, id) => mine.RemoveBattery(id)))
+            {
+                session.Body?.Show(Gestures.Work);
+                WorkDone?.Invoke(session, session.UsingRepairPack);
+            }
+        }
+    }
+
+    public void InsertBattery(Session session, string phoneId, string battery)
+    {
+        if (AtWorkbench(session))
+        {
+            if (Apply(session, phoneId, (mine, id) => mine.InsertBattery(id, battery)))
+            {
+                session.Body?.Show(Gestures.Work);
+                WorkDone?.Invoke(session, session.UsingRepairPack);
+            }
+        }
+    }
+
+    public void UsePhone(Session session)
+    {
+        string? refusal = Power.CannotGoOnline(Belongings(session));
+
+        if (refusal != null)
+        {
+            _session.SendNotice(session.PeerId, refusal);
+            return;
+        }
+
+        _terminals.UsePhone(session);
+    }
+
+    public void Tick(double delta)
+    {
+        _sinceDrain += delta;
+
+        if (_sinceDrain < DrainIntervalSeconds)
+        {
+            return;
+        }
+
+        float seconds = (float)_sinceDrain;
+        _sinceDrain = 0;
+
+        foreach (Session session in _sessions())
+        {
+            if (session.State != SessionState.InWorld || session.Inventory == null)
+            {
+                continue;
+            }
+
+            ItemInstance? battery = Belongings(session).DeviceBattery();
+
+            if (battery == null || battery.Charge == null || battery.Charge <= 0f)
+            {
+                continue;
+            }
+
+            bool onPhone = _terminals.IsOnPhone(session);
+            int before = Power.Percent(battery.Charge);
+            battery.Charge = Power.Drain(battery.Charge.Value, seconds, onPhone);
+
+            if (battery.Charge <= 0f && onPhone)
+            {
+                _terminals.Leave(session);
+                _session.SendNotice(session.PeerId, "Your phone's battery died. You are offline.");
+            }
+
+            // A whole percent is worth telling the owner; every second would not be.
+            if (Power.Percent(battery.Charge) != before)
+            {
+                _bagChanged(session);
+            }
+        }
+    }
+
+    private bool AtWorkbench(Session session)
+    {
+        if (session.UsingRepairPack && session.Progress.Career.Career == CareerId.MechanicalEngineer)
+        {
+            return true;
+        }
+
+        Workbench? bench = session.OpenWorkbench;
+        bool atBench = bench != null && GodotObject.IsInstanceValid(bench) && session.Body != null
+            && bench.IsInReach(session.Body.GlobalPosition, ReachSlack);
+
+        if (!atBench)
+        {
+            _session.SendNotice(session.PeerId, "You need to be at a workbench for that.");
+        }
+
+        return atBench;
+    }
+
+    // True when the change was made.
+    private bool Apply(Session session, string instanceId, Func<Belongings, Guid, string?> change)
+    {
+        Guid id;
+
+        if (session.Inventory == null || !Guid.TryParse(instanceId, out id))
+        {
+            return false;
+        }
+
+        string? refusal = change(Belongings(session), id);
+
+        if (refusal != null)
+        {
+            _session.SendNotice(session.PeerId, refusal);
+            return false;
+        }
+
+        _bagChanged(session);
+        return true;
+    }
+
+    // A push to every phone that is equipped and has charge (world.md: "Agent Defense
+    // Required: AI infiltrated local firewall"). A phone that is off hears nothing.
+    public void PushToPhones(string text)
+    {
+        foreach (Session session in _sessions())
+        {
+            if (session.Inventory != null && Power.CannotGoOnline(Belongings(session)) == null)
+            {
+                _session.SendNotice(session.PeerId, "Phone: " + text);
+            }
+        }
+    }
+
+    private static Belongings Belongings(Session session)
+    {
+        return new Belongings(session.Inventory!, session.Instances);
+    }
+}

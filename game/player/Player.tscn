@@ -1,0 +1,58 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/player/Player.cs" id="1_player"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_sync"]
+properties/0/path = NodePath(".:NetPosition")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:NetYaw")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:DisplayName")
+properties/2/spawn = true
+properties/2/replication_mode = 0
+properties/3/path = NodePath(".:PlayerIdText")
+properties/3/spawn = true
+properties/3/replication_mode = 0
+properties/4/path = NodePath(".:IsOnline")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+properties/5/path = NodePath(".:GestureId")
+properties/5/spawn = true
+properties/5/replication_mode = 2
+properties/6/path = NodePath(".:Look")
+properties/6/spawn = true
+properties/6/replication_mode = 2
+properties/7/path = NodePath(".:CareerTitle")
+properties/7/spawn = true
+properties/7/replication_mode = 2
+properties/8/path = NodePath(".:Health")
+properties/8/spawn = true
+properties/8/replication_mode = 2
+properties/9/path = NodePath(".:OnPhone")
+properties/9/spawn = true
+properties/9/replication_mode = 2
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="NameLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 0)
+billboard = 1
+no_depth_test = true
+outline_size = 8
+font_size = 48
+pixel_size = 0.005
+
+[node name="Synchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_interval = 0.05
+replication_config = SubResource("SceneReplicationConfig_sync")
+visibility_update_mode = 2

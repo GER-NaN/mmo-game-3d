@@ -1,12 +1,24 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mmo-game-3d", "mmo-game-3d.csproj", "{24E9FD1C-F61E-48EC-B36B-B9DFDDEB73DF}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{88EB6B8E-DB3C-451F-8A42-3FABB2D9209E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rules", "src\Rules\Rules.csproj", "{B66A8113-00FE-49E4-9CD1-B2C29D8FDE39}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Data", "src\Data\Data.csproj", "{A5747BBA-35E6-482B-B26A-FC4C0C86965E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EF909B6F-2E74-4391-8006-9C3CAA827BAF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "tests\Tests\Tests.csproj", "{AB0B58A1-A711-473E-9061-EC83BB0FDA78}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Diagnostics", "src\Diagnostics\Diagnostics.csproj", "{3E4E08A3-6E74-4E42-94F0-62434E607D4C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-	Debug|Any CPU = Debug|Any CPU
-	ExportDebug|Any CPU = ExportDebug|Any CPU
-	ExportRelease|Any CPU = ExportRelease|Any CPU
+		Debug|Any CPU = Debug|Any CPU
+		ExportDebug|Any CPU = ExportDebug|Any CPU
+		ExportRelease|Any CPU = ExportRelease|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{24E9FD1C-F61E-48EC-B36B-B9DFDDEB73DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -15,5 +27,35 @@ Global
 		{24E9FD1C-F61E-48EC-B36B-B9DFDDEB73DF}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
 		{24E9FD1C-F61E-48EC-B36B-B9DFDDEB73DF}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
 		{24E9FD1C-F61E-48EC-B36B-B9DFDDEB73DF}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+		{B66A8113-00FE-49E4-9CD1-B2C29D8FDE39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B66A8113-00FE-49E4-9CD1-B2C29D8FDE39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B66A8113-00FE-49E4-9CD1-B2C29D8FDE39}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B66A8113-00FE-49E4-9CD1-B2C29D8FDE39}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{B66A8113-00FE-49E4-9CD1-B2C29D8FDE39}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{B66A8113-00FE-49E4-9CD1-B2C29D8FDE39}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+		{A5747BBA-35E6-482B-B26A-FC4C0C86965E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5747BBA-35E6-482B-B26A-FC4C0C86965E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5747BBA-35E6-482B-B26A-FC4C0C86965E}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5747BBA-35E6-482B-B26A-FC4C0C86965E}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{A5747BBA-35E6-482B-B26A-FC4C0C86965E}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{A5747BBA-35E6-482B-B26A-FC4C0C86965E}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+		{AB0B58A1-A711-473E-9061-EC83BB0FDA78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB0B58A1-A711-473E-9061-EC83BB0FDA78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB0B58A1-A711-473E-9061-EC83BB0FDA78}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB0B58A1-A711-473E-9061-EC83BB0FDA78}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{AB0B58A1-A711-473E-9061-EC83BB0FDA78}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{AB0B58A1-A711-473E-9061-EC83BB0FDA78}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+		{3E4E08A3-6E74-4E42-94F0-62434E607D4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E4E08A3-6E74-4E42-94F0-62434E607D4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E4E08A3-6E74-4E42-94F0-62434E607D4C}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E4E08A3-6E74-4E42-94F0-62434E607D4C}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{3E4E08A3-6E74-4E42-94F0-62434E607D4C}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E4E08A3-6E74-4E42-94F0-62434E607D4C}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B66A8113-00FE-49E4-9CD1-B2C29D8FDE39} = {88EB6B8E-DB3C-451F-8A42-3FABB2D9209E}
+		{A5747BBA-35E6-482B-B26A-FC4C0C86965E} = {88EB6B8E-DB3C-451F-8A42-3FABB2D9209E}
+		{AB0B58A1-A711-473E-9061-EC83BB0FDA78} = {EF909B6F-2E74-4391-8006-9C3CAA827BAF}
+		{3E4E08A3-6E74-4E42-94F0-62434E607D4C} = {88EB6B8E-DB3C-451F-8A42-3FABB2D9209E}
 	EndGlobalSection
 EndGlobal

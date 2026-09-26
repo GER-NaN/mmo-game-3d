@@ -1,0 +1,42 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://game/Main.cs" id="1_main"]
+[ext_resource type="Script" path="res://game/networking/Network.cs" id="2_network"]
+[ext_resource type="Script" path="res://game/networking/PartyNetwork.cs" id="3_party"]
+[ext_resource type="Script" path="res://game/networking/TerminalNetwork.cs" id="4_terminal"]
+[ext_resource type="Script" path="res://game/networking/ShopNetwork.cs" id="5_shop"]
+[ext_resource type="Script" path="res://game/networking/ItemNetwork.cs" id="6_items"]
+[ext_resource type="Script" path="res://game/networking/SocialNetwork.cs" id="7_social"]
+[ext_resource type="Script" path="res://game/networking/ProgressNetwork.cs" id="8_progress"]
+[ext_resource type="Script" path="res://game/networking/GardenNetwork.cs" id="9_garden"]
+[ext_resource type="Script" path="res://game/networking/SubwayNetwork.cs" id="10_subway"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_main")
+
+[node name="Network" type="Node" parent="."]
+script = ExtResource("2_network")
+
+[node name="PartyNetwork" type="Node" parent="."]
+script = ExtResource("3_party")
+
+[node name="TerminalNetwork" type="Node" parent="."]
+script = ExtResource("4_terminal")
+
+[node name="ShopNetwork" type="Node" parent="."]
+script = ExtResource("5_shop")
+
+[node name="ItemNetwork" type="Node" parent="."]
+script = ExtResource("6_items")
+
+[node name="SocialNetwork" type="Node" parent="."]
+script = ExtResource("7_social")
+
+[node name="ProgressNetwork" type="Node" parent="."]
+script = ExtResource("8_progress")
+
+[node name="GardenNetwork" type="Node" parent="."]
+script = ExtResource("9_garden")
+
+[node name="SubwayNetwork" type="Node" parent="."]
+script = ExtResource("10_subway")

@@ -1,0 +1,32 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://game/chests/Chest.cs" id="1_chest"]
+[ext_resource type="PackedScene" path="res://game/props/resource_bits/GemsChest.tscn" id="2_full"]
+[ext_resource type="PackedScene" path="res://game/props/resource_bits/GemsChestEmpty.tscn" id="3_empty"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_chest"]
+size = Vector3(0.95, 0.8, 0.7)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_chest"]
+properties/0/path = NodePath(".:HasItem")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+
+[node name="Chest" type="StaticBody3D"]
+script = ExtResource("1_chest")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+shape = SubResource("BoxShape3D_chest")
+
+[node name="Full" parent="." instance=ExtResource("2_full")]
+collision_layer = 0
+
+[node name="Empty" parent="." instance=ExtResource("3_empty")]
+visible = false
+collision_layer = 0
+
+[node name="Synchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_interval = 1.0
+replication_config = SubResource("SceneReplicationConfig_chest")
+visibility_update_mode = 2
