@@ -183,6 +183,7 @@ public partial class ServerGame : Node
             _progress.Award(session, SkillId.ElectricalRepair, SkillAwards.ElectricalRepairPerBox);
             _progress.MissionDone(session);
         };
+        _town.LightsBroke += () => _equipment.PushToPhones("Alert: the AI took out the street lights on Main Street. Town repairs has a job.");
         _interactions.Town = _town;
         _rides = new ServerRides(world, _gate, network, _parties, () => _sessions.Values, Travel);
         _interactions.Rides = _rides;

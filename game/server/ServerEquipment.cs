@@ -200,6 +200,19 @@ public class ServerEquipment
         return true;
     }
 
+    // A push to every phone that is equipped and has charge (world.md: "Agent Defense
+    // Required: AI infiltrated local firewall"). A phone that is off hears nothing.
+    public void PushToPhones(string text)
+    {
+        foreach (Session session in _sessions())
+        {
+            if (session.Inventory != null && Power.CannotGoOnline(Belongings(session)) == null)
+            {
+                _session.SendNotice(session.PeerId, "Phone: " + text);
+            }
+        }
+    }
+
     private static Belongings Belongings(Session session)
     {
         return new Belongings(session.Inventory!, session.Instances);

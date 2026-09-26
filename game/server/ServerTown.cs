@@ -82,6 +82,9 @@ public class ServerTown
         SendTown(session);
     }
 
+    // Raised when the AI takes the lights out, for the phones.
+    public event Action? LightsBroke;
+
     // Raised for the one who repaired the lights: experience and a mission.
     public event Action<Session>? Repaired;
 
@@ -123,6 +126,7 @@ public class ServerTown
         if (_lights.BreakIfDue(DateTime.UtcNow))
         {
             Changed("The street lights on Main Street went dark again. The AI is at the grid.");
+            LightsBroke?.Invoke();
         }
     }
 
