@@ -46,6 +46,11 @@ public partial class Player : CharacterBody3D
     [Export]
     public string DisplayName { get; set; } = "";
 
+    // At a terminal, in the terminal world. The server holds an online body still; others
+    // see it under the name.
+    [Export]
+    public bool IsOnline { get; set; }
+
     // The persistent player id, public: party rosters on clients name members by it.
     [Export]
     public string PlayerIdText { get; set; } = "";
@@ -112,15 +117,17 @@ public partial class Player : CharacterBody3D
     {
         Label3D label = GetNode<Label3D>("NameLabel");
 
+        string name = DisplayName + (IsOnline ? "\n(online)" : "");
+
         if (selected)
         {
             label.Modulate = new Color(1f, 0.9f, 0.3f);
-            label.Text = "> " + DisplayName + " <";
+            label.Text = "> " + name + " <";
         }
         else
         {
             label.Modulate = partyMember ? new Color(0.5f, 1f, 0.6f) : Colors.White;
-            label.Text = DisplayName;
+            label.Text = name;
         }
     }
 
@@ -240,9 +247,17 @@ public partial class Player : CharacterBody3D
 
     private void Simulate(float delta)
     {
+        // Online, the body stands at the terminal: the walk it last asked for waits.
+        Vector2 walk = IsOnline ? Vector2.Zero : _moveDirection;
+
+        if (IsOnline)
+        {
+            _jumpRequested = false;
+        }
+
         Vector3 velocity = Velocity;
-        velocity.X = _moveDirection.X * Speed;
-        velocity.Z = _moveDirection.Y * Speed;
+        velocity.X = walk.X * Speed;
+        velocity.Z = walk.Y * Speed;
 
         if (IsOnFloor())
         {

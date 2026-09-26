@@ -8,6 +8,7 @@ using MmoGame3d.Rules;
 using MmoGame3d.Rules.Chat;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
+using MmoGame3d.Rules.Terminals;
 using MmoGame3d.Ui;
 using MmoGame3d.Zones;
 
@@ -24,11 +25,16 @@ public partial class ClientGame : Node
     private static readonly PackedScene HudScene = GD.Load<PackedScene>("res://game/ui/Hud.tscn");
     private static readonly PackedScene InventoryScene = GD.Load<PackedScene>("res://game/ui/InventoryPanel.tscn");
     private static readonly PackedScene ChatScene = GD.Load<PackedScene>("res://game/ui/ChatBox.tscn");
+    private static readonly PackedScene TerminalScene = GD.Load<PackedScene>("res://game/ui/TerminalScreen.tscn");
+
+    // How much chat the client keeps, for a screen opened later.
+    private const int ChatKept = 100;
     private static readonly PackedScene WorldScene = GD.Load<PackedScene>("res://game/zones/World.tscn");
 
     private LaunchOptions _options = null!;
     private Network _network = null!;
     private PartyNetwork _partyNetwork = null!;
+    private TerminalNetwork _terminalNetwork = null!;
     private Node _main = null!;
     private ClientSettings _settings = null!;
     private Profile _profile = null!;
@@ -41,6 +47,9 @@ public partial class ClientGame : Node
     private InventoryPanel? _inventoryPanel;
     private ChatBox? _chat;
     private ClientParty? _party;
+    private InteractionFinder? _finder;
+    private TerminalScreen? _terminal;
+    private readonly List<ChatLine> _chatLog = new List<ChatLine>();
     private BotDriver? _bot;
 
     // What the server last said this player carries.
@@ -48,11 +57,12 @@ public partial class ClientGame : Node
     private string _pendingName = "";
     private string _address = "";
 
-    public void Start(LaunchOptions options, Network network, PartyNetwork partyNetwork, Node main)
+    public void Start(LaunchOptions options, Networks networks, Node main)
     {
         _options = options;
-        _network = network;
-        _partyNetwork = partyNetwork;
+        _network = networks.Session;
+        _partyNetwork = networks.Party;
+        _terminalNetwork = networks.Terminal;
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load();
@@ -84,6 +94,9 @@ public partial class ClientGame : Node
         _network.NoticeReceived += OnNoticeReceived;
         _network.ChatReceived += OnChatReceived;
         _network.ClockReceived += OnClockReceived;
+        _terminalNetwork.Opened += OnTerminalOpened;
+        _terminalNetwork.Closed += CloseTerminal;
+        _terminalNetwork.RosterReceived += (names, zones, online) => _terminal?.ShowRoster(names, zones, online);
         // Deferred, like the login answers above: these fire inside the engine's network
         // poll, and closing the peer or freeing the world is better done after it.
         Multiplayer.ConnectedToServer += () => Callable.From(OnConnected).CallDeferred();
@@ -112,6 +125,18 @@ public partial class ClientGame : Node
     {
         if (_world == null)
         {
+            return;
+        }
+
+        if (_terminal != null)
+        {
+            // Esc goes offline; the other keys belong to the terminal.
+            if (@event.IsActionPressed("ui_cancel"))
+            {
+                GetViewport().SetInputAsHandled();
+                _terminalNetwork.SendLeave();
+            }
+
             return;
         }
 
@@ -256,6 +281,11 @@ public partial class ClientGame : Node
         AddChild(_party);
         _party.Start(_partyNetwork, _ui, _world);
 
+        _finder = new InteractionFinder { Name = "InteractionFinder" };
+        AddChild(_finder);
+        _finder.PromptChanged += _hud.ShowPrompt;
+        _finder.UseRequested += _network.SendInteract;
+
         _network.SendWorldReady();
 
         if (_options.Bot)
@@ -293,6 +323,52 @@ public partial class ClientGame : Node
     {
         GD.Print("Chat: " + (sender.Length > 0 ? sender + ": " : "") + text);
         _chat?.AddLine(sender, text, (ChatKind)kind);
+
+        ChatLine line = new ChatLine(sender, text, (ChatKind)kind);
+        _chatLog.Add(line);
+
+        if (_chatLog.Count > ChatKept)
+        {
+            _chatLog.RemoveAt(0);
+        }
+
+        _terminal?.AddChatLine(line);
+    }
+
+    private void OnTerminalOpened(int terminalType, string terminalName)
+    {
+        GD.Print("Online at " + terminalName);
+        CloseTerminal();
+
+        _terminal = TerminalScene.Instantiate<TerminalScreen>();
+        _ui.AddChild(_terminal);
+        _terminal.Open((TerminalType)terminalType, terminalName, _chatLog);
+        _terminal.GoOfflinePressed += _terminalNetwork.SendLeave;
+        _terminal.ChatSubmitted += _network.SendChat;
+
+        if (_finder != null)
+        {
+            _finder.Paused = true;
+        }
+
+        _hud?.ShowPrompt("");
+    }
+
+    private void CloseTerminal()
+    {
+        if (_terminal == null)
+        {
+            return;
+        }
+
+        GD.Print("Offline");
+        _terminal.QueueFree();
+        _terminal = null;
+
+        if (_finder != null)
+        {
+            _finder.Paused = false;
+        }
     }
 
     private void OnNoticeReceived(string text)
@@ -381,6 +457,20 @@ public partial class ClientGame : Node
             _party.QueueFree();
             _party = null;
         }
+
+        if (_finder != null)
+        {
+            _finder.QueueFree();
+            _finder = null;
+        }
+
+        if (_terminal != null)
+        {
+            _terminal.QueueFree();
+            _terminal = null;
+        }
+
+        _chatLog.Clear();
 
         _stacks = new List<ItemStack>();
 

@@ -4,19 +4,38 @@ using System;
 using Godot;
 
 /// <summary>
-/// The session RPCs: login and entering the world. The node sits at the same path on
-/// server and client, which is how an RPC finds its way. Each RPC only raises an event;
-/// ServerGame and ClientGame decide what it means.
+/// The session RPCs: login, entering the world, the private state (bag, notices, the
+/// time), chat, and using things. The node sits at the same path on server and client,
+/// which is how an RPC finds its way. Each RPC only raises an event; ServerGame and
+/// ClientGame decide what it means. Features with several RPCs of their own get their
+/// own node (PartyNetwork, TerminalNetwork).
 ///
-/// Who may call what: Login and WorldReady come from any peer and are handled only on
-/// the server, which knows the sender from the connection. The answers are Authority
-/// RPCs, so only the server can send them.
+/// Who may call what: requests come from any peer and are handled only on the server,
+/// which knows the sender from the connection. The answers are Authority RPCs, so only
+/// the server can send them.
 /// </summary>
 public partial class Network : Node
 {
     // Server side: (peer, protocol, license key, display name).
     public event Action<long, int, string, string>? LoginRequested;
     public event Action<long>? WorldReadyReceived;
+
+    // Server side: (peer, name of the interactable) the player wants to use.
+    public event Action<long, string>? InteractRequested;
+
+    public void SendInteract(string interactableName)
+    {
+        RpcId(1, MethodName.Interact, interactableName);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Interact(string interactableName)
+    {
+        if (Multiplayer.IsServer())
+        {
+            InteractRequested?.Invoke(Multiplayer.GetRemoteSenderId(), interactableName);
+        }
+    }
 
     // Client side: (zone, display name), and the refusal's reason.
     public event Action<string, string>? LoginAccepted;

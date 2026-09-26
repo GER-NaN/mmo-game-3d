@@ -1,0 +1,135 @@
+namespace MmoGame3d.Server;
+
+using System;
+using System.Collections.Generic;
+using MmoGame3d.Networking;
+using MmoGame3d.Rules.Terminals;
+using MmoGame3d.Terminals;
+
+/// <summary>
+/// Going online and offline at fixed terminals, and the roster of who is online. The
+/// rules live in TerminalAccess; this keeps the terminal nodes, the bodies and the
+/// screens in step with it. The terminal world is not split by zone: the roster lists
+/// everyone in the world, wherever they stand.
+/// </summary>
+public class ServerTerminals
+{
+    // How often the online get the roster. It is small, and a join shows within this.
+    private const double RosterIntervalSeconds = 2;
+
+    private readonly TerminalAccess _access = new TerminalAccess();
+    private readonly Dictionary<string, Terminal> _terminalsByKey = new Dictionary<string, Terminal>();
+    private readonly TerminalNetwork _network;
+    private readonly Network _session;
+    private readonly Func<IEnumerable<Session>> _sessions;
+    private double _sinceRoster;
+
+    public ServerTerminals(TerminalNetwork network, Network session, Func<IEnumerable<Session>> sessions)
+    {
+        _network = network;
+        _session = session;
+        _sessions = sessions;
+    }
+
+    public void Use(Session session, Terminal terminal)
+    {
+        string key = session.ZoneId + "/" + terminal.Name;
+        string? refusal = _access.Use(session.Record!.PlayerId, key, terminal.Enabled);
+
+        if (refusal != null)
+        {
+            _session.SendNotice(session.PeerId, refusal);
+            return;
+        }
+
+        _terminalsByKey[key] = terminal;
+        terminal.UsedBy = session.Record.DisplayName;
+        session.Body!.IsOnline = true;
+        _network.SendOpened(session.PeerId, terminal.TypeId, terminal.Name);
+        SendRoster(session);
+    }
+
+    // Going offline by choice, which closes the screen.
+    public void Leave(Session session)
+    {
+        if (Release(session))
+        {
+            _network.SendClosed(session.PeerId);
+        }
+    }
+
+    // A disconnect: the terminal is freed; there is no screen left to close.
+    public void Disconnected(Session session)
+    {
+        Release(session);
+    }
+
+    public void Tick(double delta)
+    {
+        _sinceRoster += delta;
+
+        if (_sinceRoster < RosterIntervalSeconds)
+        {
+            return;
+        }
+
+        _sinceRoster = 0;
+
+        foreach (Session session in _sessions())
+        {
+            if (session.Record != null && _access.IsOnline(session.Record.PlayerId))
+            {
+                SendRoster(session);
+            }
+        }
+    }
+
+    private bool Release(Session session)
+    {
+        if (session.Record == null)
+        {
+            return false;
+        }
+
+        string? key = _access.Leave(session.Record.PlayerId);
+
+        if (key == null)
+        {
+            return false;
+        }
+
+        Terminal? terminal;
+
+        if (_terminalsByKey.TryGetValue(key, out terminal))
+        {
+            terminal.UsedBy = "";
+            _terminalsByKey.Remove(key);
+        }
+
+        if (session.Body != null)
+        {
+            session.Body.IsOnline = false;
+        }
+
+        return true;
+    }
+
+    private void SendRoster(Session viewer)
+    {
+        List<string> names = new List<string>();
+        List<string> zones = new List<string>();
+        List<int> online = new List<int>();
+
+        foreach (Session session in _sessions())
+        {
+            if (session.State == SessionState.InWorld && session.Record != null)
+            {
+                names.Add(session.Record.DisplayName);
+                zones.Add(session.Record.Zone);
+                online.Add(_access.IsOnline(session.Record.PlayerId) ? 1 : 0);
+            }
+        }
+
+        _network.SendRoster(viewer.PeerId, names.ToArray(), zones.ToArray(), online.ToArray());
+    }
+}

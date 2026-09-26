@@ -6,6 +6,7 @@ using Godot;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
 using MmoGame3d.Data.Players;
+using MmoGame3d.Interact;
 using MmoGame3d.Items;
 using MmoGame3d.Networking;
 using MmoGame3d.Players;
@@ -48,13 +49,17 @@ public partial class ServerGame : Node
     private GroundItems _groundItems = null!;
     private ServerChat _chat = null!;
     private ServerParties _parties = null!;
+    private ServerTerminals _terminals = null!;
+    private ServerInteractions _interactions = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
     private double _sinceClock;
 
-    public void Start(LaunchOptions options, Network network, PartyNetwork partyNetwork, World world)
+    public void Start(LaunchOptions options, Networks networks, World world)
     {
+        Network network = networks.Session;
+        PartyNetwork partyNetwork = networks.Party;
         _options = options;
         _network = network;
         _world = world;
@@ -91,6 +96,23 @@ public partial class ServerGame : Node
         _groundItems = new GroundItems(_gate, OnItemPickedUp);
         _chat = new ServerChat(network, () => _sessions.Values);
         _parties = new ServerParties(partyNetwork, network, _chat, () => _sessions.Values);
+        _terminals = new ServerTerminals(networks.Terminal, network, () => _sessions.Values);
+        _interactions = new ServerInteractions(world, network, _terminals);
+
+        // Things standing in the zones sync their state (a terminal in use) only to the
+        // players in that zone, like everything else.
+        foreach (string zoneId in ZoneIds.All)
+        {
+            foreach (Node node in _world.GetZone(zoneId)!.GetNode(Interactable.ParentName).GetChildren())
+            {
+                MultiplayerSynchronizer? synchronizer = (node as Interactable)?.Synchronizer;
+
+                if (synchronizer != null)
+                {
+                    _gate.Watch(synchronizer, zoneId);
+                }
+            }
+        }
 
         ENetMultiplayerPeer peer = new ENetMultiplayerPeer();
         Error error = peer.CreateServer(options.Port, options.MaxPlayers);
@@ -112,6 +134,8 @@ public partial class ServerGame : Node
         partyNetwork.ResponseReceived += (peer, inviter, accept) => WithSession(peer, session => _parties.Respond(session, inviter, accept));
         partyNetwork.LeaveRequested += peer => WithSession(peer, session => _parties.Leave(session));
         partyNetwork.ChatRequested += (peer, text) => WithSession(peer, session => _parties.Chat(session, text));
+        _network.InteractRequested += (peer, name) => WithSession(peer, session => _interactions.Use(session, name));
+        networks.Terminal.LeaveRequested += peer => WithSession(peer, session => _terminals.Leave(session));
 
         GD.Print("Server listening on port " + options.Port + " for up to " + options.MaxPlayers + " players");
     }
@@ -125,6 +149,7 @@ public partial class ServerGame : Node
 
         _worker.RunCompletions();
         _parties.Tick(delta);
+        _terminals.Tick(delta);
 
         if (_stopSignals != null && _stopSignals.StopRequested())
         {
@@ -222,6 +247,7 @@ public partial class ServerGame : Node
 
         if (session.Body != null)
         {
+            _terminals.Disconnected(session);
             Save(session);
             session.Body.QueueFree();
             _parties.LeftWorld(session);

@@ -12,8 +12,8 @@ using MmoGame3d.Ui;
 /// and mouse is the real game.
 ///
 /// What it does: walks with pauses and turns, jumps sometimes, says a line in chat now
-/// and then, clicks on a nearby player and invites them, and joins any party it is
-/// invited to.
+/// and then, clicks on a nearby player and invites them, joins any party it is invited
+/// to, and goes online at a terminal it passes, then offline again a little later.
 /// </summary>
 public partial class BotDriver : Node
 {
@@ -25,6 +25,9 @@ public partial class BotDriver : Node
     // A person takes a moment to read before clicking. The pause also lets a new panel
     // lay itself out, so a button is where it is drawn when the click lands.
     private const double ReadDelay = 0.4;
+
+    // How long the bot stays online before it goes offline again.
+    private const double OnlineSeconds = 6;
 
     private static readonly string[] Lines =
     {
@@ -40,6 +43,9 @@ public partial class BotDriver : Node
     private double _nextRecruit = 4;
     private double _inviteClickIn = -1;
     private double _joinSeenFor;
+    private double _onlineFor;
+    private double _interactHeldFor = -1;
+    private double _nextInteract;
 
     // How the bot talks: the same call the chat box makes.
     public Action<string>? Say { get; set; }
@@ -47,6 +53,14 @@ public partial class BotDriver : Node
     public override void _Process(double delta)
     {
         AcceptInvites(delta);
+        UseTerminals(delta);
+
+        // Online, the body stands still and the keys belong to the terminal.
+        if (GetTree().GetFirstNodeInGroup(TerminalScreen.GoOfflineGroup) != null)
+        {
+            return;
+        }
+
         Recruit(delta);
         Talk(delta);
         Wander(delta);
@@ -138,6 +152,51 @@ public partial class BotDriver : Node
                 _inviteClickIn = ReadDelay;
                 return;
             }
+        }
+    }
+
+    private void UseTerminals(double delta)
+    {
+        // Held for a moment, like a key press, so the game sees it down then up.
+        if (_interactHeldFor >= 0)
+        {
+            _interactHeldFor += delta;
+
+            if (_interactHeldFor >= 0.1)
+            {
+                _interactHeldFor = -1;
+                Input.ActionRelease("interact");
+            }
+        }
+
+        _nextInteract -= delta;
+
+        Button? goOffline = GetTree().GetFirstNodeInGroup(TerminalScreen.GoOfflineGroup) as Button;
+
+        if (goOffline != null)
+        {
+            _onlineFor += delta;
+
+            if (_onlineFor >= OnlineSeconds && goOffline.IsVisibleInTree())
+            {
+                _onlineFor = 0;
+                GD.Print("Bot: clicking Go Offline");
+                Click(goOffline.GetGlobalRect().GetCenter());
+            }
+
+            return;
+        }
+
+        _onlineFor = 0;
+        Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
+
+        if (prompt != null && prompt.Visible && prompt.Text.Contains("Go Online") && _nextInteract <= 0)
+        {
+            GD.Print("Bot: pressing F at \"" + prompt.Text + "\"");
+            ReleaseKeys();
+            Input.ActionPress("interact");
+            _interactHeldFor = 0;
+            _nextInteract = 2;
         }
     }
 

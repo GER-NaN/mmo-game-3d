@@ -1,6 +1,7 @@
 [gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
+[ext_resource type="PackedScene" path="res://game/terminals/Terminal.tscn" id="2_terminal"]
 
 [sub_resource type="BoxShape3D" id="Shape_Ground"]
 size = Vector3(60, 1, 60)
@@ -158,6 +159,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.5, 4, 0)
 
 [node name="Collision" type="CollisionShape3D" parent="Edges/West"]
 shape = SubResource("Shape_EdgeWest")
+
+[node name="Interactables" type="Node3D" parent="."]
+
+[node name="LibraryTerminal" parent="Interactables" instance=ExtResource("2_terminal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -4)
+
+[node name="StreetKiosk" parent="Interactables" instance=ExtResource("2_terminal")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -6, 0, 14)
 
 [node name="Spawn" type="Marker3D" parent="."]
 

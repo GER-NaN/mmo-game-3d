@@ -33,6 +33,22 @@ public partial class Hud : Control
         GetNode<Label>("%Identity").Text = _identity + (_clock.Length > 0 ? "   " + _clock : "");
     }
 
+    // Bots read the prompt by this group, as a person reads the screen.
+    public const string PromptGroup = "interact_prompt";
+
+    public override void _Ready()
+    {
+        GetNode<Label>("%Prompt").AddToGroup(PromptGroup);
+    }
+
+    // The "F Go Online" line near the bottom; empty hides it.
+    public void ShowPrompt(string prompt)
+    {
+        Label label = GetNode<Label>("%Prompt");
+        label.Visible = prompt.Length > 0;
+        label.Text = prompt.Length > 0 ? "[F]  " + prompt : "";
+    }
+
     public void ShowNotice(string text)
     {
         VBoxContainer notices = GetNode<VBoxContainer>("%Notices");
