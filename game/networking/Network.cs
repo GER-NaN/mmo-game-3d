@@ -28,6 +28,37 @@ public partial class Network : Node
     // Client side: a short line for the player ("Picked up 2 GPU core").
     public event Action<string>? NoticeReceived;
 
+    // Server side: (peer, text) a player typed.
+    public event Action<long, string>? ChatRequested;
+
+    // Client side: (sender, text, kind) - see ChatKind.
+    public event Action<string, string, int>? ChatReceived;
+
+    public void SendChat(string text)
+    {
+        RpcId(1, MethodName.Chat, text);
+    }
+
+    public void SendChatLine(long peer, string sender, string text, int kind)
+    {
+        RpcId(peer, MethodName.ReceiveChatLine, sender, text, kind);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Chat(string text)
+    {
+        if (Multiplayer.IsServer())
+        {
+            ChatRequested?.Invoke(Multiplayer.GetRemoteSenderId(), text);
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveChatLine(string sender, string text, int kind)
+    {
+        ChatReceived?.Invoke(sender, text, kind);
+    }
+
     public void SendInventory(long peer, int[] packed)
     {
         RpcId(peer, MethodName.ReceiveInventory, packed);

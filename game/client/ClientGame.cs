@@ -5,6 +5,7 @@ using Godot;
 using MmoGame3d.Dev;
 using MmoGame3d.Networking;
 using MmoGame3d.Rules;
+using MmoGame3d.Rules.Chat;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
 using MmoGame3d.Ui;
@@ -22,6 +23,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene InGameMenuScene = GD.Load<PackedScene>("res://game/ui/InGameMenu.tscn");
     private static readonly PackedScene HudScene = GD.Load<PackedScene>("res://game/ui/Hud.tscn");
     private static readonly PackedScene InventoryScene = GD.Load<PackedScene>("res://game/ui/InventoryPanel.tscn");
+    private static readonly PackedScene ChatScene = GD.Load<PackedScene>("res://game/ui/ChatBox.tscn");
     private static readonly PackedScene WorldScene = GD.Load<PackedScene>("res://game/zones/World.tscn");
 
     private LaunchOptions _options = null!;
@@ -36,6 +38,7 @@ public partial class ClientGame : Node
     private World? _world;
     private Hud? _hud;
     private InventoryPanel? _inventoryPanel;
+    private ChatBox? _chat;
     private BotDriver? _bot;
 
     // What the server last said this player carries.
@@ -70,6 +73,7 @@ public partial class ClientGame : Node
         _network.LoginRefused += reason => Callable.From(() => OnLoginRefused(reason)).CallDeferred();
         _network.InventoryReceived += OnInventoryReceived;
         _network.NoticeReceived += OnNoticeReceived;
+        _network.ChatReceived += OnChatReceived;
         // Deferred, like the login answers above: these fire inside the engine's network
         // poll, and closing the peer or freeing the world is better done after it.
         Multiplayer.ConnectedToServer += () => Callable.From(OnConnected).CallDeferred();
@@ -110,6 +114,11 @@ public partial class ClientGame : Node
         {
             GetViewport().SetInputAsHandled();
             ToggleInventory();
+        }
+        else if (@event.IsActionPressed("chat") && _chat != null)
+        {
+            GetViewport().SetInputAsHandled();
+            _chat.Open();
         }
     }
 
@@ -221,11 +230,15 @@ public partial class ClientGame : Node
         _ui.AddChild(_hud);
         _hud.ShowIdentity(displayName, zoneId);
 
+        _chat = ChatScene.Instantiate<ChatBox>();
+        _ui.AddChild(_chat);
+        _chat.Submitted += _network.SendChat;
+
         _network.SendWorldReady();
 
         if (_options.Bot)
         {
-            _bot = new BotDriver { Name = "Bot" };
+            _bot = new BotDriver { Name = "Bot", Say = _network.SendChat };
             AddChild(_bot);
         }
     }
@@ -234,6 +247,12 @@ public partial class ClientGame : Node
     {
         _stacks = InventoryWire.Unpack(packed);
         _inventoryPanel?.ShowStacks(_stacks);
+    }
+
+    private void OnChatReceived(string sender, string text, int kind)
+    {
+        GD.Print("Chat: " + (sender.Length > 0 ? sender + ": " : "") + text);
+        _chat?.AddLine(sender, text, (ChatKind)kind);
     }
 
     private void OnNoticeReceived(string text)
@@ -309,6 +328,12 @@ public partial class ClientGame : Node
         {
             _inventoryPanel.QueueFree();
             _inventoryPanel = null;
+        }
+
+        if (_chat != null)
+        {
+            _chat.QueueFree();
+            _chat = null;
         }
 
         _stacks = new List<ItemStack>();

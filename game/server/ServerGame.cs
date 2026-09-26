@@ -42,6 +42,7 @@ public partial class ServerGame : Node
     private StopSignals? _stopSignals;
     private VisibilityGate _gate = null!;
     private GroundItems _groundItems = null!;
+    private ServerChat _chat = null!;
     private bool _stocked;
     private double _sinceSave;
 
@@ -78,6 +79,7 @@ public partial class ServerGame : Node
         _stopSignals = new StopSignals(options.Port);
         _gate = new VisibilityGate(CanSee);
         _groundItems = new GroundItems(_gate, OnItemPickedUp);
+        _chat = new ServerChat(network, () => _sessions.Values);
 
         ENetMultiplayerPeer peer = new ENetMultiplayerPeer();
         Error error = peer.CreateServer(options.Port, options.MaxPlayers);
@@ -94,6 +96,7 @@ public partial class ServerGame : Node
         Multiplayer.PeerDisconnected += OnPeerDisconnected;
         _network.LoginRequested += OnLoginRequested;
         _network.WorldReadyReceived += OnWorldReady;
+        _network.ChatRequested += OnChatRequested;
 
         GD.Print("Server listening on port " + options.Port + " for up to " + options.MaxPlayers + " players");
     }
@@ -184,11 +187,13 @@ public partial class ServerGame : Node
         }
 
         _sessions.Remove(peer);
+        _chat.Forget(peer);
 
         if (session.Body != null)
         {
             Save(session);
             session.Body.QueueFree();
+            _chat.Announce(session.Record!.DisplayName + " left.");
         }
 
         GD.Print("Peer " + peer + " left" + (session.Record != null ? " (" + session.Record.DisplayName + ")" : ""));
@@ -321,6 +326,15 @@ public partial class ServerGame : Node
         // the players and items already standing there spawn on this client.
         _gate.Refresh(zone.ZoneId);
         SendInventory(session);
+        _chat.Announce(record.DisplayName + " joined.");
+    }
+
+    private void OnChatRequested(long peer, string text)
+    {
+        if (_sessions.TryGetValue(peer, out Session? session))
+        {
+            _chat.Say(session, text);
+        }
     }
 
     private void OnItemPickedUp(Player player, GroundItem item)
