@@ -26,11 +26,6 @@ public partial class DisplayPlant : Interactable
     [Export]
     public string Design { get; set; } = "";
 
-    public MultiplayerSynchronizer Synchronizer
-    {
-        get { return GetNode<MultiplayerSynchronizer>("Synchronizer"); }
-    }
-
     public string Title
     {
         get { return PlantName.Length > 0 ? PlantName : "House plant #" + PlantId; }

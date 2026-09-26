@@ -193,7 +193,7 @@ public class ServerSocial
 
         foreach (KeyValuePair<Guid, string> friend in session.Contacts.Friends)
         {
-            string zone;
+            string? zone;
             friendIds.Add(friend.Key.ToString());
             friendNames.Add(friend.Value);
             friendZones.Add(zones.TryGetValue(friend.Key, out zone) ? zone : "");

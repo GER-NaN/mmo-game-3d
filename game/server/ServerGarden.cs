@@ -195,7 +195,7 @@ public class ServerGarden
         plant.CreatorName = creator;
         plant.Design = design;
         plant.Position = SpotPosition(spot);
-        _gate.Watch(plant.Synchronizer, _outside.ZoneId);
+        _gate.Watch(plant.Synchronizer!, _outside.ZoneId);
         plants.AddChild(plant, true);
         return replaced;
     }
