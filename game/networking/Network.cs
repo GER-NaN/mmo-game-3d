@@ -72,6 +72,23 @@ public partial class Network : Node
         }
     }
 
+    // Server side: (peer, emote id) typed as a chat command.
+    public event Action<long, string>? EmoteRequested;
+
+    public void SendEmote(string emoteId)
+    {
+        RpcId(1, MethodName.Emote, emoteId);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Emote(string emoteId)
+    {
+        if (Multiplayer.IsServer())
+        {
+            EmoteRequested?.Invoke(Multiplayer.GetRemoteSenderId(), emoteId);
+        }
+    }
+
     // Server side: (peer, name of the interactable) the player wants to use.
     public event Action<long, string>? InteractRequested;
 

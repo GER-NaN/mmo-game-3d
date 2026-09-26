@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using MmoGame3d.Chests;
 using MmoGame3d.Networking;
 using MmoGame3d.Rules.Items;
+using MmoGame3d.Rules.Social;
 
 /// <summary>
 /// Chests: opening one gives whoever opened it what it holds, rolled from the chest's
@@ -39,6 +40,7 @@ public class ServerChests
         LootRoll roll = _loot.Roll(_random);
         session.Inventory!.Add(roll.Type, roll.Tier, roll.Quantity);
         chest.HasItem = false;
+        session.Body?.Show(Gestures.PickUp);
         _emptySince[chest] = DateTime.UtcNow;
         _bagChanged(session);
         _session.SendNotice(session.PeerId, "Found " + roll.Quantity + " " + ItemCatalog.Describe(roll.Type, roll.Tier) + " in the " + chest.ChestName + ".");

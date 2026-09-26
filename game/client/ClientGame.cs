@@ -9,6 +9,7 @@ using MmoGame3d.Rules.Chat;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
 using MmoGame3d.Rules.Shops;
+using MmoGame3d.Rules.Social;
 using MmoGame3d.Rules.Terminals;
 using MmoGame3d.Rules.Town;
 using MmoGame3d.Ui;
@@ -479,10 +480,16 @@ public partial class ClientGame : Node
         _world?.GetNode<DayNight>("DayNight").SetTime(secondsOfDay);
     }
 
-    // "/p " speaks to the party; anything else to everyone.
+    // An emote ("/wave") plays; "/p " speaks to the party; anything else to everyone.
     private void OnChatSubmitted(string text)
     {
-        if (text.StartsWith("/p ", System.StringComparison.OrdinalIgnoreCase) && _party != null)
+        string? emote = Gestures.EmoteIn(text);
+
+        if (emote != null)
+        {
+            _network.SendEmote(emote);
+        }
+        else if (text.StartsWith("/p ", System.StringComparison.OrdinalIgnoreCase) && _party != null)
         {
             _party.SendChat(text.Substring(3));
         }

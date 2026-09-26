@@ -15,6 +15,7 @@ using MmoGame3d.Rules;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
 using MmoGame3d.Rules.Shops;
+using MmoGame3d.Rules.Social;
 using MmoGame3d.Rules.Time;
 using MmoGame3d.Town;
 using MmoGame3d.Rules.World;
@@ -167,6 +168,14 @@ public partial class ServerGame : Node
         _network.WalkRequested += (peer, direction, heading) => WithSession(peer, session => session.Body?.ApplyWalk(direction, heading));
         _network.StopRequested += (peer, heading) => WithSession(peer, session => session.Body?.ApplyStop(heading));
         _network.JumpRequested += peer => WithSession(peer, session => session.Body?.ApplyJump());
+        _network.EmoteRequested += (peer, id) => WithSession(peer, session =>
+        {
+            // Only emotes may be asked for; the action gestures are the server's to show.
+            if (Gestures.Find(id)?.IsEmote == true && session.Body != null && !session.Body.IsOnline)
+            {
+                session.Body.Show(id);
+            }
+        });
         partyNetwork.InviteRequested += (peer, target) => WithSession(peer, session => _parties.Invite(session, FindSession(target)));
         partyNetwork.ResponseReceived += (peer, inviter, accept) => WithSession(peer, session => _parties.Respond(session, inviter, accept));
         partyNetwork.LeaveRequested += peer => WithSession(peer, session => _parties.Leave(session));
@@ -570,6 +579,7 @@ public partial class ServerGame : Node
         }
 
         session.Inventory.Add(item.Type, item.Tier, item.Quantity);
+        player.Show(Gestures.PickUp);
         SendInventory(session);
         _network.SendNotice(session.PeerId, "Picked up " + item.Quantity + " " + ItemCatalog.Describe(item.Type, item.Tier));
     }

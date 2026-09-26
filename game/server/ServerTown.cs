@@ -7,6 +7,7 @@ using Godot;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Town;
 using MmoGame3d.Networking;
+using MmoGame3d.Rules.Social;
 using MmoGame3d.Rules.Time;
 using MmoGame3d.Rules.Town;
 using MmoGame3d.Town;
@@ -93,6 +94,7 @@ public class ServerTown
 
         string name = session.Record.DisplayName;
         _lights.Repair(session.Inventory!, name, DateTime.UtcNow);
+        session.Body?.Show(Gestures.Repair);
         _jobTakers.Clear();
         _bagChanged(session);
         Changed(name + " repaired the street lights on Main Street.");

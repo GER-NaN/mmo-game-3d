@@ -3,6 +3,7 @@ namespace MmoGame3d.Players;
 using Godot;
 using MmoGame3d.Networking;
 using MmoGame3d.Rules.Movement;
+using MmoGame3d.Rules.Social;
 
 /// <summary>
 /// A player's body. The server moves it; the owning client turns its own heading and
@@ -49,6 +50,7 @@ public partial class Player : CharacterBody3D
     private float _seenRise;
 
     // Server only.
+    private double _gestureLeft;
     private Vector2 _moveDirection;
     private float _moveHeading;
     private bool _jumpRequested;
@@ -60,6 +62,11 @@ public partial class Player : CharacterBody3D
     // see it under the name.
     [Export]
     public bool IsOnline { get; set; }
+
+    // What the body is doing with itself for a moment (see Gestures), or empty. Only the
+    // server sets it; walking ends it.
+    [Export]
+    public string GestureId { get; set; } = "";
 
     // The persistent player id, public: party rosters on clients name members by it.
     [Export]
@@ -212,9 +219,15 @@ public partial class Player : CharacterBody3D
         _seenSpeed = Mathf.Lerp(_seenSpeed, new Vector2(moved.X, moved.Z).Length() / delta, blend);
         _seenRise = Mathf.Lerp(_seenRise, moved.Y / delta, blend);
 
+        Gesture? gesture = GestureId.Length > 0 ? Gestures.Find(GestureId) : null;
+
         if (IsOnline)
         {
             _model.Play(CharacterModel.Busy);
+        }
+        else if (gesture != null && _seenSpeed <= WalkFrom)
+        {
+            _model.Play(gesture.Animation);
         }
         else if (Mathf.Abs(_seenRise) > AirborneFrom)
         {
@@ -332,10 +345,33 @@ public partial class Player : CharacterBody3D
         _jumpRequested = true;
     }
 
+    // Server only: starts a gesture everyone sees. A timed one ends by itself; one with
+    // no time (sitting) lasts until the player moves.
+    public void Show(string gestureId)
+    {
+        Gesture? gesture = Gestures.Find(gestureId);
+
+        if (gesture != null)
+        {
+            GestureId = gesture.Id;
+            _gestureLeft = gesture.Seconds;
+        }
+    }
+
     private void Simulate(float delta)
     {
         // Online, the body stands at the terminal: the walk it last asked for waits.
         Vector2 walk = IsOnline ? Vector2.Zero : _moveDirection;
+
+        if (GestureId.Length > 0)
+        {
+            _gestureLeft -= delta;
+
+            if (walk != Vector2.Zero || _jumpRequested || (Gestures.Find(GestureId)?.Seconds > 0 && _gestureLeft <= 0))
+            {
+                GestureId = "";
+            }
+        }
 
         if (IsOnline)
         {

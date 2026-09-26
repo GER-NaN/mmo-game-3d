@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Networking;
 using MmoGame3d.Rules.Items;
+using MmoGame3d.Rules.Social;
 using MmoGame3d.Workbenches;
 
 /// <summary>
@@ -62,6 +63,7 @@ public class ServerEquipment
         if (AtWorkbench(session))
         {
             Apply(session, phoneId, (mine, id) => mine.RemoveBattery(id));
+            session.Body?.Show(Gestures.Work);
         }
     }
 
@@ -70,6 +72,7 @@ public class ServerEquipment
         if (AtWorkbench(session))
         {
             Apply(session, phoneId, (mine, id) => mine.InsertBattery(id));
+            session.Body?.Show(Gestures.Work);
         }
     }
 

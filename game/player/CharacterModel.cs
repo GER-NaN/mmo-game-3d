@@ -27,11 +27,16 @@ public partial class CharacterModel : Node3D
     {
         "res://assets/kaykit/character_animations/rig_medium/Rig_Medium_General.glb",
         "res://assets/kaykit/character_animations/rig_medium/Rig_Medium_MovementBasic.glb",
+        "res://assets/kaykit/character_animations/rig_medium/Rig_Medium_Simulation.glb",
+        "res://assets/kaykit/character_animations/rig_medium/Rig_Medium_Tools.glb",
     };
 
     // Animations that repeat until something else plays. glTF has no loop flag, so the
     // import leaves every animation playing once.
-    private static readonly string[] Looping = { Idle, Walk, Run, Airborne, Busy };
+    private static readonly string[] Looping =
+    {
+        Idle, Walk, Run, Airborne, Busy, "Waving", "Cheering", "Sit_Floor_Idle", "Push_Ups", "Hammering", "Working_A",
+    };
 
     private static AnimationLibrary? _library;
 
