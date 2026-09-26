@@ -285,9 +285,10 @@ public partial class ServerGame : Node
         session.State = SessionState.InWorld;
     }
 
-    // Two bodies placed in one spot push each other apart, hard enough to throw one into
-    // the sky. So a body goes where the saved spot is, or the nearest free spot on rings
-    // around it. The test body is lifted a little so the floor it stands on does not count.
+    // A saved spot can be inside something built since. So a body goes where the saved
+    // spot is, or the nearest free spot on rings around it. Players pass through each
+    // other, so only the world counts. The test body is lifted a little so the floor it
+    // stands on does not count.
     private static Vector3 FreeSpotNear(Zone zone, Vector3 wanted)
     {
         const float RingStep = 1.5f;
@@ -298,6 +299,7 @@ public partial class ServerGame : Node
         PhysicsShapeQueryParameters3D query = new PhysicsShapeQueryParameters3D
         {
             Shape = new CapsuleShape3D(),
+            CollisionMask = PhysicsLayers.World,
         };
 
         for (int ring = 0; ring <= Rings; ring++)

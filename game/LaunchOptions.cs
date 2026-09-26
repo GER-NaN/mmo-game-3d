@@ -14,6 +14,8 @@ using MmoGame3d.Data;
 ///   --name Gerald       the display name for a new player
 ///   --address 1.2.3.4   the server to connect to
 ///   --autoconnect       skip the main menu and connect at once
+///   --bot               the client plays by itself (implies --autoconnect)
+///   --report-every 2    print what the client sees every 2 seconds
 /// </summary>
 public class LaunchOptions
 {
@@ -27,6 +29,8 @@ public class LaunchOptions
     public string? DisplayName { get; private set; }
     public string? Address { get; private set; }
     public bool AutoConnect { get; private set; }
+    public bool Bot { get; private set; }
+    public double ReportEverySeconds { get; private set; }
 
     public static LaunchOptions Parse(string[] args)
     {
@@ -67,6 +71,14 @@ public class LaunchOptions
                     break;
                 case "--autoconnect":
                     options.AutoConnect = true;
+                    break;
+                case "--bot":
+                    options.Bot = true;
+                    options.AutoConnect = true;
+                    break;
+                case "--report-every":
+                    options.ReportEverySeconds = double.Parse(next, System.Globalization.CultureInfo.InvariantCulture);
+                    i++;
                     break;
             }
         }

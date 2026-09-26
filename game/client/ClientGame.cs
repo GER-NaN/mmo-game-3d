@@ -1,6 +1,7 @@
 namespace MmoGame3d.Client;
 
 using Godot;
+using MmoGame3d.Dev;
 using MmoGame3d.Networking;
 using MmoGame3d.Rules;
 using MmoGame3d.Rules.Players;
@@ -31,6 +32,7 @@ public partial class ClientGame : Node
     private InGameMenu? _inGameMenu;
     private World? _world;
     private Hud? _hud;
+    private BotDriver? _bot;
     private string _pendingName = "";
     private string _address = "";
 
@@ -50,11 +52,20 @@ public partial class ClientGame : Node
         _ui = new CanvasLayer { Name = "Ui" };
         AddChild(_ui);
 
-        _network.LoginAccepted += OnLoginAccepted;
-        _network.LoginRefused += OnLoginRefused;
-        Multiplayer.ConnectedToServer += OnConnected;
-        Multiplayer.ConnectionFailed += OnConnectionFailed;
-        Multiplayer.ServerDisconnected += OnServerDisconnected;
+        if (options.ReportEverySeconds > 0)
+        {
+            WorldReport report = new WorldReport { Name = "WorldReport" };
+            AddChild(report);
+            report.Start(options.ReportEverySeconds);
+        }
+
+        _network.LoginAccepted += (zoneId, displayName) => Callable.From(() => OnLoginAccepted(zoneId, displayName)).CallDeferred();
+        _network.LoginRefused += reason => Callable.From(() => OnLoginRefused(reason)).CallDeferred();
+        // Deferred, like the login answers above: these fire inside the engine's network
+        // poll, and closing the peer or freeing the world is better done after it.
+        Multiplayer.ConnectedToServer += () => Callable.From(OnConnected).CallDeferred();
+        Multiplayer.ConnectionFailed += () => Callable.From(OnConnectionFailed).CallDeferred();
+        Multiplayer.ServerDisconnected += () => Callable.From(OnServerDisconnected).CallDeferred();
 
         if (options.AutoConnect)
         {
@@ -194,6 +205,12 @@ public partial class ClientGame : Node
         _hud.ShowIdentity(displayName, zoneId);
 
         _network.SendWorldReady();
+
+        if (_options.Bot)
+        {
+            _bot = new BotDriver { Name = "Bot" };
+            AddChild(_bot);
+        }
     }
 
     private void OpenInGameMenu()
@@ -232,6 +249,12 @@ public partial class ClientGame : Node
     private void LeaveWorld()
     {
         CloseInGameMenu();
+
+        if (_bot != null)
+        {
+            _bot.QueueFree();
+            _bot = null;
+        }
 
         if (_hud != null)
         {

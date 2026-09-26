@@ -62,6 +62,18 @@ albedo_color = Color(0.5, 0.5, 0.5, 1)
 material = SubResource("Material_Wall")
 size = Vector3(30, 2, 1)
 
+[sub_resource type="BoxShape3D" id="Shape_EdgeNorth"]
+size = Vector3(62, 8, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeSouth"]
+size = Vector3(62, 8, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeEast"]
+size = Vector3(1, 8, 62)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeWest"]
+size = Vector3(1, 8, 62)
+
 [node name="town" type="Node3D"]
 script = ExtResource("1_zone")
 
@@ -120,6 +132,32 @@ shape = SubResource("Shape_Wall")
 
 [node name="Mesh" type="MeshInstance3D" parent="Buildings/Wall"]
 mesh = SubResource("Mesh_Wall")
+
+[node name="Edges" type="Node3D" parent="."]
+
+[node name="North" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -30.5)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/North"]
+shape = SubResource("Shape_EdgeNorth")
+
+[node name="South" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 30.5)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/South"]
+shape = SubResource("Shape_EdgeSouth")
+
+[node name="East" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.5, 4, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/East"]
+shape = SubResource("Shape_EdgeEast")
+
+[node name="West" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.5, 4, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/West"]
+shape = SubResource("Shape_EdgeWest")
 
 [node name="Spawn" type="Marker3D" parent="."]
 

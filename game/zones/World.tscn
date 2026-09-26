@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://game/zones/World.cs" id="1_world"]
-[ext_resource type="Script" path="res://game/player/FollowCamera.cs" id="2_camera"]
+[ext_resource type="Script" path="res://game/player/ChaseCamera.cs" id="2_camera"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 

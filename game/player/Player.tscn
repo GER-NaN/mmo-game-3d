@@ -14,17 +14,18 @@ material = SubResource("StandardMaterial3D_visor")
 size = Vector3(0.6, 0.2, 0.2)
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_sync"]
-properties/0/path = NodePath(".:position")
+properties/0/path = NodePath(".:NetPosition")
 properties/0/spawn = true
 properties/0/replication_mode = 1
-properties/1/path = NodePath(".:rotation")
+properties/1/path = NodePath(".:NetYaw")
 properties/1/spawn = true
-properties/1/replication_mode = 2
+properties/1/replication_mode = 1
 properties/2/path = NodePath(".:DisplayName")
 properties/2/spawn = true
 properties/2/replication_mode = 0
 
 [node name="Player" type="CharacterBody3D"]
+collision_layer = 2
 script = ExtResource("1_player")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
@@ -48,4 +49,5 @@ font_size = 48
 pixel_size = 0.005
 
 [node name="Synchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_interval = 0.05
 replication_config = SubResource("SceneReplicationConfig_sync")
