@@ -24,8 +24,8 @@ public class VisibilityGate
         _canSee = canSee;
     }
 
-    // Call before the node is added to the tree, so its first spawn already obeys the
-    // filter.
+    // For a spawned node, call before it is added to the tree, so its first spawn already
+    // obeys the filter.
     public void Watch(MultiplayerSynchronizer synchronizer, string zoneId)
     {
         synchronizer.VisibilityUpdateMode = MultiplayerSynchronizer.VisibilityUpdateModeEnum.None;
@@ -41,6 +41,14 @@ public class VisibilityGate
 
         watched.Add(synchronizer);
         synchronizer.TreeExiting += () => watched.Remove(synchronizer);
+
+        // A node already in the tree (a zone's own state, not something spawned) starts out
+        // shown to every peer until its filter is first asked; ask now, or a client in
+        // another zone is sent state for a node it does not have.
+        if (synchronizer.IsInsideTree())
+        {
+            synchronizer.UpdateVisibility(0);
+        }
     }
 
     // After someone enters or leaves the zone: every node there asks its filter again.

@@ -12,6 +12,7 @@ using MmoGame3d.Rules.Shops;
 using MmoGame3d.Rules.Social;
 using MmoGame3d.Rules.Terminals;
 using MmoGame3d.Rules.Town;
+using MmoGame3d.Rules.World;
 using MmoGame3d.Ui;
 using MmoGame3d.Zones;
 
@@ -322,7 +323,7 @@ public partial class ClientGame : Node
 
         _hud = HudScene.Instantiate<Hud>();
         _ui.AddChild(_hud);
-        _hud.ShowIdentity(displayName, zoneId);
+        _hud.ShowIdentity(displayName, ZoneIds.SceneOf(zoneId));
 
         _chat = ChatScene.Instantiate<ChatBox>();
         _ui.AddChild(_chat);
@@ -472,7 +473,7 @@ public partial class ClientGame : Node
             _world.UnloadZone(_zoneId);
             _world.LoadZone(zoneId, Vector3.Zero);
             _zoneId = zoneId;
-            _hud?.ShowIdentity(_displayName, zoneId);
+            _hud?.ShowIdentity(_displayName, ZoneIds.SceneOf(zoneId));
             _network.SendWorldReady();
             GD.Print("Now in " + zoneId);
         }));

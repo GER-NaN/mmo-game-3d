@@ -189,6 +189,9 @@ public partial class Player : CharacterBody3D
         {
             Heading = NetYaw;
             AddToGroup(LocalGroup);
+
+            // You know your own name; up close (a cabin) it only fills the view.
+            GetNode<Label3D>("NameLabel").Visible = false;
         }
     }
 

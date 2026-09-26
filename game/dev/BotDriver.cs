@@ -203,7 +203,7 @@ public partial class BotDriver : Node
         Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
 
         bool usable = prompt != null && prompt.Visible
-            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the"));
+            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi"));
 
         if (prompt != null && usable && _nextInteract <= 0)
         {

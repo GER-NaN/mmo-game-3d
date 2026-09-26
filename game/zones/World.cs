@@ -2,6 +2,7 @@ namespace MmoGame3d.Zones;
 
 using System.Collections.Generic;
 using Godot;
+using MmoGame3d.Rules.World;
 
 /// <summary>
 /// Holds the loaded zones. The server loads every zone, each far from the others so
@@ -23,7 +24,8 @@ public partial class World : Node3D
             return loaded;
         }
 
-        PackedScene scene = GD.Load<PackedScene>(ScenePath(zoneId));
+        // An instance (taxi-3) is made from its scene (taxi) under its own name.
+        PackedScene scene = GD.Load<PackedScene>(ScenePath(ZoneIds.SceneOf(zoneId)));
         Zone zone = scene.Instantiate<Zone>();
         zone.Name = zoneId;
         zone.Position = offset;
@@ -51,8 +53,8 @@ public partial class World : Node3D
         return zone;
     }
 
-    public static string ScenePath(string zoneId)
+    public static string ScenePath(string scene)
     {
-        return "res://game/zones/" + zoneId + "/" + zoneId + ".tscn";
+        return "res://game/zones/" + scene + "/" + scene + ".tscn";
     }
 }

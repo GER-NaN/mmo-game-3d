@@ -4,6 +4,7 @@ using Godot;
 using MmoGame3d.Chests;
 using MmoGame3d.Interact;
 using MmoGame3d.Networking;
+using MmoGame3d.Taxis;
 using MmoGame3d.Vendors;
 using MmoGame3d.Workbenches;
 using MmoGame3d.Terminals;
@@ -28,6 +29,12 @@ public class ServerInteractions
     private readonly ServerEquipment _equipment;
     private readonly ServerChests _chests;
     private ServerTown? _town;
+    private ServerRides? _rides;
+
+    public ServerRides? Rides
+    {
+        set { _rides = value; }
+    }
 
     // The town comes up after the interactions it takes part in.
     public ServerTown? Town
@@ -82,6 +89,9 @@ public class ServerInteractions
                 break;
             case Chest chest:
                 _chests.Open(session, chest);
+                break;
+            case TaxiStand stand:
+                _rides?.Call(session, stand);
                 break;
             default:
                 GD.PrintErr("Nothing handles the interactable " + interactableName + " of type " + thing.GetType().Name);

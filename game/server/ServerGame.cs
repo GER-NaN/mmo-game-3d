@@ -62,6 +62,7 @@ public partial class ServerGame : Node
     private ServerEquipment _equipment = null!;
     private ServerTown _town = null!;
     private ServerChests _chests = null!;
+    private ServerRides _rides = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -131,6 +132,8 @@ public partial class ServerGame : Node
         _town = new ServerTown(townState, new TownStore(database), _worker, network, networks.Terminal, _chat, _clock, () => _sessions.Values, SendInventory);
         _town.Load();
         _interactions.Town = _town;
+        _rides = new ServerRides(world, _gate, network, _parties, () => _sessions.Values, Travel);
+        _interactions.Rides = _rides;
         _terminals.Opened += _town.SendTown;
 
         // Things standing in the zones sync their state (a terminal in use) only to the
@@ -206,6 +209,7 @@ public partial class ServerGame : Node
         _equipment.Tick(delta);
         _town.Tick(delta);
         _chests.Tick();
+        _rides.Tick(delta);
 
         if (_stopSignals != null && _stopSignals.StopRequested())
         {
@@ -492,49 +496,68 @@ public partial class ServerGame : Node
             return;
         }
 
-        string from = session.Record.Zone;
         Vector3 at = session.Body.GlobalPosition;
-        List<Session> following = new List<Session>();
+        List<Session> travellers = new List<Session> { session };
 
         foreach (Session other in _parties.OthersOnline(session))
         {
-            if (other.Record!.Zone == from && other.Body != null && other.Body.GlobalPosition.DistanceTo(at) <= PartyFollowDistance)
+            if (other.Record!.Zone == session.Record.Zone && other.Body != null && other.Body.GlobalPosition.DistanceTo(at) <= PartyFollowDistance)
             {
-                following.Add(other);
+                travellers.Add(other);
             }
         }
 
-        Transfer(session, target, arrival, Vector3.Zero);
+        Travel(travellers, target, arrival, "You went with your party.");
+    }
 
-        for (int i = 0; i < following.Count; i++)
+    // Moves players to another zone: doors, and taxi rides in and out. The first traveller
+    // lands on the arrival; the rest around it, so a party does not land in one heap, and
+    // they are told why they came along.
+    private void Travel(List<Session> travellers, Zone target, Node3D arrival, string followerNotice)
+    {
+        HashSet<string> left = new HashSet<string>();
+
+        for (int i = 0; i < travellers.Count; i++)
         {
-            // Around the arrival point, so the party does not land in one heap.
-            float angle = Mathf.Tau * i / following.Count;
-            Transfer(following[i], target, arrival, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.5f);
-            _network.SendNotice(following[i].PeerId, "You went with your party.");
+            Vector3 offset = Vector3.Zero;
+
+            if (i > 0)
+            {
+                float angle = Mathf.Tau * (i - 1) / (travellers.Count - 1);
+                offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.2f;
+
+                if (followerNotice.Length > 0)
+                {
+                    _network.SendNotice(travellers[i].PeerId, followerNotice);
+                }
+            }
+
+            left.Add(travellers[i].Record!.Zone);
+            Transfer(travellers[i], target, arrival, offset);
         }
 
-        // Nothing in the old zone is shown to the travellers any more; the despawns go
+        // Nothing in the old zones is shown to the travellers any more; the despawns go
         // out before the messages to change zone, so they arrive while the old zone is
         // still loaded.
-        _gate.Refresh(from);
-
-        _network.SendZoneChanged(session.PeerId, target.ZoneId);
-
-        foreach (Session other in following)
+        foreach (string zoneId in left)
         {
-            _network.SendZoneChanged(other.PeerId, target.ZoneId);
+            _gate.Refresh(zoneId);
+        }
+
+        foreach (Session traveller in travellers)
+        {
+            _network.SendZoneChanged(traveller.PeerId, target.ZoneId);
         }
     }
 
     // The body leaves its zone at once; the record says where the player arrives. The
     // client says WorldReady once it has loaded the zone, and the body is spawned there by
-    // the same path as at login.
+    // the same path as at login. A player still loading their last zone has no body yet.
     private void Transfer(Session session, Zone target, Node3D arrival, Vector3 offset)
     {
         GD.Print(session.Record!.DisplayName + " went from " + session.Record.Zone + " to " + target.ZoneId);
         _terminals.Disconnected(session);
-        session.Body!.QueueFree();
+        session.Body?.QueueFree();
         session.Body = null;
 
         session.Record.Zone = target.ZoneId;
