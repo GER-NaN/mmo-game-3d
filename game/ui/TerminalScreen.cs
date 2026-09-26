@@ -102,6 +102,7 @@ public partial class TerminalScreen : Control
     private string[] _crackPositions = Array.Empty<string>();
     private int _crackLeft;
     private int _crackStatus;
+    private string[] _status = new string[0];
 
     public override void _Ready()
     {
@@ -199,6 +200,16 @@ public partial class TerminalScreen : Control
         if (_openApp == TerminalApps.TodoList || _openApp == TerminalApps.TownLog)
         {
             ShowApp(new TerminalApp(_openApp, _openApp == TerminalApps.TodoList ? "Town repairs" : "Town log", ""));
+        }
+    }
+
+    public void ShowStatus(string[] lines)
+    {
+        _status = lines;
+
+        if (_openApp == TerminalApps.StatusBoard)
+        {
+            ShowApp(new TerminalApp(TerminalApps.StatusBoard, "Status board", ""));
         }
     }
 
@@ -301,9 +312,18 @@ public partial class TerminalScreen : Control
                 ShowWhois(content);
                 break;
             case TerminalApps.StatusBoard:
-                AddLine(content, "Data centre raid in progress: Ashford", Text, 17);
-                AddLine(content, "Power cut after a substation hack: Millbrook", Text, 17);
-                AddLine(content, "Placeholder events until the world makes its own.", Dim, 15);
+                AddLine(content, "What is happening in the world, newest first.", Dim, 15);
+
+                if (_status.Length == 0)
+                {
+                    AddLine(content, "All quiet.", Text, 17);
+                }
+
+                foreach (string line in _status)
+                {
+                    AddLine(content, line, Text, 16);
+                }
+
                 break;
             case TerminalApps.ExchangeRate:
                 AddLine(content, "1 GPU core = 14.20 credits", Text, 17);

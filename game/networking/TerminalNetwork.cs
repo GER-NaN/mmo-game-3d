@@ -106,6 +106,20 @@ public partial class TerminalNetwork : NetworkNode
         TownReceived?.Invoke(lightsWorking, jobTaken, log);
     }
 
+    // Client side: the status board, newest first.
+    public event Action<string[]>? StatusReceived;
+
+    public void SendStatus(long peer, string[] lines)
+    {
+        SendTo(peer, MethodName.ReceiveStatus, lines);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveStatus(string[] lines)
+    {
+        StatusReceived?.Invoke(lines);
+    }
+
     // Client side: the door's TerminalType, and the terminal's name.
     public event Action<int, string>? Opened;
     public event Action? Closed;

@@ -13,6 +13,9 @@ using MmoGame3d.Rules.Skills;
 /// </summary>
 public class ServerCollege
 {
+    // What happens here, for the terminal's status board; set by ServerGame.
+    public Action<string>? Post { get; set; }
+
     private const float ReachSlack = 1.5f;
 
     private readonly ProgressNetwork _network;
@@ -94,6 +97,7 @@ public class ServerCollege
         PlayerCareer career = session.Progress.Career;
         session.RankReadyNoted = false;
         _session.SendNotice(session.PeerId, "Your professor signs it off: you are " + CareerCatalog.Title(career.Career, career.Rank) + ".");
+        Post?.Invoke(session.Record!.DisplayName + " is now " + CareerCatalog.Title(career.Career, career.Rank) + ".");
         _progress.Changed(session);
     }
 

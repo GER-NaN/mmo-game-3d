@@ -24,6 +24,9 @@ using MmoGame3d.Zones;
 /// </summary>
 public class ServerGarden
 {
+    // What happens here, for the terminal's status board; set by ServerGame.
+    public Action<string>? Post { get; set; }
+
     public const int OnDisplay = 12;
 
     private const float ReachSlack = 1.5f;
@@ -161,6 +164,7 @@ public class ServerGarden
                 }
 
                 GD.Print(creator + " made house plant #" + id + (name.Length > 0 ? " \"" + name + "\"" : ""));
+                Post?.Invoke(creator + " made house plant #" + id + (name.Length > 0 ? ", \"" + name + "\"" : "") + ". It stands outside the greenhouse.");
                 _network.SendPlantMade(peer, id, name, ItemCatalog.Describe(reward, ItemTier.Standard));
             },
             e =>

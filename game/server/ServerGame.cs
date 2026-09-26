@@ -151,6 +151,7 @@ public partial class ServerGame : Node
         _chat = new ServerChat(network, () => _sessions.Values);
         _parties = new ServerParties(partyNetwork, network, _chat, () => _sessions.Values);
         _terminals = new ServerTerminals(networks.Terminal, network, () => _sessions.Values);
+        _terminals.Clock = () => TimeSpan.FromSeconds(_clock.SecondsOfDay(DateTime.UtcNow)).ToString(@"hh\:mm", System.Globalization.CultureInfo.InvariantCulture);
         ServerIntents intents = new ServerIntents(network);
         _shops = new ServerShops(networks.Shop, network, intents, SendInventory);
         ServerHandover handover = new ServerHandover(intents, network, _groundItems, world, FindSession, SendInventory);
@@ -182,8 +183,13 @@ public partial class ServerGame : Node
         {
             _progress.Award(session, SkillId.ElectricalRepair, SkillAwards.ElectricalRepairPerBox);
             _progress.MissionDone(session);
+            _terminals.Post(session.Record!.DisplayName + " repaired the street lights on Main Street.");
         };
-        _town.LightsBroke += () => _equipment.PushToPhones("Alert: the AI took out the street lights on Main Street. Town repairs has a job.");
+        _town.LightsBroke += () =>
+        {
+            _equipment.PushToPhones("Alert: the AI took out the street lights on Main Street. Town repairs has a job.");
+            _terminals.Post("The AI took out the street lights on Main Street.");
+        };
         _interactions.Town = _town;
         _rides = new ServerRides(world, _gate, network, _parties, () => _sessions.Values, Travel);
         _interactions.Rides = _rides;
@@ -205,12 +211,15 @@ public partial class ServerGame : Node
         _interactions.Fixables = _fixables;
         _hacking = new ServerHacking(networks.Terminal, network, _terminals, _progress);
         _college = new ServerCollege(networks.Progress, network, _progress);
+        _college.Post = _terminals.Post;
         _whois = new ServerWhois(networks.Social, network, _worker, _whoisStore, _terminals, () => _sessions.Values);
         _whois.HasJob = _town.HasJob;
         _drones = new ServerDrones(_world.GetZone(ZoneIds.Town)!, _gate, network, () => _sessions.Values);
         network.EmpRequested += peer => WithSession(peer, session => _drones.Fire(session));
         _drones.Hurt += HurtPlayer;
+        _drones.Post = _terminals.Post;
         _garden = new ServerGarden(networks.Garden, network, intents, _worker, new PlantStore(database), _progress, _gate, _world.GetZone(ZoneIds.Outskirts)!, SendInventory);
+        _garden.Post = _terminals.Post;
         _interactions.Garden = _garden;
         networks.Garden.CompleteRequested += (peer, intent, design, name) => WithSession(peer, session => _garden.Complete(session, intent, design, name));
         _garden.Load();

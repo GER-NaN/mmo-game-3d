@@ -204,6 +204,11 @@ public partial class ClientGame : Node
 
             _hasLightsJob = taken && !working;
         };
+        _terminalNetwork.StatusReceived += lines =>
+        {
+            GD.Print("Status board: " + (lines.Length > 0 ? lines[0] : "all quiet"));
+            _terminal?.ShowStatus(lines);
+        };
         _terminalNetwork.CrackReceived += (guesses, exact, partial, positions, left, status) => _terminal?.ShowCrack(guesses, exact, partial, positions, left, status);
         // Deferred, like the login answers above: these fire inside the engine's network
         // poll, and closing the peer or freeing the world is better done after it.

@@ -18,12 +18,16 @@ public class ServerTerminals
     private const double RosterIntervalSeconds = 2;
 
     private readonly TerminalAccess _access = new TerminalAccess();
+    private readonly StatusFeed _status = new StatusFeed();
     private readonly Dictionary<string, Terminal> _terminalsByKey = new Dictionary<string, Terminal>();
     private readonly HashSet<Guid> _onPhone = new HashSet<Guid>();
     private readonly TerminalNetwork _network;
     private readonly Network _session;
     private readonly Func<IEnumerable<Session>> _sessions;
     private double _sinceRoster;
+
+    // The world clock as "hh:mm", for the status board.
+    public Func<string> Clock { get; set; } = () => "";
 
     // Raised when a player goes online, by any door.
     public event Action<Session>? Opened;
@@ -51,6 +55,7 @@ public class ServerTerminals
         session.Body!.IsOnline = true;
         _network.SendOpened(session.PeerId, terminal.TypeId, terminal.Name);
         SendRoster(session);
+        _network.SendStatus(session.PeerId, Status());
         Opened?.Invoke(session);
     }
 
@@ -71,7 +76,28 @@ public class ServerTerminals
         session.Body.OnPhone = true;
         _network.SendOpened(session.PeerId, (int)TerminalType.Phone, "Phone");
         SendRoster(session);
+        _network.SendStatus(session.PeerId, Status());
         Opened?.Invoke(session);
+    }
+
+    // A line on the status board, sent at once to everyone online.
+    public void Post(string text)
+    {
+        _status.Post(Clock(), text);
+        string[] lines = Status();
+
+        foreach (Session session in _sessions())
+        {
+            if (session.Record != null && _access.IsOnline(session.Record.PlayerId))
+            {
+                _network.SendStatus(session.PeerId, lines);
+            }
+        }
+    }
+
+    private string[] Status()
+    {
+        return new List<string>(_status.Lines).ToArray();
     }
 
     public bool IsOnPhone(Session session)

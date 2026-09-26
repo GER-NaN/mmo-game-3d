@@ -41,6 +41,9 @@ public class ServerDrones
     private int _spawned;
 
     // Raised for a player a drone hurt: (who, how much).
+    // What happens here, for the terminal's status board; set by ServerGame.
+    public Action<string>? Post { get; set; }
+
     public event Action<Session, int>? Hurt;
 
     public ServerDrones(Zone zone, VisibilityGate gate, Network session, Func<IEnumerable<Session>> sessions)
@@ -119,6 +122,7 @@ public class ServerDrones
         }
 
         GD.Print("Two drones are up over town, around " + center);
+        Post?.Invoke("Two drones are up over Old Town.");
     }
 
     public void Fire(Session session)
@@ -177,6 +181,7 @@ public class ServerDrones
         if (downed > 0)
         {
             _session.SendNotice(session.PeerId, downed == 1 ? "A drone drops out of the sky." : downed + " drones drop out of the sky.");
+            Post?.Invoke(session.Record!.DisplayName + " brought down " + (downed == 1 ? "a drone" : downed + " drones") + " with an EMP.");
         }
     }
 
