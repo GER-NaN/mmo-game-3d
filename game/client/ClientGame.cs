@@ -83,6 +83,7 @@ public partial class ClientGame : Node
         _network.InventoryReceived += OnInventoryReceived;
         _network.NoticeReceived += OnNoticeReceived;
         _network.ChatReceived += OnChatReceived;
+        _network.ClockReceived += OnClockReceived;
         // Deferred, like the login answers above: these fire inside the engine's network
         // poll, and closing the peer or freeing the world is better done after it.
         Multiplayer.ConnectedToServer += () => Callable.From(OnConnected).CallDeferred();
@@ -96,6 +97,14 @@ public partial class ClientGame : Node
         else
         {
             ShowMainMenu("");
+        }
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_world != null && _hud != null)
+        {
+            _hud.ShowClock(_world.GetNode<DayNight>("DayNight").ClockText);
         }
     }
 
@@ -260,6 +269,11 @@ public partial class ClientGame : Node
     {
         _stacks = InventoryWire.Unpack(packed);
         _inventoryPanel?.ShowStacks(_stacks);
+    }
+
+    private void OnClockReceived(double secondsOfDay)
+    {
+        _world?.GetNode<DayNight>("DayNight").SetTime(secondsOfDay);
     }
 
     // "/p " speaks to the party; anything else to everyone.

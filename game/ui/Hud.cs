@@ -10,9 +10,27 @@ public partial class Hud : Control
     private const float FadeSeconds = 0.6f;
     private const int MaxNotices = 5;
 
+    private string _identity = "";
+    private string _clock = "";
+
     public void ShowIdentity(string displayName, string zoneId)
     {
-        GetNode<Label>("%Identity").Text = displayName + "   " + zoneId;
+        _identity = displayName + "   " + zoneId;
+        Refresh();
+    }
+
+    public void ShowClock(string clock)
+    {
+        if (clock != _clock)
+        {
+            _clock = clock;
+            Refresh();
+        }
+    }
+
+    private void Refresh()
+    {
+        GetNode<Label>("%Identity").Text = _identity + (_clock.Length > 0 ? "   " + _clock : "");
     }
 
     public void ShowNotice(string text)

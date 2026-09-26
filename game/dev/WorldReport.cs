@@ -4,6 +4,7 @@ using System.Text;
 using Godot;
 using MmoGame3d.Items;
 using MmoGame3d.Players;
+using MmoGame3d.Zones;
 
 /// <summary>
 /// Prints what this client sees every few seconds: each player body and where it is.
@@ -56,6 +57,13 @@ public partial class WorldReport : Node
             }
 
             line.Append("  items ").Append(items);
+
+            DayNight? dayNight = world.GetNodeOrNull<DayNight>("DayNight");
+
+            if (dayNight != null)
+            {
+                line.Append("  clock ").Append(dayNight.ClockText);
+            }
         }
 
         GD.Print(line.ToString());

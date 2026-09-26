@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://game/zones/World.cs" id="1_world"]
 [ext_resource type="Script" path="res://game/player/ChaseCamera.cs" id="2_camera"]
+[ext_resource type="Script" path="res://game/zones/DayNight.cs" id="3_daynight"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 
@@ -23,6 +24,12 @@ environment = SubResource("Environment_world")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 10, 0)
 shadow_enabled = true
+
+[node name="Moon" type="DirectionalLight3D" parent="."]
+light_energy = 0.0
+
+[node name="DayNight" type="Node" parent="."]
+script = ExtResource("3_daynight")
 
 [node name="Camera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 8, 8)

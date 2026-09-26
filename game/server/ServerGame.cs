@@ -12,6 +12,7 @@ using MmoGame3d.Players;
 using MmoGame3d.Rules;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Players;
+using MmoGame3d.Rules.Time;
 using MmoGame3d.Rules.World;
 using MmoGame3d.Zones;
 
@@ -27,6 +28,9 @@ public partial class ServerGame : Node
     // How often players online are saved. Ending a session saves too, so this only
     // bounds what a server crash can lose.
     private const double SaveIntervalSeconds = 30;
+
+    // How often every client is told the time. They count the seconds between.
+    private const double ClockIntervalSeconds = 10;
 
     private static readonly TimeSpan ShutdownDrain = TimeSpan.FromSeconds(10);
     private static readonly PackedScene PlayerScene = GD.Load<PackedScene>("res://game/player/Player.tscn");
@@ -44,8 +48,10 @@ public partial class ServerGame : Node
     private GroundItems _groundItems = null!;
     private ServerChat _chat = null!;
     private ServerParties _parties = null!;
+    private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
+    private double _sinceClock;
 
     public void Start(LaunchOptions options, Network network, PartyNetwork partyNetwork, World world)
     {
@@ -78,6 +84,9 @@ public partial class ServerGame : Node
         _players = new PlayerStore(database);
         _worker = new PersistenceWorker();
         _stopSignals = new StopSignals(options.Port);
+        _clock = new WorldClock(options.TimeZone, options.TimeOffsetHours);
+        TimeSpan worldTime = TimeSpan.FromSeconds(_clock.SecondsOfDay(DateTime.UtcNow));
+        GD.Print("World time " + worldTime.ToString(@"hh\:mm") + " (" + options.TimeZone + (options.TimeOffsetHours != 0 ? ", shifted " + options.TimeOffsetHours + " h" : "") + ")");
         _gate = new VisibilityGate(CanSee);
         _groundItems = new GroundItems(_gate, OnItemPickedUp);
         _chat = new ServerChat(network, () => _sessions.Values);
@@ -122,6 +131,21 @@ public partial class ServerGame : Node
             GD.Print("Stopping: saving players online");
             GetTree().Quit();
             return;
+        }
+
+        _sinceClock += delta;
+
+        if (_sinceClock >= ClockIntervalSeconds)
+        {
+            _sinceClock = 0;
+
+            foreach (Session session in _sessions.Values)
+            {
+                if (session.State == SessionState.InWorld)
+                {
+                    SendClock(session);
+                }
+            }
         }
 
         _sinceSave += delta;
@@ -335,6 +359,7 @@ public partial class ServerGame : Node
         // the players and items already standing there spawn on this client.
         _gate.Refresh(zone.ZoneId);
         SendInventory(session);
+        SendClock(session);
         _parties.EnteredWorld(session);
         _chat.Announce(record.DisplayName + " joined.");
     }
@@ -375,6 +400,11 @@ public partial class ServerGame : Node
         session.Inventory.Add(item.Type, item.Tier, item.Quantity);
         SendInventory(session);
         _network.SendNotice(session.PeerId, "Picked up " + item.Quantity + " " + ItemCatalog.Describe(item.Type, item.Tier));
+    }
+
+    private void SendClock(Session session)
+    {
+        _network.SendClock(session.PeerId, _clock.SecondsOfDay(DateTime.UtcNow));
     }
 
     private void SendInventory(Session session)

@@ -28,6 +28,21 @@ public partial class Network : Node
     // Client side: a short line for the player ("Picked up 2 GPU core").
     public event Action<string>? NoticeReceived;
 
+    // Client side: seconds since the world's midnight.
+    public event Action<double>? ClockReceived;
+
+    public void SendClock(long peer, double secondsOfDay)
+    {
+        RpcId(peer, MethodName.ReceiveClock, secondsOfDay);
+    }
+
+    // Unreliable: a lost one is replaced by the next, and the client counts on meanwhile.
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
+    private void ReceiveClock(double secondsOfDay)
+    {
+        ClockReceived?.Invoke(secondsOfDay);
+    }
+
     // Server side: (peer, text) a player typed.
     public event Action<long, string>? ChatRequested;
 

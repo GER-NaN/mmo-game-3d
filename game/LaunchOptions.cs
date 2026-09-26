@@ -1,6 +1,7 @@
 namespace MmoGame3d;
 
 using MmoGame3d.Data;
+using MmoGame3d.Rules.Time;
 
 /// <summary>
 /// What this run of the game is, from the arguments after "--" on the command line.
@@ -9,6 +10,8 @@ using MmoGame3d.Data;
 ///   --port 7070         the server's port (both sides)
 ///   --db "Host=..."     the server's database
 ///   --max-players 300   how many clients the server accepts
+///   --time-zone id      the server's time zone (default America/New_York)
+///   --time-offset 6     dev: shift the world's hour, so noon can be seen at midnight
 ///   --profile name      which player this client is (default "default"; "fresh" is a
 ///                       new player every launch)
 ///   --name Gerald       the display name for a new player
@@ -25,6 +28,8 @@ public class LaunchOptions
     public int Port { get; private set; } = DefaultPort;
     public string DatabaseConnection { get; private set; } = Database.DefaultConnectionString;
     public int MaxPlayers { get; private set; } = 300;
+    public string TimeZone { get; private set; } = WorldClock.DefaultTimeZone;
+    public double TimeOffsetHours { get; private set; }
     public string Profile { get; private set; } = "default";
     public string? DisplayName { get; private set; }
     public string? Address { get; private set; }
@@ -55,6 +60,14 @@ public class LaunchOptions
                     break;
                 case "--max-players":
                     options.MaxPlayers = int.Parse(next);
+                    i++;
+                    break;
+                case "--time-zone":
+                    options.TimeZone = next;
+                    i++;
+                    break;
+                case "--time-offset":
+                    options.TimeOffsetHours = double.Parse(next, System.Globalization.CultureInfo.InvariantCulture);
                     i++;
                     break;
                 case "--profile":
