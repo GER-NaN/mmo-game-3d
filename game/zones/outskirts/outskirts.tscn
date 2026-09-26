@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="PackedScene" path="res://game/gardening/Greenhouse.tscn" id="97_greenhouse"]
 [ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
 [ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="90_door"]
 [ext_resource type="PackedScene" path="res://game/chests/Chest.tscn" id="91_chest"]
@@ -300,6 +301,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.5, 4, 0)
 [node name="Collision" type="CollisionShape3D" parent="Edges/West"]
 shape = SubResource("Shape_EdgeWest")
 
+[node name="Greenhouse" parent="." instance=ExtResource("97_greenhouse")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, 21)
+
 [node name="Interactables" type="Node3D" parent="."]
 
 [node name="OldHardwareChest" parent="Interactables" instance=ExtResource("91_chest")]
@@ -307,12 +311,20 @@ transform = Transform3D(0.866, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866, -9, 0, -6)
 
 [node name="Doors" type="Node3D" parent="."]
 
+[node name="ToGreenhouse" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(0.3, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, 24.4)
+TargetZone = "greenhouse"
+TargetArrival = "FromTown"
+
 [node name="ToTown" parent="Doors" instance=ExtResource("90_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 39)
 TargetZone = "town"
 TargetArrival = "FromOutskirts"
 
 [node name="Arrivals" type="Node3D" parent="."]
+
+[node name="FromGreenhouse" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, 27.5)
 
 [node name="FromTown" type="Marker3D" parent="Arrivals"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 32)
@@ -325,6 +337,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 32)
 [node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://game/player/Player.tscn")
 spawn_path = NodePath("../Players")
+
+[node name="PlantSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/gardening/DisplayPlant.tscn")
+spawn_path = NodePath("../Interactables")
 
 [node name="Items" type="Node3D" parent="."]
 

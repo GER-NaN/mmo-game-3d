@@ -40,6 +40,8 @@ public class ServerInteractions
 
     public ServerRecycling? Recycling { get; set; }
 
+    public ServerGarden? Garden { get; set; }
+
     public ServerRides? Rides
     {
         set { _rides = value; }
@@ -95,6 +97,12 @@ public class ServerInteractions
                 break;
             case JunctionBox:
                 _town?.Repair(session);
+                break;
+            case MmoGame3d.Gardening.PottingTable table:
+                Garden?.Open(session, table);
+                break;
+            case MmoGame3d.Gardening.DisplayPlant plant:
+                Garden?.Inspect(session, plant);
                 break;
             case Recycler recycler:
                 Recycling?.Open(session, recycler);

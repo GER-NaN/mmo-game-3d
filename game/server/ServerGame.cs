@@ -7,6 +7,7 @@ using Godot;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
 using MmoGame3d.Data.Maps;
+using MmoGame3d.Data.Gardening;
 using MmoGame3d.Data.Players;
 using MmoGame3d.Data.Progress;
 using MmoGame3d.Data.Social;
@@ -80,6 +81,7 @@ public partial class ServerGame : Node
     private WhoisStore _whoisStore = null!;
     private ServerWhois _whois = null!;
     private ServerDrones _drones = null!;
+    private ServerGarden _garden = null!;
     private WorldClock _clock = null!;
     private bool _stocked;
     private double _sinceSave;
@@ -207,6 +209,10 @@ public partial class ServerGame : Node
         _drones = new ServerDrones(_world.GetZone(ZoneIds.Town)!, _gate, network, () => _sessions.Values);
         network.EmpRequested += peer => WithSession(peer, session => _drones.Fire(session));
         _drones.Hurt += HurtPlayer;
+        _garden = new ServerGarden(networks.Garden, network, intents, _worker, new PlantStore(database), _progress, _gate, _world.GetZone(ZoneIds.Outskirts)!, SendInventory);
+        _interactions.Garden = _garden;
+        networks.Garden.CompleteRequested += (peer, intent, design, name) => WithSession(peer, session => _garden.Complete(session, intent, design, name));
+        _garden.Load();
         networks.Social.WhoisSearchRequested += (peer, text) => WithSession(peer, session => _whois.Search(session, text));
         networks.Social.WhoisOpenRequested += (peer, id) => WithSession(peer, session => _whois.Open(session, id));
         networks.Social.WhoisPropsRequested += (peer, id) => WithSession(peer, session => _whois.ToggleProps(session, id));

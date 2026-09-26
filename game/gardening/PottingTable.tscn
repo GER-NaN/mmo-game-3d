@@ -1,0 +1,22 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/gardening/PottingTable.cs" id="1_table"]
+[ext_resource type="PackedScene" path="res://game/props/furniture_bits/TableMedium.tscn" id="2_table"]
+[ext_resource type="PackedScene" path="res://assets/tinytreats/house_plants/pots_stacked.gltf" id="3_pots"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_table"]
+size = Vector3(1.6, 1, 1)
+
+[node name="PottingTable" type="StaticBody3D"]
+script = ExtResource("1_table")
+Reach = 2.4
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_table")
+
+[node name="Table" parent="." instance=ExtResource("2_table")]
+collision_layer = 0
+
+[node name="Pots" parent="." instance=ExtResource("3_pots")]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0.45, 0.8, 0)

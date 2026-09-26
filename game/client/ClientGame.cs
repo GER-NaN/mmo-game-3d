@@ -3,6 +3,7 @@ namespace MmoGame3d.Client;
 using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Dev;
+using MmoGame3d.Gardening;
 using MmoGame3d.Networking;
 using MmoGame3d.Rules;
 using MmoGame3d.Rules.Chat;
@@ -36,6 +37,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene SelectScene = GD.Load<PackedScene>("res://game/ui/CharacterSelect.tscn");
     private static readonly PackedScene CreatorScene = GD.Load<PackedScene>("res://game/ui/CharacterCreator.tscn");
     private static readonly PackedScene RecyclerScene = GD.Load<PackedScene>("res://game/ui/RecyclerPanel.tscn");
+    private static readonly PackedScene GardenScene = GD.Load<PackedScene>("res://game/gardening/GardenScreen.tscn");
     private static readonly PackedScene MapScene = GD.Load<PackedScene>("res://game/ui/MapPanel.tscn");
     private static readonly PackedScene SocialScene = GD.Load<PackedScene>("res://game/ui/SocialPanel.tscn");
     private static readonly PackedScene SkillsScene = GD.Load<PackedScene>("res://game/ui/SkillsPanel.tscn");
@@ -56,6 +58,9 @@ public partial class ClientGame : Node
     private ItemNetwork _itemNetwork = null!;
     private SocialNetwork _socialNetwork = null!;
     private ProgressNetwork _progressNetwork = null!;
+    private GardenNetwork _gardenNetwork = null!;
+    private GardenScreen? _garden;
+    private PlantCard? _plantCard;
     private Node _main = null!;
     private ClientSettings _settings = null!;
     private Profile _profile = null!;
@@ -125,6 +130,7 @@ public partial class ClientGame : Node
         _itemNetwork = networks.Items;
         _socialNetwork = networks.Social;
         _progressNetwork = networks.Progress;
+        _gardenNetwork = networks.Garden;
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load();
@@ -169,6 +175,13 @@ public partial class ClientGame : Node
         };
         _progressNetwork.ProgressReceived += OnProgressReceived;
         _progressNetwork.CollegeOpened += OnCollegeOpened;
+        _gardenNetwork.GardenOpened += OpenGarden;
+        _gardenNetwork.PlantMade += (id, name, reward) =>
+        {
+            GD.Print("Made house plant #" + id + (name.Length > 0 ? " '" + name + "'" : "") + "; reward " + reward);
+            _garden?.ShowMade(id, name, reward);
+        };
+        _gardenNetwork.CardReceived += ShowPlantCard;
         _network.ZoneChanged += zoneId => Callable.From(() => OnZoneChanged(zoneId)).CallDeferred();
         _shopNetwork.ShopOpened += OnShopOpened;
         _itemNetwork.WorkbenchOpened += OnWorkbenchOpened;
@@ -187,7 +200,19 @@ public partial class ClientGame : Node
 
         _network.CharactersReceived += (ids, names, looks, levels, titles, message) => Callable.From(() => OnCharactersReceived(ids, names, looks, levels, titles, message)).CallDeferred();
 
-        if (options.Creator)
+        if (options.Garden)
+        {
+            _garden = GardenScene.Instantiate<GardenScreen>();
+            _ui.AddChild(_garden);
+
+            if (options.ScreenshotPath != null)
+            {
+                Screenshot shot = new Screenshot { Name = "Screenshot" };
+                AddChild(shot);
+                shot.Start(options.ScreenshotPath, false, options.ScreenshotAfterSeconds);
+            }
+        }
+        else if (options.Creator)
         {
             CharacterCreator creator = CreatorScene.Instantiate<CharacterCreator>();
             _ui.AddChild(creator);
@@ -226,13 +251,14 @@ public partial class ClientGame : Node
             _hud?.ShowHealth(me.Health);
         }
 
-        if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
+        if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null || _plantCard != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
             CloseShop();
             CloseWorkbench();
             CloseGive();
             CloseCollege();
             CloseRecycler();
+            ClosePlantCard();
         }
 
         // The one being given to walked off, left, or changed zone.
@@ -244,7 +270,8 @@ public partial class ClientGame : Node
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (_world == null)
+        // At the potting table the keys belong to it; it handles its own Esc.
+        if (_world == null || _garden != null)
         {
             return;
         }
@@ -261,7 +288,7 @@ public partial class ClientGame : Node
             return;
         }
 
-        if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null || _recycler != null) && @event.IsActionPressed("ui_cancel"))
+        if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null || _recycler != null || _plantCard != null) && @event.IsActionPressed("ui_cancel"))
         {
             GetViewport().SetInputAsHandled();
             CloseShop();
@@ -270,6 +297,7 @@ public partial class ClientGame : Node
             CloseMap();
             CloseCollege();
             CloseRecycler();
+            ClosePlantCard();
             return;
         }
 
@@ -588,6 +616,7 @@ public partial class ClientGame : Node
             if (refusal.Length > 0)
             {
                 OnNoticeReceived(refusal);
+                _garden?.ShowProblem(refusal);
             }
         };
 
@@ -639,6 +668,58 @@ public partial class ClientGame : Node
         _shop?.ShowDollars(dollars);
         _recycler?.ShowBag(_stacks, _instances, _dollars);
         ShowBattery();
+    }
+
+    private void OpenGarden()
+    {
+        CloseGarden();
+        _garden = GardenScene.Instantiate<GardenScreen>();
+        _ui.AddChild(_garden);
+        _garden.CompletePressed += (design, name) => _intents?.Start("plant", id => _gardenNetwork.SendComplete(id, design, name));
+        _garden.Closed += CloseGarden;
+
+        if (_finder != null)
+        {
+            _finder.Paused = true;
+        }
+
+        _hud?.ShowPrompt("");
+    }
+
+    private void CloseGarden()
+    {
+        if (_garden == null)
+        {
+            return;
+        }
+
+        _garden.QueueFree();
+        _garden = null;
+
+        if (_finder != null)
+        {
+            _finder.Paused = false;
+        }
+    }
+
+    private void ShowPlantCard(long plantId, string name, string creator, string madeOn, string design, string[] history)
+    {
+        ClosePlantCard();
+        GD.Print("Plant card: #" + plantId + ", created by " + creator + ", " + history.Length + " history lines");
+        _panelOpenedAt = SelfPosition();
+        _plantCard = new PlantCard();
+        _ui.AddChild(_plantCard);
+        _plantCard.ShowPlant(plantId, name, creator, madeOn, design, history);
+        _plantCard.Closed += ClosePlantCard;
+    }
+
+    private void ClosePlantCard()
+    {
+        if (_plantCard != null)
+        {
+            _plantCard.QueueFree();
+            _plantCard = null;
+        }
     }
 
     private void OnRecyclerOpened()
@@ -804,6 +885,8 @@ public partial class ClientGame : Node
         CloseTerminal();
         CloseMap();
         CloseCollege();
+        CloseGarden();
+        ClosePlantCard();
         ColorRect fade = new ColorRect { Color = new Color(0f, 0f, 0f, 0f), MouseFilter = Control.MouseFilterEnum.Ignore };
         fade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _ui.AddChild(fade);
@@ -1288,6 +1371,8 @@ public partial class ClientGame : Node
         CloseSkills();
         CloseCollege();
         CloseRecycler();
+        CloseGarden();
+        ClosePlantCard();
 
         _instances = new List<ItemInstance>();
         _chatLog.Clear();

@@ -18,7 +18,9 @@ using MmoGame3d.Ui;
 /// the first thing a shopkeeper offers, opens chests, equips its phone and goes online on it, and at a
 /// workbench takes the battery out and puts one in. It drops a stack once, and gives one
 /// thing to a party member it clicks on, and adds the first player it clicks on as a
-/// friend. It presses R (the EMP) every few seconds. At a public terminal it cracks one code, guessing only codes that still fit
+/// friend. It presses R (the EMP) every few seconds. At the potting table it makes one
+/// house plant a session by dragging three pieces onto the soil, and it inspects plants
+/// on display. At a public terminal it cracks one code, guessing only codes that still fit
 /// every answer so far, and types each guess. Now and then it glances at the map. Once, as it
 /// arrives, it looks at the settings and closes them unchanged (the settings file is the
 /// machine's, shared with the person who plays on it), then at its friends list.
@@ -64,6 +66,9 @@ public partial class BotDriver : Node
     private bool _packOpened;
     private bool _messaged;
     private bool _recycled;
+    private int _gardenStep;
+    private bool _planted;
+    private double _gardenIn = 0.8;
     private double _recyclerSeenFor;
     private double _nextEmp = 1;
     private double _typeIn = -1;
@@ -103,7 +108,7 @@ public partial class BotDriver : Node
         AcceptInvites(delta);
 
         // Reading a college panel, it stands still: walking off would close it.
-        if (College(delta) || Recycle(delta))
+        if (College(delta) || Recycle(delta) || Garden(delta))
         {
             return;
         }
@@ -302,7 +307,7 @@ public partial class BotDriver : Node
         Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
 
         bool usable = prompt != null && prompt.Visible
-            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi") || prompt.Text.Contains("Fix the") || prompt.Text.Contains("recycler"));
+            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi") || prompt.Text.Contains("Fix the") || prompt.Text.Contains("recycler") || (prompt.Text.Contains("house plant") && !_planted) || prompt.Text.Contains("Inspect"));
 
         // Reading the map, it does not stop to use things.
         if (prompt != null && usable && _nextInteract <= 0 && !_mapOpen)
@@ -628,6 +633,94 @@ public partial class BotDriver : Node
             _collegeSeenFor = -ReadDelay * 2;
         }
 
+        return true;
+    }
+
+    // At the potting table: drag three pieces onto the soil, one after another, then
+    // Complete, a name, Finish, and leave once the plant is made. Each drag is a press on
+    // the piece in the list, a move over the soil and a release there.
+    private static readonly Vector2[] GardenSpots = { new Vector2(0f, 0f), new Vector2(0.45f, 0.2f), new Vector2(-0.35f, -0.3f) };
+
+    private bool Garden(double delta)
+    {
+        Gardening.GardenScreen? screen = null;
+
+        foreach (Node node in GetTree().GetNodesInGroup(Gardening.GardenScreen.CompleteGroup))
+        {
+            screen = ((Node)node).FindParent("GardenScreen") as Gardening.GardenScreen;
+        }
+
+        if (screen == null)
+        {
+            _gardenStep = 0;
+            return false;
+        }
+
+        ReleaseKeys();
+        _gardenIn -= delta;
+
+        if (_gardenIn > 0)
+        {
+            return true;
+        }
+
+        _gardenIn = ReadDelay;
+        int piece = _gardenStep / 3;
+        int stage = _gardenStep % 3;
+
+        if (piece < GardenSpots.Length)
+        {
+            Vector2 spot = screen.ScreenPointOnSoil(GardenSpots[piece].X, GardenSpots[piece].Y);
+
+            switch (stage)
+            {
+                case 0:
+                    Godot.Collections.Array<Node> pieces = GetTree().GetNodesInGroup(Gardening.GardenScreen.PieceGroup);
+                    Button button = (Button)pieces[(piece * 4) % pieces.Count];
+                    GD.Print("Bot: taking " + button.Text);
+                    Vector2 at = button.GetGlobalRect().GetCenter();
+                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = at, GlobalPosition = at });
+                    break;
+                case 1:
+                    Input.ParseInputEvent(new InputEventMouseMotion { Position = spot, GlobalPosition = spot, Relative = Vector2.One });
+                    break;
+                default:
+                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = spot, GlobalPosition = spot, ButtonMask = MouseButtonMask.Left });
+                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = spot, GlobalPosition = spot });
+                    break;
+            }
+
+            _gardenStep++;
+            return true;
+        }
+
+        switch (_gardenStep - (GardenSpots.Length * 3))
+        {
+            case 0:
+                Button? complete = FirstUsable(Gardening.GardenScreen.CompleteGroup);
+
+                if (complete != null)
+                {
+                    GD.Print("Bot: clicking Complete");
+                    Click(complete.GetGlobalRect().GetCenter());
+                }
+
+                break;
+            case 1:
+                Type("fern");
+                break;
+            default:
+                if (screen.IsDone)
+                {
+                    _planted = true;
+                    GD.Print("Bot: leaving the potting table");
+                    Press("ui_cancel");
+                }
+
+                return true;
+        }
+
+        _gardenStep++;
         return true;
     }
 

@@ -30,6 +30,7 @@ using MmoGame3d.Rules.Time;
 ///   --overview          with --screenshot: look down on the whole zone
 ///   --creator           dev: open the character creator at start (with --look), for
 ///                       --screenshot
+///   --garden            dev: open the potting table at start, for --screenshot
 ///   --show-characters   dev: connect at once, then stop at the character screen (for
 ///                       --screenshot)
 ///   --screenshot-after 4  seconds in the world before the screenshot (default 4)
@@ -63,6 +64,7 @@ public class LaunchOptions
     public bool Overview { get; private set; }
     public bool Creator { get; private set; }
     public bool ShowCharacters { get; private set; }
+    public bool Garden { get; private set; }
     public double ScreenshotAfterSeconds { get; private set; } = 4;
     public int LoadTestBots { get; private set; }
     public int LoadFirst { get; private set; }
@@ -177,6 +179,9 @@ public class LaunchOptions
                 case "--walk-test":
                     options.WalkTest = true;
                     options.AutoConnect = true;
+                    break;
+                case "--garden":
+                    options.Garden = true;
                     break;
                 case "--show-characters":
                     options.ShowCharacters = true;

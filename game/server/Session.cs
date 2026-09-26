@@ -54,6 +54,9 @@ public class Session
     // The workbench last used; work is taken only while it is in reach.
     public Workbench? OpenWorkbench { get; set; }
 
+    // The potting table last used; a plant is taken only while it is in reach.
+    public Gardening.PottingTable? OpenPottingTable { get; set; }
+
     // The recycler last used; things go in only while it is in reach.
     public Town.Recycler? OpenRecycler { get; set; }
 
