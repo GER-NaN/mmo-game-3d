@@ -18,6 +18,10 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 project/assembly_name="mmo-game-3d"
 
+[gui]
+
+theme/custom="res://game/ui/theme/Theme.tres"
+
 [input]
 
 turn_left={
