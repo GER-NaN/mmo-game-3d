@@ -8,11 +8,15 @@
 # The server's lines ("Stats: ...") go to load-test\server.log under the system temp
 # folder, one per -StatsEvery seconds: players, frame and physics time, traffic out and
 # in. Each bot process logs to load-test\bots-N.log. Needs Postgres, like the server.
+# -NoDiagnostics runs the server without its logs and traces, to see what they cost;
+# -LogPackets runs it with the packet log as well.
 param(
     [int]$Bots = 50,
     [int]$PerProcess = 50,
     [int]$Seconds = 90,
     [int]$StatsEvery = 10,
+    [switch]$NoDiagnostics,
+    [switch]$LogPackets,
     [string]$Godot = "C:\Users\geral\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
 )
 
@@ -27,7 +31,17 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $serverLog = Join-Path $logs "server.log"
-$server = Start-Process $Godot -ArgumentList "--headless", "--path", "`"$root`"", "--", "--server", "--stats-every", $StatsEvery, "--max-players", ($Bots + 50) `
+$serverArgs = @("--headless", "--path", "`"$root`"", "--", "--server", "--stats-every", $StatsEvery, "--max-players", ($Bots + 50))
+
+if ($NoDiagnostics) {
+    $serverArgs += @("--diagnostics", "off")
+}
+
+if ($LogPackets) {
+    $serverArgs += "--log-packets"
+}
+
+$server = Start-Process $Godot -ArgumentList $serverArgs `
     -RedirectStandardOutput $serverLog -WindowStyle Hidden -PassThru
 Start-Sleep -Seconds 7
 

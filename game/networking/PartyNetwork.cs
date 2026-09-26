@@ -1,6 +1,7 @@
 namespace MmoGame3d.Networking;
 
 using System;
+using System.Diagnostics;
 using Godot;
 
 /// <summary>
@@ -11,7 +12,7 @@ using Godot;
 /// Players are named on the wire by their player id, which is public. A body's node
 /// name is its peer id, so an invite names its target that way.
 /// </summary>
-public partial class PartyNetwork : Node
+public partial class PartyNetwork : NetworkNode
 {
     // Server side.
     public event Action<long, long>? InviteRequested;
@@ -47,12 +48,12 @@ public partial class PartyNetwork : Node
 
     public void SendInvited(long peer, string inviterId, string inviterName)
     {
-        RpcId(peer, MethodName.ReceiveInvite, inviterId, inviterName);
+        SendTo(peer, MethodName.ReceiveInvite, inviterId, inviterName);
     }
 
     public void SendParty(long peer, string leaderId, string[] memberIds, string[] names, int[] online)
     {
-        RpcId(peer, MethodName.ReceiveParty, leaderId, memberIds, names, online);
+        SendTo(peer, MethodName.ReceiveParty, leaderId, memberIds, names, online);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -60,7 +61,12 @@ public partial class PartyNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            InviteRequested?.Invoke(Multiplayer.GetRemoteSenderId(), targetPeer);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Invite, sender, targetPeer))
+            {
+                InviteRequested?.Invoke(sender, targetPeer);
+            }
         }
     }
 
@@ -69,7 +75,12 @@ public partial class PartyNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            ResponseReceived?.Invoke(Multiplayer.GetRemoteSenderId(), inviterId, accept);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Respond, sender, inviterId, accept))
+            {
+                ResponseReceived?.Invoke(sender, inviterId, accept);
+            }
         }
     }
 
@@ -78,7 +89,12 @@ public partial class PartyNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            LeaveRequested?.Invoke(Multiplayer.GetRemoteSenderId());
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Leave, sender))
+            {
+                LeaveRequested?.Invoke(sender);
+            }
         }
     }
 
@@ -87,7 +103,12 @@ public partial class PartyNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            ChatRequested?.Invoke(Multiplayer.GetRemoteSenderId(), text);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Chat, sender, text))
+            {
+                ChatRequested?.Invoke(sender, text);
+            }
         }
     }
 

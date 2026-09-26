@@ -1,6 +1,7 @@
 namespace MmoGame3d.Networking;
 
 using System;
+using System.Diagnostics;
 using Godot;
 
 /// <summary>
@@ -9,7 +10,7 @@ using Godot;
 /// and log for the apps). Going online is a use of a terminal, so it travels as a plain
 /// interaction (Network.SendInteract).
 /// </summary>
-public partial class TerminalNetwork : Node
+public partial class TerminalNetwork : NetworkNode
 {
     // Server side.
     public event Action<long>? LeaveRequested;
@@ -26,7 +27,7 @@ public partial class TerminalNetwork : Node
 
     public void SendTown(long peer, bool lightsWorking, bool jobTaken, string[] log)
     {
-        RpcId(peer, MethodName.ReceiveTown, lightsWorking, jobTaken, log);
+        SendTo(peer, MethodName.ReceiveTown, lightsWorking, jobTaken, log);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -34,7 +35,12 @@ public partial class TerminalNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            TakeJobRequested?.Invoke(Multiplayer.GetRemoteSenderId(), jobId);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.TakeJob, sender, jobId))
+            {
+                TakeJobRequested?.Invoke(sender, jobId);
+            }
         }
     }
 
@@ -58,17 +64,17 @@ public partial class TerminalNetwork : Node
 
     public void SendOpened(long peer, int terminalType, string terminalName)
     {
-        RpcId(peer, MethodName.ReceiveOpened, terminalType, terminalName);
+        SendTo(peer, MethodName.ReceiveOpened, terminalType, terminalName);
     }
 
     public void SendClosed(long peer)
     {
-        RpcId(peer, MethodName.ReceiveClosed);
+        SendTo(peer, MethodName.ReceiveClosed);
     }
 
     public void SendRoster(long peer, string[] names, string[] zones, int[] online)
     {
-        RpcId(peer, MethodName.ReceiveRoster, names, zones, online);
+        SendTo(peer, MethodName.ReceiveRoster, names, zones, online);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -76,7 +82,12 @@ public partial class TerminalNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            LeaveRequested?.Invoke(Multiplayer.GetRemoteSenderId());
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Leave, sender))
+            {
+                LeaveRequested?.Invoke(sender);
+            }
         }
     }
 

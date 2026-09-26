@@ -1,6 +1,7 @@
 namespace MmoGame3d.Networking;
 
 using System;
+using System.Diagnostics;
 using Godot;
 
 /// <summary>
@@ -9,7 +10,7 @@ using Godot;
 /// the client resends an id it has no answer for. A buy names an offer by its index in
 /// the shop's list; the price is looked up on the server, never sent.
 /// </summary>
-public partial class ShopNetwork : Node
+public partial class ShopNetwork : NetworkNode
 {
     // Server side: (peer, intent id, shop id, offer index).
     public event Action<long, uint, string, int>? BuyRequested;
@@ -24,7 +25,7 @@ public partial class ShopNetwork : Node
 
     public void SendShopOpened(long peer, string shopId)
     {
-        RpcId(peer, MethodName.ReceiveShopOpened, shopId);
+        SendTo(peer, MethodName.ReceiveShopOpened, shopId);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -32,7 +33,12 @@ public partial class ShopNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            BuyRequested?.Invoke(Multiplayer.GetRemoteSenderId(), intentId, shopId, offerIndex);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Buy, sender, intentId, shopId, offerIndex))
+            {
+                BuyRequested?.Invoke(sender, intentId, shopId, offerIndex);
+            }
         }
     }
 

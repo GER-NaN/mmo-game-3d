@@ -12,6 +12,11 @@ using MmoGame3d.Rules.Time;
 ///   --max-players 300   how many clients the server accepts
 ///   --time-zone id      the server's time zone (default America/New_York)
 ///   --time-offset 6     dev: shift the world's hour, so noon can be seen at midnight
+///   --diagnostics path  where the server writes its logs and traces (JSON lines);
+///                       "off" for none. Default: a new file per run under
+///                       user://diagnostics
+///   --log-packets       also log every packet in and out, replication included. Costly:
+///                       see docs/engineering/diagnostics.md
 ///   --profile name      which player this client is (default "default"; "fresh" is a
 ///                       new player every launch)
 ///   --name Gerald       the display name for a new player
@@ -40,6 +45,8 @@ public class LaunchOptions
     public int MaxPlayers { get; private set; } = 300;
     public string TimeZone { get; private set; } = WorldClock.DefaultTimeZone;
     public double TimeOffsetHours { get; private set; }
+    public string? DiagnosticsPath { get; private set; }
+    public bool LogPackets { get; private set; }
     public string Profile { get; private set; } = "default";
     public string? DisplayName { get; private set; }
     public string Look { get; private set; } = Rules.Players.Looks.Default;
@@ -95,6 +102,13 @@ public class LaunchOptions
                 case "--max-players":
                     options.MaxPlayers = int.Parse(next);
                     i++;
+                    break;
+                case "--diagnostics":
+                    options.DiagnosticsPath = next;
+                    i++;
+                    break;
+                case "--log-packets":
+                    options.LogPackets = true;
                     break;
                 case "--time-zone":
                     options.TimeZone = next;

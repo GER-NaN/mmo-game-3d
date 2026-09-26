@@ -2,6 +2,7 @@ namespace MmoGame3d.Server;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Godot;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
@@ -73,6 +74,7 @@ public partial class ServerGame : Node
     private double _sinceStats;
     private ulong _physicsFramesAtStats;
     private ENetMultiplayerPeer? _peer;
+    private ServerDiagnostics? _diagnostics;
 
     public void Start(LaunchOptions options, Networks networks, World world)
     {
@@ -81,6 +83,7 @@ public partial class ServerGame : Node
         _options = options;
         _network = network;
         _world = world;
+        StartDiagnostics(networks);
 
         for (int i = 0; i < ZoneIds.All.Length; i++)
         {
@@ -170,8 +173,21 @@ public partial class ServerGame : Node
             return;
         }
 
-        Multiplayer.MultiplayerPeer = peer;
         _peer = peer;
+
+        // The packet log wraps the ENet peer in C#, and every packet then crosses from the
+        // engine into C# several times; at a hundred players that cut the server from
+        // about 130 frames a second to about 25. So it is only there when asked for.
+        if (_diagnostics != null && _options.LogPackets)
+        {
+            LoggedPeer logged = new LoggedPeer();
+            logged.Wrap(peer, _diagnostics);
+            Multiplayer.MultiplayerPeer = logged;
+        }
+        else
+        {
+            Multiplayer.MultiplayerPeer = peer;
+        }
         Multiplayer.PeerConnected += OnPeerConnected;
         Multiplayer.PeerDisconnected += OnPeerDisconnected;
         _network.LoginRequested += OnLoginRequested;
@@ -220,6 +236,7 @@ public partial class ServerGame : Node
         _chests.Tick();
         _rides.Tick(delta);
         _maps.Tick(delta);
+        _diagnostics?.Tick(delta);
 
         if (_stopSignals != null && _stopSignals.StopRequested())
         {
@@ -308,6 +325,26 @@ public partial class ServerGame : Node
         }
 
         GD.Print("Server stopped");
+        _diagnostics?.Dispose();
+    }
+
+    private void StartDiagnostics(Networks networks)
+    {
+        string? path = _options.DiagnosticsPath;
+
+        if (path == "off")
+        {
+            return;
+        }
+
+        if (path == null)
+        {
+            path = ProjectSettings.GlobalizePath("user://diagnostics/server-" + _options.Port + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".jsonl");
+        }
+
+        _diagnostics = new ServerDiagnostics(path);
+        networks.SetLog(_diagnostics);
+        GD.Print("Diagnostics go to " + _diagnostics.FilePath);
     }
 
     private void OnPeerConnected(long peer)
@@ -325,6 +362,7 @@ public partial class ServerGame : Node
 
         _sessions.Remove(peer);
         _chat.Forget(peer);
+        _diagnostics?.Forget(peer);
 
         if (session.HasEnteredWorld)
         {
@@ -430,6 +468,8 @@ public partial class ServerGame : Node
 
         session.Record = record;
         session.Dollars = record.Dollars;
+        _diagnostics?.Tag(peer, "player.name", record.DisplayName);
+        _diagnostics?.Tag(peer, "player.id", record.PlayerId.ToString());
         session.Inventory = new Inventory();
 
         foreach (ItemStack stack in record.Stacks)
@@ -472,6 +512,7 @@ public partial class ServerGame : Node
         body.Rotation = new Vector3(0f, record.Yaw, 0f);
         body.RespawnPoint = zone.SpawnPoint;
 
+        _diagnostics?.Tag(peer, "player.zone", zone.ZoneId);
         _gate.Watch(body.Synchronizer, zone.ZoneId);
         zone.Players.AddChild(body, true);
         session.Body = body;
@@ -530,38 +571,44 @@ public partial class ServerGame : Node
     // they are told why they came along.
     private void Travel(List<Session> travellers, Zone target, Node3D arrival, string followerNotice)
     {
-        HashSet<string> left = new HashSet<string>();
-
-        for (int i = 0; i < travellers.Count; i++)
+        using (Activity? span = ServerDiagnostics.Source.StartActivity("Travel"))
         {
-            Vector3 offset = Vector3.Zero;
+            span?.SetTag("zone.target", target.ZoneId);
+            span?.SetTag("travellers", travellers.Count);
 
-            if (i > 0)
+            HashSet<string> left = new HashSet<string>();
+
+            for (int i = 0; i < travellers.Count; i++)
             {
-                float angle = Mathf.Tau * (i - 1) / (travellers.Count - 1);
-                offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.2f;
+                Vector3 offset = Vector3.Zero;
 
-                if (followerNotice.Length > 0)
+                if (i > 0)
                 {
-                    _network.SendNotice(travellers[i].PeerId, followerNotice);
+                    float angle = Mathf.Tau * (i - 1) / (travellers.Count - 1);
+                    offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.2f;
+
+                    if (followerNotice.Length > 0)
+                    {
+                        _network.SendNotice(travellers[i].PeerId, followerNotice);
+                    }
                 }
+
+                left.Add(travellers[i].Record!.Zone);
+                Transfer(travellers[i], target, arrival, offset);
             }
 
-            left.Add(travellers[i].Record!.Zone);
-            Transfer(travellers[i], target, arrival, offset);
-        }
+            // Nothing in the old zones is shown to the travellers any more; the despawns go
+            // out before the messages to change zone, so they arrive while the old zone is
+            // still loaded.
+            foreach (string zoneId in left)
+            {
+                _gate.Refresh(zoneId);
+            }
 
-        // Nothing in the old zones is shown to the travellers any more; the despawns go
-        // out before the messages to change zone, so they arrive while the old zone is
-        // still loaded.
-        foreach (string zoneId in left)
-        {
-            _gate.Refresh(zoneId);
-        }
-
-        foreach (Session traveller in travellers)
-        {
-            _network.SendZoneChanged(traveller.PeerId, target.ZoneId);
+            foreach (Session traveller in travellers)
+            {
+                _network.SendZoneChanged(traveller.PeerId, target.ZoneId);
+            }
         }
     }
 
@@ -698,11 +745,14 @@ public partial class ServerGame : Node
 
     private void SaveEveryone()
     {
-        foreach (Session session in _sessions.Values)
+        using (Activity? span = ServerDiagnostics.Source.StartActivity("SaveEveryone"))
         {
-            if (session.HasEnteredWorld)
+            foreach (Session session in _sessions.Values)
             {
-                Save(session);
+                if (session.HasEnteredWorld)
+                {
+                    Save(session);
+                }
             }
         }
     }

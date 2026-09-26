@@ -1,6 +1,7 @@
 namespace MmoGame3d.Networking;
 
 using System;
+using System.Diagnostics;
 using Godot;
 
 /// <summary>
@@ -14,7 +15,7 @@ using Godot;
 /// which knows the sender from the connection. The answers are Authority RPCs, so only
 /// the server can send them.
 /// </summary>
-public partial class Network : Node
+public partial class Network : NetworkNode
 {
     // Server side: (peer, protocol, license key, display name, look). The name and look
     // matter only for a new player; a returning one keeps theirs.
@@ -50,7 +51,12 @@ public partial class Network : Node
     {
         if (Multiplayer.IsServer())
         {
-            WalkRequested?.Invoke(Multiplayer.GetRemoteSenderId(), direction, heading);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Walk, sender, direction, heading))
+            {
+                WalkRequested?.Invoke(sender, direction, heading);
+            }
         }
     }
 
@@ -60,7 +66,12 @@ public partial class Network : Node
     {
         if (Multiplayer.IsServer())
         {
-            StopRequested?.Invoke(Multiplayer.GetRemoteSenderId(), heading);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.StopWalking, sender, heading))
+            {
+                StopRequested?.Invoke(sender, heading);
+            }
         }
     }
 
@@ -69,7 +80,12 @@ public partial class Network : Node
     {
         if (Multiplayer.IsServer())
         {
-            JumpRequested?.Invoke(Multiplayer.GetRemoteSenderId());
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Jump, sender))
+            {
+                JumpRequested?.Invoke(sender);
+            }
         }
     }
 
@@ -79,7 +95,7 @@ public partial class Network : Node
 
     public void SendIntentAnswer(long peer, uint intentId, string refusal)
     {
-        RpcId(peer, MethodName.ReceiveIntentAnswer, intentId, refusal);
+        SendTo(peer, MethodName.ReceiveIntentAnswer, intentId, refusal);
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -101,7 +117,12 @@ public partial class Network : Node
     {
         if (Multiplayer.IsServer())
         {
-            EmoteRequested?.Invoke(Multiplayer.GetRemoteSenderId(), emoteId);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Emote, sender, emoteId))
+            {
+                EmoteRequested?.Invoke(sender, emoteId);
+            }
         }
     }
 
@@ -118,7 +139,12 @@ public partial class Network : Node
     {
         if (Multiplayer.IsServer())
         {
-            InteractRequested?.Invoke(Multiplayer.GetRemoteSenderId(), interactableName);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Interact, sender, interactableName))
+            {
+                InteractRequested?.Invoke(sender, interactableName);
+            }
         }
     }
 
@@ -139,7 +165,7 @@ public partial class Network : Node
 
     public void SendZoneChanged(long peer, string zoneId)
     {
-        RpcId(peer, MethodName.ReceiveZoneChanged, zoneId);
+        SendTo(peer, MethodName.ReceiveZoneChanged, zoneId);
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -153,7 +179,7 @@ public partial class Network : Node
 
     public void SendClock(long peer, double secondsOfDay)
     {
-        RpcId(peer, MethodName.ReceiveClock, secondsOfDay);
+        SendTo(peer, MethodName.ReceiveClock, secondsOfDay);
     }
 
     // Unreliable: a lost one is replaced by the next, and the client counts on meanwhile.
@@ -168,7 +194,7 @@ public partial class Network : Node
 
     public void SendMap(long peer, string zoneId, byte[] cells)
     {
-        RpcId(peer, MethodName.ReceiveMap, zoneId, cells);
+        SendTo(peer, MethodName.ReceiveMap, zoneId, cells);
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -190,7 +216,7 @@ public partial class Network : Node
 
     public void SendChatLine(long peer, string sender, string text, int kind)
     {
-        RpcId(peer, MethodName.ReceiveChatLine, sender, text, kind);
+        SendTo(peer, MethodName.ReceiveChatLine, sender, text, kind);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -198,7 +224,12 @@ public partial class Network : Node
     {
         if (Multiplayer.IsServer())
         {
-            ChatRequested?.Invoke(Multiplayer.GetRemoteSenderId(), text);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Chat, sender, text))
+            {
+                ChatRequested?.Invoke(sender, text);
+            }
         }
     }
 
@@ -210,12 +241,12 @@ public partial class Network : Node
 
     public void SendInventory(long peer, int[] packed, int dollars, string[] ids, int[] meta, float[] charges)
     {
-        RpcId(peer, MethodName.ReceiveInventory, packed, dollars, ids, meta, charges);
+        SendTo(peer, MethodName.ReceiveInventory, packed, dollars, ids, meta, charges);
     }
 
     public void SendNotice(long peer, string text)
     {
-        RpcId(peer, MethodName.ReceiveNotice, text);
+        SendTo(peer, MethodName.ReceiveNotice, text);
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -242,12 +273,12 @@ public partial class Network : Node
 
     public void SendLoginAccepted(long peer, string zone, string displayName)
     {
-        RpcId(peer, MethodName.Accept, zone, displayName);
+        SendTo(peer, MethodName.Accept, zone, displayName);
     }
 
     public void SendLoginRefused(long peer, string reason)
     {
-        RpcId(peer, MethodName.Refuse, reason);
+        SendTo(peer, MethodName.Refuse, reason);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -255,7 +286,12 @@ public partial class Network : Node
     {
         if (Multiplayer.IsServer())
         {
-            LoginRequested?.Invoke(Multiplayer.GetRemoteSenderId(), protocol, licenseKey, displayName, look);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Login, sender, protocol, licenseKey, displayName, look))
+            {
+                LoginRequested?.Invoke(sender, protocol, licenseKey, displayName, look);
+            }
         }
     }
 
@@ -264,7 +300,12 @@ public partial class Network : Node
     {
         if (Multiplayer.IsServer())
         {
-            WorldReadyReceived?.Invoke(Multiplayer.GetRemoteSenderId());
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.WorldReady, sender))
+            {
+                WorldReadyReceived?.Invoke(sender);
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 namespace MmoGame3d.Networking;
 
 using System;
+using System.Diagnostics;
 using Godot;
 
 /// <summary>
@@ -10,7 +11,7 @@ using Godot;
 /// with a notice and a change with the new bag. Drop and give take things away, so they
 /// are intents, answered on Network.
 /// </summary>
-public partial class ItemNetwork : Node
+public partial class ItemNetwork : NetworkNode
 {
     // Server side.
     public event Action<long, string>? EquipRequested;
@@ -39,7 +40,12 @@ public partial class ItemNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            DropRequested?.Invoke(Multiplayer.GetRemoteSenderId(), intentId, type, tier, quantity);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Drop, sender, intentId, type, tier, quantity))
+            {
+                DropRequested?.Invoke(sender, intentId, type, tier, quantity);
+            }
         }
     }
 
@@ -48,7 +54,12 @@ public partial class ItemNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            GiveRequested?.Invoke(Multiplayer.GetRemoteSenderId(), intentId, targetPeer, type, tier, quantity, dollars);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Give, sender, intentId, targetPeer, type, tier, quantity, dollars))
+            {
+                GiveRequested?.Invoke(sender, intentId, targetPeer, type, tier, quantity, dollars);
+            }
         }
     }
 
@@ -82,7 +93,7 @@ public partial class ItemNetwork : Node
 
     public void SendWorkbenchOpened(long peer)
     {
-        RpcId(peer, MethodName.ReceiveWorkbenchOpened);
+        SendTo(peer, MethodName.ReceiveWorkbenchOpened);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -90,7 +101,12 @@ public partial class ItemNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            EquipRequested?.Invoke(Multiplayer.GetRemoteSenderId(), instanceId);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Equip, sender, instanceId))
+            {
+                EquipRequested?.Invoke(sender, instanceId);
+            }
         }
     }
 
@@ -99,7 +115,12 @@ public partial class ItemNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            UnequipRequested?.Invoke(Multiplayer.GetRemoteSenderId(), instanceId);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.Unequip, sender, instanceId))
+            {
+                UnequipRequested?.Invoke(sender, instanceId);
+            }
         }
     }
 
@@ -108,7 +129,12 @@ public partial class ItemNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            PhoneRequested?.Invoke(Multiplayer.GetRemoteSenderId());
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.UsePhone, sender))
+            {
+                PhoneRequested?.Invoke(sender);
+            }
         }
     }
 
@@ -117,7 +143,12 @@ public partial class ItemNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            RemoveBatteryRequested?.Invoke(Multiplayer.GetRemoteSenderId(), phoneId);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.RemoveBattery, sender, phoneId))
+            {
+                RemoveBatteryRequested?.Invoke(sender, phoneId);
+            }
         }
     }
 
@@ -126,7 +157,12 @@ public partial class ItemNetwork : Node
     {
         if (Multiplayer.IsServer())
         {
-            InsertBatteryRequested?.Invoke(Multiplayer.GetRemoteSenderId(), phoneId);
+            long sender = Multiplayer.GetRemoteSenderId();
+
+            using (Activity? span = Received(MethodName.InsertBattery, sender, phoneId))
+            {
+                InsertBatteryRequested?.Invoke(sender, phoneId);
+            }
         }
     }
 

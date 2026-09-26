@@ -19,4 +19,13 @@ public class Networks
     public TerminalNetwork Terminal { get; }
     public ShopNetwork Shop { get; }
     public ItemNetwork Items { get; }
+
+    public void SetLog(IRpcLog log)
+    {
+        Session.Log = log;
+        Party.Log = log;
+        Terminal.Log = log;
+        Shop.Log = log;
+        Items.Log = log;
+    }
 }
