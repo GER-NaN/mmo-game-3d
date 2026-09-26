@@ -316,6 +316,20 @@ public partial class Network : NetworkNode
         DirectReceived?.Invoke(partnerId, partnerName, text, incoming);
     }
 
+    // Client side: a drone zapped someone, from and to (zone-local), to draw.
+    public event Action<Vector3, Vector3>? DroneZapReceived;
+
+    public void SendDroneZap(long peer, Vector3 from, Vector3 to)
+    {
+        SendTo(peer, MethodName.ReceiveDroneZap, from, to);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.UnreliableOrdered)]
+    private void ReceiveDroneZap(Vector3 from, Vector3 to)
+    {
+        DroneZapReceived?.Invoke(from, to);
+    }
+
     // Server side: a player fires their EMP Emitter.
     public event Action<long>? EmpRequested;
 

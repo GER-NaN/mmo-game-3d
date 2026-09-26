@@ -157,6 +157,7 @@ public partial class ClientGame : Node
         _network.ChatReceived += OnChatReceived;
         _network.DirectReceived += OnDirectReceived;
         _network.EmpPulseReceived += ShowEmpPulse;
+        _network.DroneZapReceived += ShowDroneZap;
         _network.ClockReceived += OnClockReceived;
         _network.MapReceived += OnMapReceived;
         _socialNetwork.ContactsReceived += OnContactsReceived;
@@ -217,6 +218,13 @@ public partial class ClientGame : Node
         }
 
         Node3D? self = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Node3D;
+
+        Players.Player? me = self as Players.Player;
+
+        if (me != null)
+        {
+            _hud?.ShowHealth(me.Health);
+        }
 
         if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
@@ -842,6 +850,38 @@ public partial class ClientGame : Node
         {
             _network.SendChat(text);
         }
+    }
+
+    // A red beam from the drone to whoever it hit, gone in a moment. A placeholder look.
+    private void ShowDroneZap(Vector3 from, Vector3 to)
+    {
+        if (_world == null)
+        {
+            return;
+        }
+
+        float length = from.DistanceTo(to);
+        StandardMaterial3D material = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = new Color(1f, 0.2f, 0.15f, 0.9f),
+        };
+        MeshInstance3D beam = new MeshInstance3D
+        {
+            Mesh = new CylinderMesh { TopRadius = 0.03f, BottomRadius = 0.03f, Height = length, Material = material },
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        _world.AddChild(beam);
+
+        // A cylinder stands along Y: turn Y onto the line between the two ends.
+        Vector3 along = (to - from).Normalized();
+        Vector3 side = along.Cross(Vector3.Up).Length() > 0.01f ? along.Cross(Vector3.Up).Normalized() : Vector3.Right;
+        beam.GlobalTransform = new Transform3D(new Basis(side, along, side.Cross(along)), (from + to) / 2f);
+
+        Tween tween = beam.CreateTween();
+        tween.TweenProperty(material, "albedo_color:a", 0f, 0.35f);
+        tween.TweenCallback(Callable.From(beam.QueueFree));
     }
 
     // An expanding, fading shell where the pulse went off. A placeholder look.

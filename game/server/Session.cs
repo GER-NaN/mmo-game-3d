@@ -66,6 +66,10 @@ public class Session
     // Distance and jumps not yet worth a whole Agility experience.
     public AgilityCounter Agility { get; } = new AgilityCounter();
 
+    // HP, kept here so it goes through doors with the player; the body shows it.
+    public int Health { get; set; } = Rules.Players.Health.Max;
+    public double SinceHurt { get; set; }
+
     // Whether the player was told this session that the next rank is ready.
     public bool RankReadyNoted { get; set; }
 

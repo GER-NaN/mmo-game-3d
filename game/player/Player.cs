@@ -89,6 +89,10 @@ public partial class Player : CharacterBody3D
     [Export]
     public string DisplayName { get; set; } = "";
 
+    // HP (see Health). Set by the server; below 50 the walk is slower, on both sides.
+    [Export]
+    public int Health { get; set; } = Rules.Players.Health.Max;
+
     // The career and rank, public by design ("Mechanical Engineer · Senior"); "" for none.
     [Export]
     public string CareerTitle { get; set; } = "";
@@ -289,8 +293,9 @@ public partial class Player : CharacterBody3D
     private void Step(Vector2 walk, bool jump, float delta)
     {
         Vector3 velocity = Velocity;
-        velocity.X = walk.X * Speed;
-        velocity.Z = walk.Y * Speed;
+        float speed = Rules.Players.Health.IsSlowed(Health) ? Speed * Rules.Players.Health.SlowFactor : Speed;
+        velocity.X = walk.X * speed;
+        velocity.Z = walk.Y * speed;
 
         if (IsOnFloor())
         {

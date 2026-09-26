@@ -206,6 +206,7 @@ public partial class ServerGame : Node
         _whois.HasJob = _town.HasJob;
         _drones = new ServerDrones(_world.GetZone(ZoneIds.Town)!, _gate, network, () => _sessions.Values);
         network.EmpRequested += peer => WithSession(peer, session => _drones.Fire(session));
+        _drones.Hurt += HurtPlayer;
         networks.Social.WhoisSearchRequested += (peer, text) => WithSession(peer, session => _whois.Search(session, text));
         networks.Social.WhoisOpenRequested += (peer, id) => WithSession(peer, session => _whois.Open(session, id));
         networks.Social.WhoisPropsRequested += (peer, id) => WithSession(peer, session => _whois.ToggleProps(session, id));
@@ -321,6 +322,7 @@ public partial class ServerGame : Node
         _progress.Tick(delta);
         _fixables.Tick(delta);
         _drones.Tick(delta);
+        RegenerateHealth(delta);
         _packetLog?.Drain();
         _diagnostics?.Tick(delta);
 
@@ -727,6 +729,7 @@ public partial class ServerGame : Node
         body.PlayerIdText = record.PlayerId.ToString();
         body.Look = Appearance.Normalize(record.Look);
         body.CareerTitle = CareerCatalog.Title(session.Progress.Career.Career, session.Progress.Career.Rank);
+        body.Health = session.Health;
         body.Position = SpaceQueries.FreeSpotNear(zone, new Vector3(record.PositionX, record.PositionY, record.PositionZ));
         body.Rotation = new Vector3(0f, record.Yaw, 0f);
         body.RespawnPoint = zone.SpawnPoint;
@@ -755,6 +758,59 @@ public partial class ServerGame : Node
         else
         {
             _social.Arrived(session);
+        }
+    }
+
+    // Something hurt a player. At 0 they faint and helpful strangers carry them back to
+    // the town's spawn (world.md 8), with their HP back; nothing is lost yet, since what
+    // fainting costs is still open.
+    private void HurtPlayer(Session session, int amount)
+    {
+        session.Health = Rules.Players.Health.Hurt(session.Health, amount);
+        session.SinceHurt = 0;
+
+        if (session.Body != null)
+        {
+            session.Body.Health = session.Health;
+        }
+
+        if (!Rules.Players.Health.HasFainted(session.Health))
+        {
+            _network.SendNotice(session.PeerId, "A drone zaps you. HP " + session.Health + ".");
+            return;
+        }
+
+        GD.Print(session.Record!.DisplayName + " fainted");
+        session.Health = Rules.Players.Health.Max;
+        Zone town = _world.GetZone(ZoneIds.Town)!;
+        _network.SendNotice(session.PeerId, "You fainted. Helpful strangers carried you back to town.");
+        Travel(new List<Session> { session }, town, town.GetNode<Node3D>("Spawn"), "");
+    }
+
+    private void RegenerateHealth(double delta)
+    {
+        foreach (Session session in _sessions.Values)
+        {
+            if (session.State != SessionState.InWorld || session.Health >= Rules.Players.Health.Max)
+            {
+                continue;
+            }
+
+            double before = session.SinceHurt;
+            session.SinceHurt += delta;
+
+            // Whole seconds past the wait, a few HP each.
+            int ticks = (int)Math.Floor(session.SinceHurt - Rules.Players.Health.RegenAfterSeconds) - (int)Math.Floor(before - Rules.Players.Health.RegenAfterSeconds);
+
+            if (session.SinceHurt >= Rules.Players.Health.RegenAfterSeconds && ticks > 0)
+            {
+                session.Health = Rules.Players.Health.Heal(session.Health, ticks * Rules.Players.Health.RegenPerSecond);
+
+                if (session.Body != null)
+                {
+                    session.Body.Health = session.Health;
+                }
+            }
         }
     }
 

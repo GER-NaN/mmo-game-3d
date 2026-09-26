@@ -135,6 +135,37 @@ public partial class Hud : Control
         return bar;
     }
 
+    private int _shownHealth = -1;
+
+    // HP under the name line, green, yellow below 50, red below 25.
+    public void ShowHealth(int health)
+    {
+        if (health == _shownHealth)
+        {
+            return;
+        }
+
+        _shownHealth = health;
+        ProgressBar? bar = GetNodeOrNull<ProgressBar>("Health");
+
+        if (bar == null)
+        {
+            bar = new ProgressBar { Name = "Health", MinValue = 0, MaxValue = 100, ShowPercentage = false, MouseFilter = MouseFilterEnum.Ignore };
+            bar.Position = new Vector2(16, 44);
+            bar.Size = new Vector2(180, 14);
+            AddChild(bar);
+            Label label = new Label { Name = "HealthText", Position = new Vector2(202, 38), MouseFilter = MouseFilterEnum.Ignore };
+            label.AddThemeConstantOverride("outline_size", 6);
+            AddChild(label);
+        }
+
+        bar.Value = health;
+        Color color = health < 25 ? new Color(0.95f, 0.3f, 0.25f) : (health < 50 ? new Color(0.95f, 0.8f, 0.3f) : new Color(0.35f, 0.85f, 0.4f));
+        StyleBoxFlat fill = new StyleBoxFlat { BgColor = color };
+        bar.AddThemeStyleboxOverride("fill", fill);
+        GetNode<Label>("HealthText").Text = "HP " + health + (health < 50 ? "  (slowed)" : "");
+    }
+
     // The key help along the bottom.
     public void ShowHint(string hint)
     {
