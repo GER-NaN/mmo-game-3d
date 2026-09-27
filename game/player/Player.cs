@@ -524,10 +524,11 @@ public partial class Player : CharacterBody3D
     }
 
     // Reads the keys (or the input source), turns the heading, and sends the walk on.
-    // While a text field or a menu has focus, the keys belong to it, not to walking.
+    // While a text field or a menu has focus, or a screen covers the view (the terminal,
+    // the potting table), the keys belong to it, not to walking or turning.
     private void ReadInput(double delta, out Vector2 walk, out bool jump)
     {
-        bool keysFree = InputSource == null && GetViewport().GuiGetFocusOwner() == null;
+        bool keysFree = InputSource == null && GetViewport().GuiGetFocusOwner() == null && GetTree().GetNodeCountInGroup(ChaseCamera.ScreenGroup) == 0;
         float turn = keysFree ? Input.GetAxis("turn_right", "turn_left") : 0f;
         float forward = keysFree ? Input.GetAxis("move_back", "move_forward") : 0f;
         float strafe = keysFree ? Input.GetAxis("strafe_left", "strafe_right") : 0f;

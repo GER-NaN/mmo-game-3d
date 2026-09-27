@@ -43,6 +43,8 @@ public partial class ScenarioDriver : Node
     private double _sinceRiseSample;
     private float _fastestRise;
     private bool _sawAirborne;
+    private float _headingBefore;
+    private double _turnHeld = -1;
 
     public ScenarioDriver(string name, Networks networks)
     {
@@ -89,6 +91,8 @@ public partial class ScenarioDriver : Node
                 Step("open Town cameras", () => ClickGroup(TerminalScreen.AppGroupPrefix + TerminalApps.TownCameras));
                 Step("click a drone", ClickDrone);
                 Expect("the drone reported", () => Noticed("drone reported"));
+                Step("hold a turn key", () => HoldTurn(0.6));
+                Expect("the body not turned behind the screen", () => Mathf.Abs(Mathf.AngleDifference(_headingBefore, MyHeading())) < 0.01f);
                 break;
             case "subway":
                 Use("Spray your name");
@@ -264,6 +268,36 @@ public partial class ScenarioDriver : Node
     private void Expect(string name, Func<bool> check)
     {
         Step("expect " + name, check);
+    }
+
+    // Holds turn_left this long, noting the heading before; true once released. With no
+    // control focused, as after clicking the picture: a focused button takes the keys.
+    private bool HoldTurn(double seconds)
+    {
+        if (_turnHeld < 0)
+        {
+            GetViewport().GuiReleaseFocus();
+            _headingBefore = MyHeading();
+            _turnHeld = 0;
+            Input.ActionPress("turn_left");
+            return false;
+        }
+
+        _turnHeld += GetProcessDeltaTime();
+
+        if (_turnHeld < seconds)
+        {
+            return false;
+        }
+
+        Input.ActionRelease("turn_left");
+        return true;
+    }
+
+    private float MyHeading()
+    {
+        Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+        return me != null ? me.Heading : 0f;
     }
 
     private void GoOnline()
