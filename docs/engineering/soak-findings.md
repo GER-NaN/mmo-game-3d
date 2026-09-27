@@ -30,6 +30,29 @@ resource in the town scene it is.
 
 ![Soak7 after the ride](soak-shots/20260927-0024-soak7.png)
 
+### A player saved inside a taxi ride logs back into it, and the town arrives too early
+
+**Found** 2026-09-27, run 2, Soak6. **Status:** open.
+
+Soak6 was stopped during a robo taxi ride, so the server saved its zone as `taxi-14`.
+At its next login the server put it back into that ride, which ended at once ("You have
+arrived. The robo taxi drives off."), and moved it to Old Town. The server then sent
+the town's spawns and syncs before the client had loaded the town:
+
+```
+ERROR: Node not found: "Main/World/town/Zone/ItemSpawner" (relative to "/root").
+ERROR: Parameter "spawner" is null.        (on_spawn_receive)
+ERROR: ID 2 not found in cache of peer 1.  196 times
+ERROR: Ignoring delta for non-authority or invalid synchronizer.
+```
+
+It cleared once the town finished loading, and the bot played on. Two things to look
+at: a ride's cabin is a place the player should never be saved in (the drop-off in
+town is), and a zone change should not send the new zone's nodes before the client is
+ready for them.
+
+![Soak6 after its login](soak-shots/20260927-0039-soak6.png)
+
 ### The phone's Go Offline button falls off a short window
 
 **Found** 2026-09-27, run 1, all bots. **Status:** open.
