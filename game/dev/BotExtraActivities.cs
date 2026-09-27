@@ -79,6 +79,7 @@ public sealed class PokeStep : BotStep
         "[color=red]red[/color] [b]bold[/b] [url]x[/url]",
         "Åsa Ñoño 日本語 Привет 🙂🔥",
         new string('W', 400),
+        new string('W', 119) + "🙂 past the cut",
         "   ",
         "%s %d {0} {{1}} \\n $name",
         "'; DROP TABLE players; --",

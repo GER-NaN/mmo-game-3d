@@ -22,6 +22,15 @@ public class ChatTests
     }
 
     [Fact]
+    public void TheCutNeverSplitsAnEmoji()
+    {
+        // An emoji is two UTF-16 chars; one straddling the limit goes whole.
+        string clean = ChatFilterPipeline.Default().Apply(new string('a', CleanFilter.MaxLength - 1) + "🙂 and more");
+
+        Assert.Equal(new string('a', CleanFilter.MaxLength - 1), clean);
+    }
+
+    [Fact]
     public void TheRateLimitRefusesASixthLineInTheWindowAndRecoversAfter()
     {
         ChatRateLimit limit = new ChatRateLimit();

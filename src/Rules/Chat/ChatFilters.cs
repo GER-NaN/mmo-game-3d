@@ -78,6 +78,14 @@ public class CleanFilter : IChatFilter
         }
 
         string trimmed = clean.ToString().Trim();
-        return trimmed.Length > MaxLength ? trimmed.Substring(0, MaxLength) : trimmed;
+
+        if (trimmed.Length <= MaxLength)
+        {
+            return trimmed;
+        }
+
+        // Not through the middle of an emoji (two chars): half of one is not text.
+        int cut = char.IsHighSurrogate(trimmed[MaxLength - 1]) ? MaxLength - 1 : MaxLength;
+        return trimmed.Substring(0, cut);
     }
 }
