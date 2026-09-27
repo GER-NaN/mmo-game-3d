@@ -33,6 +33,8 @@ nav:
       - Performance: engineering/performance.md
       - Load test: engineering/load-test.md
       - Sound: engineering/sound.md
+      - Bot testing: engineering/bot-testing.md
+      - Bot testing findings: engineering/bot-testing-findings.md
       - Example, tree chopping: engineering/example-tree-chopping.md
       - glob: "engineering/*"
         ignore_no_matches: true
