@@ -308,6 +308,17 @@ hiding its Resume button, and Enter put the cursor in the chat line, which then 
 M as a letter. A person gets out (click away from the chat, M, then Resume), but the
 game menu is usually a screen that holds the rest still while it is up.
 
+### A body can stand on the workbench chair
+
+**Found** 2026-09-27, the dropper at the shop's workbench (`floating`).
+**Status:** open, minor.
+
+Walking to the workbench, the body stepped up onto the chair's seat and stood there,
+1 m above the floor, for over 10 s. The ray under the body passes the chair and finds
+the floor, so the judge read it as floating. A player can walk off again. There is no
+seat mechanic; a chair that the body cannot step onto, or one that seats it, would fix
+it.
+
 ## Bot problems
 
 Fixed as found; kept here so the same thing is recognised next time.
@@ -392,6 +403,10 @@ Fixed as found; kept here so the same thing is recognised next time.
   a spell that got nowhere now turns away first.
 - **Bobbing read as thrashing.** Against the world's edge the escaper bobbed up and
   down; the check now counts moves across the ground only.
+- **A swap that found no battery button called itself done.** With the workbench
+  running off the screen, "put the fullest battery in" saw no button for 3 s and ended
+  as done, so the judge said the swap broke its promise (phone still at 0%). A swap
+  starts only with a spare battery, so no button now fails the step.
 
 ## Tooling
 

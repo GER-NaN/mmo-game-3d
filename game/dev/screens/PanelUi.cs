@@ -37,8 +37,10 @@ public static class WorkbenchUi
 
             if (first == null)
             {
+                // The swap starts only with a spare battery, so no button is a failure,
+                // not a swap done.
                 waited += d;
-                return waited < ButtonsWithin ? StepResult.Running : StepResult.Done;
+                return waited < ButtonsWithin ? StepResult.Running : StepResult.Failed;
             }
 
             return b.TryClick(first) ? StepResult.Done : StepResult.Running;
