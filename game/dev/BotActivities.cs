@@ -54,6 +54,12 @@ public static class BotActivities
 
     private static readonly string[] Emotes = { "/wave", "/cheer", "/sit", "/pushups" };
 
+    // Not picked by weight: the brain runs it after walks fail twice running.
+    public static readonly BotActivity Escape = new BotActivity("get unstuck", 0, body => true, body => new List<BotStep>
+    {
+        new EscapeStep(),
+    });
+
     public static readonly BotActivity[] All =
     {
         new BotActivity("walk around town", 6, InTown, body => new List<BotStep>

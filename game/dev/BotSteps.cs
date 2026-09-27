@@ -33,6 +33,18 @@ public abstract class BotStep
         get { return false; }
     }
 
+    // Where the step is taking the bot, if anywhere: for the judge's records.
+    public virtual Vector3? Target(BotBody body)
+    {
+        return null;
+    }
+
+    // A step that walks: the judge expects the bot to move during it.
+    public virtual bool Walks
+    {
+        get { return false; }
+    }
+
     public virtual void Begin(BotBody body)
     {
     }
@@ -175,6 +187,17 @@ public sealed class WalkToStep : BotStep
         _near = near;
     }
 
+    public override bool Walks
+    {
+        get { return true; }
+    }
+
+    public override Vector3? Target(BotBody body)
+    {
+        Node3D? target = _target(body);
+        return target == null ? null : target.GlobalPosition;
+    }
+
     public override void Begin(BotBody body)
     {
         _walker = new Walker();
@@ -210,6 +233,17 @@ public sealed class DoorStep : BotStep
     public override bool MovesZone
     {
         get { return true; }
+    }
+
+    public override bool Walks
+    {
+        get { return true; }
+    }
+
+    public override Vector3? Target(BotBody body)
+    {
+        Node3D? door = body.Thing("Doors/" + _door);
+        return door == null ? null : door.GlobalPosition;
     }
 
     public override void Begin(BotBody body)
@@ -338,6 +372,11 @@ public sealed class WanderStep : BotStep
         _seconds = seconds;
     }
 
+    public override bool Walks
+    {
+        get { return true; }
+    }
+
     public override void Begin(BotBody body)
     {
         _left = _seconds;
@@ -438,5 +477,91 @@ public sealed class CloseAllStep : BotStep
 
         _next = Gap;
         return body.CloseOne() ? StepResult.Done : StepResult.Running;
+    }
+}
+
+/// <summary>
+/// Out of a trap (a gap between buildings, a corner): tries eight directions, straight
+/// back first, then the sides, a few seconds each with a jump, until one takes the bot
+/// well clear of where it was. Walking at a target keeps pushing it deeper in.
+/// </summary>
+public sealed class EscapeStep : BotStep
+{
+    private const double TryFor = 2.5;
+    private const float Clear = 2.5f;
+
+    // Turns from the way it faces, in the order tried.
+    private static readonly float[] Turns = { Mathf.Pi, Mathf.Pi / 2f, -Mathf.Pi / 2f, Mathf.Pi * 0.75f, -Mathf.Pi * 0.75f, Mathf.Pi / 4f, -Mathf.Pi / 4f, 0f };
+
+    private int _try;
+    private double _left;
+    private Vector3 _from;
+    private Vector3 _toward;
+
+    public EscapeStep()
+        : base("get unstuck", (TryFor * 8) + 2)
+    {
+    }
+
+    public override bool Walks
+    {
+        get { return true; }
+    }
+
+    public override void Begin(BotBody body)
+    {
+        _try = 0;
+        Aim(body);
+    }
+
+    public override StepResult Tick(BotBody body, double delta)
+    {
+        Players.Player? me = body.Me;
+
+        if (me == null)
+        {
+            return StepResult.Failed;
+        }
+
+        if (me.GlobalPosition.DistanceTo(_from) > Clear)
+        {
+            body.Stop();
+            GD.Print("Bot: got clear, going " + (int)Mathf.RadToDeg(Turns[_try]) + " degrees from where it faced");
+            return StepResult.Done;
+        }
+
+        body.SteerTo(_toward);
+        Input.ActionPress("jump");
+        _left -= delta;
+
+        if (_left <= 0)
+        {
+            _try++;
+
+            if (_try >= Turns.Length)
+            {
+                body.Stop();
+                return StepResult.Failed;
+            }
+
+            Aim(body);
+        }
+
+        return StepResult.Running;
+    }
+
+    private void Aim(BotBody body)
+    {
+        Players.Player? me = body.Me;
+
+        if (me == null)
+        {
+            return;
+        }
+
+        _from = me.GlobalPosition;
+        _left = TryFor;
+        float heading = me.Heading + Turns[_try];
+        _toward = _from + (new Vector3(-Mathf.Sin(heading), 0f, -Mathf.Cos(heading)) * 10f);
     }
 }

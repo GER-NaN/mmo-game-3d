@@ -26,7 +26,6 @@ LOGS = os.path.join(os.environ.get("TEMP", "/tmp"), "mmo-game-3d-bots")
 SHOTS = os.path.join(LOGS, "shots")
 STATE = os.path.join(LOGS, "watch-state.json")
 DIAGNOSTICS = os.path.join(os.environ.get("APPDATA", ""), "Godot", "app_userdata", "mmo-game-3d", "diagnostics")
-SHOT_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shot.ps1")
 
 # One action this share of a bot's actions, over at least this many, is a loop.
 LOOP_SHARE = 0.7
@@ -81,6 +80,7 @@ def look(state, shots):
         lines = new_lines(path, state)
         acts = [action(l) for l in lines if l.startswith("Bot:")]
         errors = sorted({l.strip()[:120] for l in lines if l.startswith("ERROR") or "Exception" in l or "Fatal" in l})
+        judged = [l[7:].split(" [")[0] for l in lines if l.startswith("Judge: ")]
         problem = ""
         if name not in bots:
             problem = "not running"
@@ -94,6 +94,9 @@ def look(state, shots):
                 problem = "looping on '" + top + "' (" + str(count) + " of " + str(len(acts)) + ")"
         if errors:
             problem = (problem + "; " if problem else "") + str(len(errors)) + " new errors: " + " | ".join(errors[:2])
+        if judged:
+            # The judge took its own picture and wrote its finding (judge_report.py).
+            problem = (problem + "; " if problem else "") + "judge: " + " | ".join(judged[:2])
         if problem:
             shot = ""
             if shots and name in bots:
@@ -128,11 +131,17 @@ def server_errors(state):
 
 
 def take_shot(name):
+    """Asks the bot's own client for a picture of its game view (BotKeeper), so
+    nothing else on the screen is ever in it."""
     os.makedirs(SHOTS, exist_ok=True)
     path = os.path.join(SHOTS, datetime.datetime.now().strftime("%Y%m%d-%H%M") + "-" + name + ".png")
-    subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", SHOT_SCRIPT, name, path],
-                   capture_output=True)
-    return os.path.basename(path) if os.path.exists(path) else ""
+    with open(os.path.join(LOGS, "shot-" + name + ".request"), "w", encoding="utf-8") as f:
+        f.write(path)
+    for _ in range(10):
+        time.sleep(0.5)
+        if os.path.exists(path):
+            return os.path.basename(path)
+    return ""
 
 
 def main():

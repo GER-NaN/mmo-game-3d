@@ -168,7 +168,7 @@ public partial class ClientGame : Node
         // For the whole run, not only in the world: it brings a bot back from the menus.
         if (options.Bot)
         {
-            AddChild(new Dev.BotKeeper { Name = "BotKeeper" });
+            AddChild(new Dev.BotKeeper { Name = "BotKeeper", Profile = options.Profile });
         }
         _settings.ApplyVolumes();
 
@@ -852,7 +852,7 @@ public partial class ClientGame : Node
 
         if (_options.Bot)
         {
-            _bot = new BotDriver { Name = "Bot" };
+            _bot = new BotDriver { Name = "Bot", Profile = _options.Profile };
             AddChild(_bot);
         }
 

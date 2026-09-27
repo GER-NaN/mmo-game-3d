@@ -41,10 +41,18 @@ public partial class BotDriver : Node
     private double _closingFor;
     private double _pickIn;
     private double _joinSeenFor;
+    private BotPositionJudge _judge = null!;
+
+    // Walks that failed in a row: two, and it is trapped somewhere; it escapes first.
+    private int _failedWalks;
+
+    // Names the bot in the judge's findings and pictures.
+    public string Profile { get; set; } = "";
 
     public override void _Ready()
     {
         _body = new BotBody(this, _random);
+        _judge = new BotPositionJudge(Profile);
         _closer.Begin(_body);
     }
 
@@ -64,6 +72,7 @@ public partial class BotDriver : Node
         }
 
         AcceptInvites(delta);
+        _judge.Tick(_body, delta, _activity?.Name ?? (_closing ? "closing up" : "choosing"), _activity != null ? _steps[_step] : null);
 
         if (_closing)
         {
@@ -106,6 +115,7 @@ public partial class BotDriver : Node
             case StepResult.Running:
                 break;
             case StepResult.Failed:
+                _failedWalks = step.Walks ? _failedWalks + 1 : 0;
                 End("\"" + step.Name + "\" " + (tooLong ? "took too long" : "failed"), false);
                 break;
             default:
@@ -114,6 +124,7 @@ public partial class BotDriver : Node
 
                 if (_step >= _steps.Count)
                 {
+                    _failedWalks = 0;
                     End("done", true);
                 }
                 else
@@ -129,6 +140,13 @@ public partial class BotDriver : Node
     // when there is a choice.
     private void Pick()
     {
+        if (_failedWalks >= 2)
+        {
+            _failedWalks = 0;
+            Start(BotActivities.Escape);
+            return;
+        }
+
         List<BotActivity> open = new List<BotActivity>();
         int total = 0;
 
@@ -168,12 +186,17 @@ public partial class BotDriver : Node
             roll -= activity.Weight;
         }
 
-        _activity = pick;
-        _lastActivity = pick.Name;
-        _steps = pick.Plan(_body);
+        Start(pick);
+    }
+
+    private void Start(BotActivity activity)
+    {
+        _activity = activity;
+        _lastActivity = activity.Name;
+        _steps = activity.Plan(_body);
         _step = 0;
         _zone = _body.ZoneId;
-        GD.Print("Bot: starting \"" + pick.Name + "\"");
+        GD.Print("Bot: starting \"" + activity.Name + "\"");
         StartStep();
     }
 
