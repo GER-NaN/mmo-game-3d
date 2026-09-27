@@ -186,6 +186,8 @@ adds one step with its time limit and its way out.
 ```
 
 The same replays a finding: run the activity it names, with the persona it names.
+Several names, comma-separated, replay a sequence: `"ride a robo taxi,visit the
+college"` starts each visit from the taxi drop-off.
 
 - **What a new screen needs:** its buttons and fields in a group (`AddToGroup`), so bots
   find them as a person finds them by looking, and its panel type in

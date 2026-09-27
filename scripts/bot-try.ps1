@@ -4,6 +4,7 @@
 #
 #   .\scripts\bot-try.ps1 "edit my Whois page"
 #   .\scripts\bot-try.ps1 "fight drones" -Persona slow
+#   .\scripts\bot-try.ps1 "ride a robo taxi,visit the college"    these, in turn
 #
 # The bot is the player "trybot" (profile trybot), and logs to
 # %TEMP%\mmo-game-3d-bots\trybot.log. Close its window to stop it.
