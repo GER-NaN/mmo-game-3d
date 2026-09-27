@@ -149,7 +149,10 @@ One place makes it certain: the street kiosk (`StreetKiosk`, at x 18, z -7) stan
 the very end of the college door's trigger (x 12 to 18). Walking up to the kiosk from
 the west crosses the trigger, and a player meaning to use the kiosk is in the college
 (Soak8, run 8, twice in a minute). Moving the kiosk a few metres east, or a smaller
-trigger, ends it.
+trigger, ends it. For bots it is worse: the kiosk stands inside the college door's
+carve in their navigation mesh, so from it they have no path, walk straight, and a
+walk west goes through the college door (zone churn, run 12, the earner's Agent
+Defense goal four times over).
 
 ### One lost walk packet leaves the server's body standing
 
