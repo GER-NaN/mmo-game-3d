@@ -337,6 +337,13 @@ public partial class ScenarioDriver : Node
     {
         _done = true;
         GD.Print("SCENARIO " + _name + ": " + (passed ? "PASS" : "FAIL " + why) + " in " + _elapsed.ToString("0.0") + " s");
+
+        // With --screenshot as well, the picture is the point: it quits once taken.
+        if (GetTree().Root.FindChild("Screenshot", true, false) != null)
+        {
+            return;
+        }
+
         GetTree().Quit(passed ? 0 : 1);
     }
 }
