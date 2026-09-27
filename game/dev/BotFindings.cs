@@ -45,10 +45,33 @@ public static class BotFindings
             record[field.Key] = field.Value;
         }
 
+        record["net"] = Link(me);
+
         File.WriteAllText(Path.Combine(folder, "finding.json"), JsonSerializer.Serialize(record, new JsonSerializerOptions { WriteIndented = true }));
         File.WriteAllText(Path.Combine(folder, "client.log"), LastLines(Path.Combine(Path.GetTempPath(), "mmo-game-3d-bots", profile + ".log")));
         File.AppendAllText(Path.Combine(Folder, "findings.jsonl"), JsonSerializer.Serialize(record) + "\n");
         GD.Print("Judge: " + kind + ": " + detail + " [" + name + "]");
+    }
+
+    // ENet's view of the link to the server. A packet throttle under 32 (of 32) drops
+    // that share of unreliable packets (walks) before they are sent.
+    private static Dictionary<string, double>? Link(Player me)
+    {
+        ENetMultiplayerPeer? peer = me.Multiplayer.MultiplayerPeer as ENetMultiplayerPeer;
+        ENetPacketPeer? server = peer?.GetPeer(1);
+
+        if (server == null)
+        {
+            return null;
+        }
+
+        return new Dictionary<string, double>
+        {
+            { "rtt_ms", server.GetStatistic(ENetPacketPeer.PeerStatistic.RoundTripTime) },
+            { "rtt_variance_ms", server.GetStatistic(ENetPacketPeer.PeerStatistic.RoundTripTimeVariance) },
+            { "packet_loss", server.GetStatistic(ENetPacketPeer.PeerStatistic.PacketLoss) },
+            { "throttle", server.GetStatistic(ENetPacketPeer.PeerStatistic.PacketThrottle) },
+        };
     }
 
     // The end of the bot's own log (scripts/bots-up.ps1 names it after the profile),
