@@ -130,7 +130,12 @@ public partial class BotKeeper : Node
     {
         _switchFor += delta;
         Player? me = GetTree().GetFirstNodeInGroup(Player.LocalGroup) as Player;
-        _leftWorld = _leftWorld || me == null;
+
+        // Left by the menus: the body alone going (a zone change) is not leaving.
+        _leftWorld = _leftWorld
+            || GetTree().GetFirstNodeInGroup(MainMenu.PlayGroup) != null
+            || GetTree().GetFirstNodeInGroup(CharacterSelect.PlayGroup) != null
+            || GetTree().GetFirstNodeInGroup(CharacterSelect.CreateGroup) != null;
 
         if (!_leftWorld)
         {
