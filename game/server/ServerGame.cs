@@ -780,16 +780,6 @@ public partial class ServerGame : Node
             }
         }
 
-        // A zone removed since the player was saved would lock them out; they start over.
-        if (_world.GetZone(record.Zone) == null)
-        {
-            Zone start = _world.GetZone(ZoneIds.Start)!;
-            record.Zone = ZoneIds.Start;
-            record.PositionX = start.SpawnPoint.X;
-            record.PositionY = start.SpawnPoint.Y;
-            record.PositionZ = start.SpawnPoint.Z;
-        }
-
         session.Record = record;
         session.Dollars = record.Dollars;
         session.Contacts = record.Contacts;
@@ -814,6 +804,29 @@ public partial class ServerGame : Node
 
         session.Instances = record.Instances;
         _scenarios.Apply(session, record);
+
+        // A ride's cabin is made for one ride and gone after it, and its number comes round
+        // again after a restart: a player saved in one comes back at the drop-off, not in a
+        // stranger's ride.
+        if (ZoneIds.IsInstance(record.Zone))
+        {
+            Zone town = _world.GetZone(ZoneIds.Town)!;
+            Vector3 dropOff = town.Arrival("TaxiDropOff")!.Position;
+            record.Zone = ZoneIds.Town;
+            record.PositionX = dropOff.X;
+            record.PositionY = dropOff.Y;
+            record.PositionZ = dropOff.Z;
+        }
+
+        // A zone removed since the player was saved would lock them out; they start over.
+        if (_world.GetZone(record.Zone) == null)
+        {
+            Zone start = _world.GetZone(ZoneIds.Start)!;
+            record.Zone = ZoneIds.Start;
+            record.PositionX = start.SpawnPoint.X;
+            record.PositionY = start.SpawnPoint.Y;
+            record.PositionZ = start.SpawnPoint.Z;
+        }
 
         session.State = SessionState.Accepted;
         _network.SendLoginAccepted(peer, record.Zone, record.DisplayName);

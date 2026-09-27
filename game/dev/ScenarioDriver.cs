@@ -128,6 +128,9 @@ public partial class ScenarioDriver : Node
                 });
                 Expect("standing on the terrain", StandingInMeadows);
                 break;
+            case "taxi-relog":
+                Expect("logged in at the taxi drop-off in Old Town", AtTheDropOff);
+                break;
             case "hills":
                 Step("land", () =>
                 {
@@ -435,6 +438,16 @@ public partial class ScenarioDriver : Node
     {
         Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
         return _zone == "meadows" && me != null && me.IsOnFloor() && _lowest > -0.5f && _elapsed > _zoneSince + 2.0;
+    }
+
+    // In town, standing within a few metres of the drop-off marker.
+    private bool AtTheDropOff()
+    {
+        // The zone from the body's own node: at login it can arrive before this driver listens.
+        Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+        Zones.Zone? zone = me?.GetParent()?.GetParent() as Zones.Zone;
+        Node3D? dropOff = zone?.GetNodeOrNull<Node3D>("Arrivals/TaxiDropOff");
+        return zone != null && zone.ZoneId == "town" && me != null && dropOff != null && me.GlobalPosition.DistanceTo(dropOff.GlobalPosition) < 3f;
     }
 
     // A moment in, on the cabin's floor: the rider's feet, zone-local, near its height.

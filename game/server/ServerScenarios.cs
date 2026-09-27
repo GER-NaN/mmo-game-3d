@@ -95,6 +95,13 @@ public class ServerScenarios
             case "registrar":
                 StandBy(record, ZoneIds.College, "Registrar", new Vector3(0f, 0f, 1.3f));
                 break;
+            case "taxi-relog":
+                // Saved during a ride whose cabin is long gone (or is someone else's now).
+                record.Zone = ZoneIds.Instance(ZoneIds.Taxi, 999);
+                record.PositionX = 0f;
+                record.PositionY = 0f;
+                record.PositionZ = 0f;
+                break;
             case "hills":
                 StandAtFootOfHill(record);
                 break;

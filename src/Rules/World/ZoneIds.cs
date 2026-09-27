@@ -53,6 +53,12 @@ public static class ZoneIds
         }
     }
 
+    // Made for one use (a taxi ride), and gone after it.
+    public static bool IsInstance(string zoneId)
+    {
+        return SceneOf(zoneId) != zoneId;
+    }
+
     // The scene a zone is made from: the id itself, or the part before an instance number.
     public static string SceneOf(string zoneId)
     {
