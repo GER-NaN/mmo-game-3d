@@ -323,7 +323,13 @@ public sealed class PickUpStep : BotStep
         }
 
         // Near is below zero: it walks onto the thing until it is picked up and gone.
-        return _walker.Walk(body, _item.GlobalPosition, -1f, delta) == StepResult.Failed ? StepResult.Failed : StepResult.Running;
+        if (_walker.Walk(body, _item.GlobalPosition, -1f, delta) == StepResult.Failed)
+        {
+            body.Unreachable.Add(_item.Name);
+            return StepResult.Failed;
+        }
+
+        return StepResult.Running;
     }
 }
 

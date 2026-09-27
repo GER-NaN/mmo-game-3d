@@ -291,10 +291,17 @@ public sealed class BotBody
         }
     }
 
+    // The items lying in this zone, less those it failed to reach before: a person
+    // gives up on the one in the wall.
     public List<Node3D> GroundItems()
     {
-        return Children<Items.GroundItem>("Items");
+        List<Node3D> items = Children<Items.GroundItem>("Items");
+        items.RemoveAll(item => Unreachable.Contains(item.Name));
+        return items;
     }
+
+    // Items (by node name) a walk failed to reach.
+    public HashSet<string> Unreachable { get; } = new HashSet<string>();
 
     public List<Node3D> LiveDrones()
     {
