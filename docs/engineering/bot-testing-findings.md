@@ -265,6 +265,29 @@ later, so a jump over a low wall can land on one side for one and the other side
 the other. The `door-ignored` judge now uses the server's position, so it flags only a
 door that really did not take someone.
 
+### The workbench runs off the screen with a few phones and batteries
+
+**Found** 2026-09-27, the first run of the layered bots, Soak1 and Soak3 (`off-screen`).
+**Status:** open, for the author.
+
+The workbench lists, under every phone, a button for every loose battery. Soak1 carried
+several phones and a handful of batteries: the list ran past the top and the bottom of a
+992-pixel window and over the HUD, with nothing to scroll, and the buttons at the top
+could not be clicked ("Put in the loose battery at 100%" at y -86 and -207). A player
+who keeps spare phones and batteries could not use the bench. The list grows as phones
+times batteries; a scroll, or one list of batteries shared by the phones, would hold it.
+
+### The registrar's list is rebuilt every few seconds, under the pointer
+
+**Found** 2026-09-27, while the new enroll activity was tried. **Status:** open, minor.
+
+The college panel frees and rebuilds all its rows on every progress update from the
+server, which comes every few seconds. At 1280 by 720 the second career's button is
+below what the list shows, so a player scrolls to it; a rebuild can land between that
+and the click. The bots showed it as clicks that did nothing: a new button has no size
+or place until the next layout (the bots now wait for one). Rebuilding only when
+something shown changed would keep the list still.
+
 ### Panels open over the game menu
 
 **Found** 2026-09-27, run 12, Soak8 (the masher; the first `cannot-close`). **Status:**
