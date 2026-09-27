@@ -92,6 +92,9 @@ public class ServerScenarios
                 StandBy(record, ZoneIds.Town, "../Doors/ToMeadows", new Vector3(-3f, 0f, 0f));
                 record.Yaw = -Mathf.Pi / 2f;
                 break;
+            case "registrar":
+                StandBy(record, ZoneIds.College, "Registrar", new Vector3(0f, 0f, 1.3f));
+                break;
             case "hills":
                 StandAtFootOfHill(record);
                 break;

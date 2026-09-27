@@ -44,6 +44,7 @@ public partial class ScenarioDriver : Node
     private float _fastestRise;
     private bool _sawAirborne;
     private float _headingBefore;
+    private float _distanceBefore;
     private double _turnHeld = -1;
 
     public ScenarioDriver(string name, Networks networks)
@@ -159,9 +160,18 @@ public partial class ScenarioDriver : Node
                 Expect("it fixed", () => Noticed("You fixed the traffic light."));
                 break;
             case "shop":
+                Step("wheel over the world", () => WheelAt(GetViewport().GetVisibleRect().Size * new Vector2(0.5f, 0.3f)));
+                Expect("the camera zoomed", () => CameraDistance() != _distanceBefore);
                 Use("Talk to Dee");
                 Step("buy the first thing", () => ClickGroup(ShopPanel.BuyGroup));
                 Expect("it bought", () => _bought);
+                Step("wheel over the shop", () => WheelOverPanel<ShopPanel>(ShopPanel.BuyGroup));
+                Expect("the camera not zoomed", () => CameraDistance() == _distanceBefore);
+                break;
+            case "registrar":
+                Use("Talk to Mara");
+                Step("wheel over the registrar's panel", () => WheelOverPanel<CollegePanel>(CollegePanel.ClassGroup));
+                Expect("the camera not zoomed", () => CameraDistance() == _distanceBefore);
                 break;
             case "garden":
                 Use("Make a house plant");
@@ -292,6 +302,38 @@ public partial class ScenarioDriver : Node
 
         Input.ActionRelease("turn_left");
         return true;
+    }
+
+    // The pointer moves there first, as a real one does: the GUI knows what it is over
+    // from the motion.
+    private bool WheelAt(Vector2 at)
+    {
+        _distanceBefore = CameraDistance();
+        Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at });
+        Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.WheelUp, Pressed = true, Position = at, GlobalPosition = at });
+        Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.WheelUp, Pressed = false, Position = at, GlobalPosition = at });
+        return true;
+    }
+
+    // Over the middle of the panel holding a button of this group.
+    private bool WheelOverPanel<T>(string buttonGroup)
+        where T : Control
+    {
+        Node? node = GetTree().GetFirstNodeInGroup(buttonGroup);
+
+        while (node != null && !(node is T))
+        {
+            node = node.GetParent();
+        }
+
+        Control? panel = node as Control;
+        return panel != null && WheelAt(panel.GetGlobalRect().GetCenter());
+    }
+
+    private float CameraDistance()
+    {
+        Players.ChaseCamera? camera = GetViewport().GetCamera3D() as Players.ChaseCamera;
+        return camera != null ? camera.Distance : 0f;
     }
 
     private float MyHeading()

@@ -86,18 +86,30 @@ public partial class ChaseCamera : Camera3D
 
         if (@event is InputEventMouseButton button)
         {
+            // A wheel over a menu or panel is the panel's, even one that does not scroll
+            // and so lets the wheel through.
+            bool overPanel = GetViewport().GuiGetHoveredControl() != null;
+
             switch (button.ButtonIndex)
             {
                 case MouseButton.Right:
                     _dragging = button.Pressed;
                     break;
                 case MouseButton.WheelUp:
-                    Distance = _distance / ZoomStep;
-                    Zoomed?.Invoke(_distance);
+                    if (!overPanel)
+                    {
+                        Distance = _distance / ZoomStep;
+                        Zoomed?.Invoke(_distance);
+                    }
+
                     break;
                 case MouseButton.WheelDown:
-                    Distance = _distance * ZoomStep;
-                    Zoomed?.Invoke(_distance);
+                    if (!overPanel)
+                    {
+                        Distance = _distance * ZoomStep;
+                        Zoomed?.Invoke(_distance);
+                    }
+
                     break;
             }
         }
