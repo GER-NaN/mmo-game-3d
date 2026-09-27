@@ -68,7 +68,17 @@ public sealed class BotNavigation
         _bakedAt = NavigationServer3D.MapGetIterationId(_map);
         _bakedMsec = Time.GetTicksMsec();
         _ready = mesh.GetPolygonCount() > 0;
-        GD.Print("Bot: navigation for " + zone.ZoneId + ": " + mesh.GetPolygonCount() + " polygons in " + (Time.GetTicksMsec() - started) + " ms");
+        Aabb extent = new Aabb();
+        Vector3[] vertices = mesh.GetVertices();
+
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            extent = i == 0 ? new Aabb(vertices[i], Vector3.Zero) : extent.Expand(vertices[i]);
+        }
+
+        GD.Print("Bot: navigation for " + zone.ZoneId + ": " + mesh.GetPolygonCount() + " polygons in " + (Time.GetTicksMsec() - started) + " ms, x "
+            + extent.Position.X.ToString("0.0") + " to " + extent.End.X.ToString("0.0") + ", y " + extent.Position.Y.ToString("0.0") + " to " + extent.End.Y.ToString("0.0")
+            + ", z " + extent.Position.Z.ToString("0.0") + " to " + extent.End.Z.ToString("0.0"));
     }
 
     // Doors are cut out of the walkable area, so a path never crosses one it does not mean

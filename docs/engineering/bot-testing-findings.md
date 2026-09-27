@@ -277,7 +277,9 @@ Fixed as found; kept here so the same thing is recognised next time.
   no path from its entrance to the shopkeeper or the workbench: the bots' mesh there
   is 3.5 m from the entrance and 3.0 m from the shopkeeper, so most of the floor has
   none. The college, built the same way (same room, same door), is fine; the cause is
-  not found. It matters when a bot gets stuck there: working round it, it backs out
+  not found. Both meshes span the same area (x -7.2 to 7.4, z -5.2 to 5.4, from the
+  bake's log line), so the shop's has holes; seeing them needs the mesh drawn in the
+  editor (Debug, Visible Navigation). It matters when a bot gets stuck there: working round it, it backs out
   through the door (the wedger's zone churn, run 13).
 - **Closing under the chat line.** With the chat line focused, the map's own key
   typed into it, so the map never closed. Closing now lets go of a text field first,
