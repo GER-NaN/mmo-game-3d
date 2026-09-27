@@ -97,15 +97,34 @@ public static class BotGoals
         new CloseAllStep(),
     });
 
-    public static readonly BotActivity PlayDefense = new BotActivity("play Agent Defense", 0, InTown, body => new List<BotStep>
+    // On either public terminal, or on the phone when it has one with charge: every way
+    // in to the game gets played.
+    public static readonly BotActivity PlayDefense = new BotActivity("play Agent Defense", 0, InTown, body =>
     {
-        new WalkToStep("walk to the street kiosk", b => b.Thing("Interactables/StreetKiosk")),
-        new UseStep("Go Online", b => b.IsOnline),
-        Click("open Defense Objectives", TerminalScreen.AppGroupPrefix + TerminalApps.Defense, ""),
-        new PauseStep(0.8),
-        Click("start a run", TerminalScreen.DefenseStartGroup, ""),
-        new DefenseStep(),
-        new CloseAllStep(),
+        bool phone = body.Has(ItemType.Phone) && body.PhonePercent > 20;
+        int where = body.Random.Next(phone ? 3 : 2);
+        List<BotStep> steps;
+
+        if (where == 2)
+        {
+            steps = new BotPlan().Equip(ItemType.Phone).Phone().Steps;
+        }
+        else
+        {
+            string terminal = where == 0 ? "Interactables/LibraryTerminal" : "Interactables/StreetKiosk";
+            steps = new List<BotStep>
+            {
+                new WalkToStep("walk to a terminal", b => b.Thing(terminal)),
+                new UseStep("Go Online", b => b.IsOnline),
+            };
+        }
+
+        steps.Add(Click("open Defense Objectives", TerminalScreen.AppGroupPrefix + TerminalApps.Defense, ""));
+        steps.Add(new PauseStep(0.8));
+        steps.Add(Click("start a run", TerminalScreen.DefenseStartGroup, ""));
+        steps.Add(new DefenseStep());
+        steps.Add(new CloseAllStep());
+        return steps;
     });
 
     public static readonly BotActivity HuntDrones = new BotActivity("hunt a drone", 0, InTown, body => new List<BotStep>
