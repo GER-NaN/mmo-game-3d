@@ -39,6 +39,22 @@ public static class SpaceQueries
         return zone.GetWorld3D().DirectSpaceState.IntersectShape(query, 1).Count == 0;
     }
 
+    // The ground's height under a zone-local spot: from a little above it (a marker set
+    // by hand may sit under sculpted ground) down past it. Null when nothing is there.
+    public static float? GroundUnder(Zone zone, Vector3 spot)
+    {
+        Vector3 at = zone.ToGlobal(spot);
+        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(at + (Vector3.Up * 5f), at + (Vector3.Down * 50f), PhysicsLayers.World);
+        Godot.Collections.Dictionary hit = zone.GetWorld3D().DirectSpaceState.IntersectRay(query);
+
+        if (hit.Count == 0)
+        {
+            return null;
+        }
+
+        return zone.ToLocal((Vector3)hit["position"]).Y;
+    }
+
     // The wanted spot, or the nearest free spot on rings around it; both zone-local. A
     // saved spot can be inside something built since.
     public static Vector3 FreeSpotNear(Zone zone, Vector3 wanted)

@@ -1014,10 +1014,14 @@ public partial class ServerGame : Node
         session.Body?.QueueFree();
         session.Body = null;
 
+        // On the ground there, whatever height the marker was set at: under sculpted ground
+        // a body would fall through, since a height map only stops it from above.
+        Vector3 spot = arrival.Position + new Vector3(offset.X, 0f, offset.Z);
+        float? ground = SpaceQueries.GroundUnder(target, spot);
         session.Record.Zone = target.ZoneId;
-        session.Record.PositionX = arrival.Position.X + offset.X;
-        session.Record.PositionY = arrival.Position.Y;
-        session.Record.PositionZ = arrival.Position.Z + offset.Z;
+        session.Record.PositionX = spot.X;
+        session.Record.PositionY = ground ?? spot.Y;
+        session.Record.PositionZ = spot.Z;
         session.Record.Yaw = arrival.Rotation.Y;
         session.State = SessionState.Accepted;
     }
