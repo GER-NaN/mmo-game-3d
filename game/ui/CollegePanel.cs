@@ -102,6 +102,7 @@ public partial class CollegePanel : PanelContainer
     private void BuildRegistrar(VBoxContainer rows)
     {
         Title(rows, "Careers");
+        rows.AddChild(Wrapped("Skills grow by doing things; the skills panel (" + MmoGame3d.Client.ClientSettings.KeyName("skills") + ") says how to earn each. A career needs some skills at a level before you can enroll.", Dim));
         string leaving = _career.Career.HasValue ? CareerCatalog.Get(_career.Career.Value).Name : "";
 
         foreach (CareerDefinition career in CareerCatalog.All)
@@ -109,10 +110,20 @@ public partial class CollegePanel : PanelContainer
             rows.AddChild(new Label { Text = career.Name, ThemeTypeVariation = "HeaderSmall" });
             rows.AddChild(Wrapped(career.Summary, Dim));
 
+            if (career.Gate.Count > 0)
+            {
+                rows.AddChild(new Label { Text = "  Skill levels needed (yours / needed):", Modulate = Dim });
+            }
+
             foreach (KeyValuePair<SkillId, int> need in career.Gate)
             {
                 int level = _skills.Level(need.Key);
                 rows.AddChild(new Label { Text = "  " + SkillCatalog.Name(need.Key) + "  " + level + " / " + need.Value, Modulate = level >= need.Value ? Met : Short });
+
+                if (level < need.Value)
+                {
+                    rows.AddChild(Wrapped("    " + SkillCatalog.HowEarned(need.Key), Dim));
+                }
             }
 
             if (_career.Career == career.Id)
