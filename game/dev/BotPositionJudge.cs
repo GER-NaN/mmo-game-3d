@@ -108,9 +108,17 @@ public sealed class BotPositionJudge
             JudgeVehicles(body, me, activity, step);
         }
 
+        // Pushing on purpose: what comes after (walking away) is what counts.
+        if (step != null && step.Presses)
+        {
+            _track.Clear();
+            _history.Clear();
+            IsStuck = false;
+        }
+
         _trackIn -= delta;
 
-        if (_trackIn <= 0)
+        if (_trackIn <= 0 && (step == null || !step.Presses))
         {
             _trackIn = TrackEvery;
             JudgeThrashing(body, me, activity, step);
@@ -136,7 +144,7 @@ public sealed class BotPositionJudge
         }
 
         // A ride's cabin stands still in its own instance: sitting there is not stuck.
-        if (body.ZoneId.StartsWith("taxi"))
+        if (body.ZoneId.StartsWith("taxi") || (step != null && step.Presses))
         {
             _history.Clear();
             return;

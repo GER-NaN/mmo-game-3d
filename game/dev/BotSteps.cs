@@ -45,6 +45,13 @@ public abstract class BotStep
         get { return false; }
     }
 
+    // A step that pushes against what stops a player, on purpose (the escaper at the
+    // edge, the wedger in a gap): not stuck, not thrashing, while it lasts.
+    public virtual bool Presses
+    {
+        get { return false; }
+    }
+
     public virtual void Begin(BotBody body)
     {
     }

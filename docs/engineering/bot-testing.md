@@ -128,7 +128,7 @@ little off is never a finding:
 | | `floating` | 0.8 m above the surface under it, not jumping, for 10 s |
 | | `too-high` | 1.2 m above the zone's arrival and spawn markers (not on terrain), for 10 s |
 | | `in-vehicle` | within a car's footprint, checked twice a second |
-| | `stuck` | within 2.5 m for 30 s while walking (standing still online or at a panel is not stuck, unless the step is a walk) |
+| | `stuck` | within 2.5 m for 30 s while walking (standing still online or at a panel is not stuck, unless the step is a walk; nor is pushing on purpose, the escaper at the edge or the wedger in a gap, until the next step walks away) |
 | | `out-of-bounds` | past the zone's map by 5 m, or 10 m below the zone |
 | | `thrashing` | four sharp reversals in 5 s with little gained |
 | | `walk-failed` | a walk given up after its tries at working round something |

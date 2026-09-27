@@ -291,6 +291,11 @@ public sealed class EdgeStep : BotStep
         get { return true; }
     }
 
+    public override bool Presses
+    {
+        get { return true; }
+    }
+
     public override Vector3? Target(BotBody body)
     {
         return _toward;
@@ -352,6 +357,11 @@ public sealed class SqueezeStep : BotStep
     }
 
     public override bool Walks
+    {
+        get { return true; }
+    }
+
+    public override bool Presses
     {
         get { return true; }
     }
