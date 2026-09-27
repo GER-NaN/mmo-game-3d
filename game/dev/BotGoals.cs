@@ -409,7 +409,11 @@ public sealed class HuntStep : BotStep
             return StepResult.Done;
         }
 
-        _walker.Walk(body, _drone.GlobalPosition, Under, delta);
+        // The ground under it, at the bot's own height: a drone over a building puts the
+        // nearest point of the air on the roof, and the walk presses into the wall.
+        Players.Player? me = body.Me;
+        Vector3 under = me == null ? _drone.GlobalPosition : new Vector3(_drone.GlobalPosition.X, me.GlobalPosition.Y, _drone.GlobalPosition.Z);
+        _walker.Walk(body, under, Under, delta);
         _fireIn -= delta;
 
         if (_fireIn <= 0 && body.DistanceTo(_drone.GlobalPosition) < Under * 2f)
