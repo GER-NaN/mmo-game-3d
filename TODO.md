@@ -18,6 +18,10 @@ link points.
       (like the outskirts) for the greenhouse and the subway? Today they are hidden.
 - [ ] What fainting costs (world.md: "needs research").
 - [ ] What Agility and career ranks give.
+- [ ] Sculpted ground path forward: Godot has no terrain tools. Terrain3D add-on (sculpt
+      in the editor; not yet tried on the headless server) or our own noise terrain
+      (`game/zones/terrain/Terrain.cs`, uncommitted draft). Blocks the new zones
+      (meadows, cliffs, woods, proving ground); controller support does not wait on it.
 
 ## Look at or listen to (never seen or heard by the author)
 
