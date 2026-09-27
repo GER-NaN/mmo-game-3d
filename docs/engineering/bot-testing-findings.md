@@ -145,6 +145,12 @@ back in (the gamer bot, greenhouse and outskirts, three times in a minute). The 
 do not mean to use (the doors are carved out of their navigation mesh), so this now
 shows only when a bot means it.
 
+One place makes it certain: the street kiosk (`StreetKiosk`, at x 18, z -7) stands at
+the very end of the college door's trigger (x 12 to 18). Walking up to the kiosk from
+the west crosses the trigger, and a player meaning to use the kiosk is in the college
+(Soak8, run 8, twice in a minute). Moving the kiosk a few metres east, or a smaller
+trigger, ends it.
+
 ### One lost walk packet leaves the server's body standing
 
 **Found** 2026-09-27, run 7, Soak6 and Soak7 (the position judge's thrashing, with its
