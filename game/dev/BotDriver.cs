@@ -1,6 +1,7 @@
 namespace MmoGame3d.Dev;
 
 using System;
+using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Players;
 using MmoGame3d.Rules.Terminals;
@@ -36,8 +37,21 @@ public partial class BotDriver : Node
     // lay itself out, so a button is where it is drawn when the click lands.
     private const double ReadDelay = 0.4;
 
-    // How long the bot stays online before it goes offline again.
-    private const double OnlineSeconds = 6;
+    // How long the bot stays online, how often it goes online by phone, and how long it
+    // keeps away from terminals after going offline, so a long run is not one screen.
+    private const double MinOnline = 6;
+    private const double MaxOnline = 20;
+    private const double MinPhoneEvery = 60;
+    private const double MaxPhoneEvery = 180;
+    private const double MinTerminalRest = 45;
+    private const double MaxTerminalRest = 120;
+
+    // The apps it looks at online, one a session; the code cracker is its own step.
+    private static readonly string[] BrowsedApps =
+    {
+        TerminalApps.Chat, TerminalApps.Online, TerminalApps.Whois, TerminalApps.TodoList, TerminalApps.TownLog,
+        TerminalApps.TownCameras, TerminalApps.StatusBoard, TerminalApps.ExchangeRate, TerminalApps.Defense,
+    };
 
     private static readonly string[] Lines =
     {
@@ -54,6 +68,11 @@ public partial class BotDriver : Node
     private double _inviteClickIn = -1;
     private double _joinSeenFor;
     private double _onlineFor;
+    private bool _inSession;
+    private double _onlineLimit = MinOnline;
+    private bool _appOpened;
+    private bool _jobClicked;
+    private double _terminalRest;
     private double _shopSeenFor;
     private bool _boughtHere;
     private double _nextPhoneStep = 6;
@@ -284,18 +303,29 @@ public partial class BotDriver : Node
 
         if (goOffline != null)
         {
+            if (!_inSession)
+            {
+                // A new session: how long, and whether it cracks a code this time (a
+                // phone has no code cracker, so there it never does).
+                _inSession = true;
+                _onlineLimit = MinOnline + (_random.NextDouble() * (MaxOnline - MinOnline));
+                _appOpened = false;
+                _jobClicked = false;
+                _crackStep = _random.Next(2) == 0 ? 0 : -2;
+            }
+
             _onlineFor += delta;
-            TakeJob();
+            OpenAnApp();
 
             if (CrackCode(delta) || LookAtWhois())
             {
                 return;
             }
 
-            if (_onlineFor >= OnlineSeconds && goOffline.IsVisibleInTree())
+            if (_onlineFor >= _onlineLimit && goOffline.IsVisibleInTree())
             {
                 _onlineFor = 0;
-                _crackStep = 0;
+                _terminalRest = MinTerminalRest + (_random.NextDouble() * (MaxTerminalRest - MinTerminalRest));
                 GD.Print("Bot: clicking Go Offline");
                 Click(goOffline.GetGlobalRect().GetCenter());
             }
@@ -304,10 +334,12 @@ public partial class BotDriver : Node
         }
 
         _onlineFor = 0;
+        _inSession = false;
+        _terminalRest -= delta;
         Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
 
         bool usable = prompt != null && prompt.Visible
-            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi") || prompt.Text.Contains("Fix the") || prompt.Text.Contains("recycler") || (prompt.Text.Contains("house plant") && !_planted) || prompt.Text.Contains("Inspect"));
+            && ((prompt.Text.Contains("Go Online") && _terminalRest <= 0) || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi") || prompt.Text.Contains("Fix the") || prompt.Text.Contains("recycler") || (prompt.Text.Contains("house plant") && !_planted) || prompt.Text.Contains("Inspect"));
 
         // Reading the map, it does not stop to use things.
         if (prompt != null && usable && _nextInteract <= 0 && !_mapOpen)
@@ -480,37 +512,43 @@ public partial class BotDriver : Node
         Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, PhysicalKeycode = Key.Enter, Pressed = false });
     }
 
-    // Online: open Town repairs, and take the job if it is offered.
-    private void TakeJob()
+    // Online: open one app at random, and take the job once if Town repairs offers one.
+    private void OpenAnApp()
     {
         Button? take = GetTree().GetFirstNodeInGroup(TerminalScreen.TakeJobGroup) as Button;
 
-        if (take != null && take.IsVisibleInTree())
+        if (take != null && take.IsVisibleInTree() && !_jobClicked && _onlineFor > ReadDelay * 3)
         {
-            if (_onlineFor > ReadDelay * 3)
-            {
-                GD.Print("Bot: clicking Take the job");
-                Click(take.GetGlobalRect().GetCenter());
-                _onlineFor = ReadDelay;
-            }
-
+            _jobClicked = true;
+            GD.Print("Bot: clicking Take the job");
+            Click(take.GetGlobalRect().GetCenter());
             return;
         }
 
-        if (_onlineFor > ReadDelay && _onlineFor < ReadDelay * 2)
+        if (_appOpened || _onlineFor < ReadDelay)
         {
-            foreach (Node node in GetTree().Root.FindChildren("*", "Button", true, false))
-            {
-                Button? app = node as Button;
+            return;
+        }
 
-                if (app != null && app.Text == "Town repairs" && app.IsVisibleInTree())
-                {
-                    GD.Print("Bot: opening Town repairs");
-                    Click(app.GetGlobalRect().GetCenter());
-                    _onlineFor = ReadDelay * 2;
-                    return;
-                }
+        _appOpened = true;
+        List<Button> apps = new List<Button>();
+
+        foreach (string id in BrowsedApps)
+        {
+            Button? app = GetTree().GetFirstNodeInGroup(TerminalScreen.AppGroupPrefix + id) as Button;
+
+            if (app != null && app.IsVisibleInTree() && !app.Disabled)
+            {
+                apps.Add(app);
             }
+        }
+
+        if (apps.Count > 0)
+        {
+            Button pick = apps[_random.Next(apps.Count)];
+            GD.Print("Bot: opening " + pick.Text);
+            Click(pick.GetGlobalRect().GetCenter());
+            _onlineFor = ReadDelay * 2;
         }
     }
 
@@ -605,7 +643,7 @@ public partial class BotDriver : Node
             default:
                 GD.Print("Bot: pressing P");
                 Press("phone");
-                _nextPhoneStep = 20;
+                _nextPhoneStep = MinPhoneEvery + (_random.NextDouble() * (MaxPhoneEvery - MinPhoneEvery));
                 break;
         }
     }
