@@ -211,9 +211,10 @@ public sealed class Walker
             _repathIn = RepathEvery;
 
             // Straight at the target from here on: worth a line in the log, for a finding.
+            // A door is carved out of the mesh 2.5 m round, so a path to one ends short.
             float shortBy = _path.Length == 0 ? float.MaxValue : Flat(_path[_path.Length - 1], target);
 
-            if (body.Navigation.Ready && shortBy > 2f)
+            if (body.Navigation.Ready && shortBy > 3f)
             {
                 GD.Print("Bot: " + (_path.Length == 0 ? "no path" : "the path ends " + shortBy.ToString("0.0") + " m short") + " from ("
                     + at.X.ToString("0") + ", " + at.Z.ToString("0") + ") to (" + target.X.ToString("0") + ", " + target.Z.ToString("0") + "); straight on");
