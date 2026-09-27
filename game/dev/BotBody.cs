@@ -614,7 +614,23 @@ public sealed class BotBody
             return false;
         }
 
-        foreach (Control panel in OpenPanels())
+        List<Control> open = OpenPanels();
+
+        // A text field (the chat line) takes the keys, a panel's own key too: let go of
+        // it first, as a person clicks away.
+        Control? focus = _node.GetViewport().GuiGetFocusOwner();
+
+        if (open.Count > 0 && (focus is LineEdit || focus is TextEdit))
+        {
+            _node.GetViewport().GuiReleaseFocus();
+            return false;
+        }
+
+        // The top one first: later in the tree draws over earlier, as the map does over
+        // the game menu's Resume.
+        open.Reverse();
+
+        foreach (Control panel in open)
         {
             if (panel is InventoryPanel)
             {
