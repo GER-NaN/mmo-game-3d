@@ -25,6 +25,27 @@ public static class SpaceQueries
         return zone.GetWorld3D().DirectSpaceState.IntersectShape(query, 1).Count == 0;
     }
 
+    // Nothing of the world on the straight line between two global points, nor in a
+    // small ball at the far end: room to put something down there, in sight.
+    public static bool IsClearTo(Zone zone, Vector3 from, Vector3 to, float radius)
+    {
+        PhysicsDirectSpaceState3D space = zone.GetWorld3D().DirectSpaceState;
+
+        if (space.IntersectRay(PhysicsRayQueryParameters3D.Create(from, to, PhysicsLayers.World)).Count > 0)
+        {
+            return false;
+        }
+
+        PhysicsShapeQueryParameters3D query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new SphereShape3D { Radius = radius },
+            CollisionMask = PhysicsLayers.World,
+            Transform = new Transform3D(Basis.Identity, to),
+        };
+
+        return space.IntersectShape(query, 1).Count == 0;
+    }
+
     // Nothing of the world in a flat disc of this radius and height around a zone-local
     // centre: room for something flying there.
     public static bool IsOpenAir(Zone zone, Vector3 centre, float radius, float height)

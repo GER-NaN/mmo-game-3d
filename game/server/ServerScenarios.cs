@@ -136,6 +136,16 @@ public class ServerScenarios
             case "phone-dead":
                 EquipPhone(session, 0f);
                 break;
+            case "drop-wall":
+                // Up against the front of a north-side building, facing it (-z), with
+                // something to drop.
+                record.Zone = ZoneIds.Town;
+                record.PositionX = -26f;
+                record.PositionY = 0f;
+                record.PositionZ = -7f;
+                record.Yaw = 0f;
+                session.Inventory!.Add(ItemType.RamStick, ItemTier.Standard, 1);
+                break;
             case "door-exit":
                 // Inside the shop where players arrive, facing its door out (+z).
                 StandBy(record, ZoneIds.Shop, "../Arrivals/FromTown", Vector3.Zero);

@@ -44,6 +44,8 @@ public partial class ScenarioDriver : Node
     private double _sinceRiseSample;
     private float _fastestRise;
     private bool _sawAirborne;
+    private HashSet<string> _itemsBefore = new HashSet<string>();
+    private bool _dropLogged;
     private float _headingBefore;
     private float _distanceBefore;
     private double _turnHeld = -1;
@@ -150,6 +152,20 @@ public partial class ScenarioDriver : Node
                 });
                 Expect("refused: the battery is dead", () => Noticed("battery is dead"));
                 Expect("not online", () => GetTree().GetFirstNodeInGroup(TerminalScreen.GoOfflineGroup) == null);
+                break;
+            case "drop-wall":
+                Step("open the bag", () =>
+                {
+                    Input.ParseInputEvent(new InputEventAction { Action = "inventory", Pressed = true });
+                    Input.ParseInputEvent(new InputEventAction { Action = "inventory", Pressed = false });
+                    return true;
+                });
+                Step("drop something", () =>
+                {
+                    _itemsBefore = ItemNames();
+                    return ClickGroup(InventoryPanel.DropGroup);
+                });
+                Expect("dropped beside the player, not into the wall", DroppedInReach);
                 break;
             case "door-exit":
                 Step("walk out of the shop", () =>
@@ -497,6 +513,61 @@ public partial class ScenarioDriver : Node
     {
         Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
         return _zone == "meadows" && me != null && me.IsOnFloor() && _lowest > -0.5f && _elapsed > _zoneSince + 2.0;
+    }
+
+    private HashSet<string> ItemNames()
+    {
+        HashSet<string> names = new HashSet<string>();
+        Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+        Node? items = (me?.GetParent()?.GetParent() as Zones.Zone)?.GetNodeOrNull("Items");
+
+        foreach (Node item in items?.GetChildren() ?? new Godot.Collections.Array<Node>())
+        {
+            names.Add(item.Name);
+        }
+
+        return names;
+    }
+
+    // A new item on the ground, past pickup reach from the body, with nothing of the
+    // world around it: where anyone can walk up and take it.
+    private bool DroppedInReach()
+    {
+        Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+        Node? items = (me?.GetParent()?.GetParent() as Zones.Zone)?.GetNodeOrNull("Items");
+
+        if (me == null || items == null)
+        {
+            return false;
+        }
+
+        foreach (Node node in items.GetChildren())
+        {
+            Node3D? item = node as Node3D;
+
+            if (item == null || _itemsBefore.Contains(item.Name))
+            {
+                continue;
+            }
+
+            PhysicsShapeQueryParameters3D query = new PhysicsShapeQueryParameters3D
+            {
+                Shape = new SphereShape3D { Radius = 0.3f },
+                CollisionMask = PhysicsLayers.World,
+                Transform = new Transform3D(Basis.Identity, item.GlobalPosition + new Vector3(0f, 0.5f, 0f)),
+            };
+            bool open = me.GetWorld3D().DirectSpaceState.IntersectShape(query, 1).Count == 0;
+            float away = new Vector2(item.GlobalPosition.X - me.GlobalPosition.X, item.GlobalPosition.Z - me.GlobalPosition.Z).Length();
+            if (!_dropLogged)
+            {
+                _dropLogged = true;
+                GD.Print("SCENARIO drop-wall: the item lies " + away.ToString("0.0") + " m away, " + (open ? "in the open" : "inside something"));
+            }
+
+            return open && away > 1.4f;
+        }
+
+        return false;
     }
 
     // The body's z in its zone's own space, as the scene places things.

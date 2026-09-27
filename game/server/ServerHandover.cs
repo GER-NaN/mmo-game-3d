@@ -10,12 +10,17 @@ using MmoGame3d.Zones;
 /// Dropping things on the ground and giving them to another player. Both take things
 /// away from the player, so both are intents (ServerIntents). A drop lands in front of
 /// the player, past pickup reach, so they do not walk straight back into it; anyone can
-/// pick it up after.
+/// pick it up after. Facing a wall, it lands beside or behind them instead.
 /// </summary>
 public class ServerHandover
 {
     // How far in front a drop lands: past the pickup sphere and the body's radius.
     private const float DropDistance = 1.8f;
+
+    // The line to the spot and the room there are checked this high, clear of the floor
+    // and kerbs, and in a ball this big.
+    private const float DropCheckHeight = 0.5f;
+    private const float DropRoom = 0.3f;
 
     private readonly ServerIntents _intents;
     private readonly Network _session;
@@ -34,6 +39,27 @@ public class ServerHandover
         _bagChanged = bagChanged;
     }
 
+    // In front of the body, on the floor height of the feet; with a wall there (a drop
+    // inside it is lost for good), to the right, the left or behind. Null with no room.
+    private static Vector3? DropSpot(Zone zone, Node3D body)
+    {
+        Vector3 forward = -body.Transform.Basis.Z;
+        forward = new Vector3(forward.X, 0f, forward.Z).Normalized();
+        Vector3 right = new Vector3(-forward.Z, 0f, forward.X);
+        Vector3[] ways = { forward, right, -right, -forward };
+        Vector3 waist = body.GlobalPosition + new Vector3(0f, DropCheckHeight, 0f);
+
+        foreach (Vector3 way in ways)
+        {
+            if (SpaceQueries.IsClearTo(zone, waist, waist + (way * DropDistance), DropRoom))
+            {
+                return body.Position + (way * DropDistance);
+            }
+        }
+
+        return null;
+    }
+
     public void Drop(Session session, uint intentId, int typeId, int tierId, int quantity)
     {
         _intents.Run(session, intentId, () =>
@@ -45,6 +71,13 @@ public class ServerHandover
                 return "You cannot drop that here.";
             }
 
+            Vector3? spot = DropSpot(zone, session.Body);
+
+            if (spot == null)
+            {
+                return "There is no room to drop that here.";
+            }
+
             ItemType type = (ItemType)typeId;
             ItemTier tier = (ItemTier)tierId;
             string? refusal = Handover.Take(session.Inventory!, type, tier, quantity);
@@ -54,10 +87,7 @@ public class ServerHandover
                 return refusal;
             }
 
-            // In front of the body, on the zone's floor height of the feet.
-            Vector3 forward = -session.Body.Transform.Basis.Z;
-            Vector3 spot = session.Body.Position + (new Vector3(forward.X, 0f, forward.Z).Normalized() * DropDistance);
-            _ground.DropAt(zone, spot, type, tier, quantity);
+            _ground.DropAt(zone, spot.Value, type, tier, quantity);
             _bagChanged(session);
             _session.SendNotice(session.PeerId, "Dropped " + quantity + " " + ItemCatalog.Describe(type, tier) + ".");
             return "";
