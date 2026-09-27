@@ -42,6 +42,8 @@ making-changes has the recipes.
   databases, art and sound, first run).
 - `docs/engineering/running.md`: the scripts, launch options, profiles, where data
   lives, resetting, playing with someone else.
+- `docs/engineering/editor.md`: working in the Godot editor: running, zones, props,
+  doors, what it does not show.
 - `docs/engineering/making-changes.md`: how to add an RPC, a migration, a zone, an
   interactable, synced state, a terminal app, a prop, a sound; the git flow.
 - `docs/engineering/testing.md`: unit tests, dev scenarios, bots, load tests.
