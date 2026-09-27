@@ -440,8 +440,20 @@ public sealed class BotBody
     // ---------------------------------------------------------------- hands
 
     // Called every frame, so a tap of F lets go after its moment.
+    // Seconds since this body appeared. The server spawns a new body at login and at each
+    // zone change, so this is also the time since arriving: a finding a few seconds in
+    // points at arriving, not at the place.
+    public double BodyAge { get; private set; }
+
+    private ulong _bodyId;
+
     public void Tick(double delta)
     {
+        Player? me = Me;
+        ulong id = me == null ? 0 : me.GetInstanceId();
+        BodyAge = id == _bodyId ? BodyAge + delta : 0;
+        _bodyId = id;
+
         if (_interactHeld >= 0)
         {
             _interactHeld += delta;

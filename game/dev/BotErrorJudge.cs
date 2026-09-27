@@ -1,5 +1,6 @@
 namespace MmoGame3d.Dev;
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
@@ -86,6 +87,7 @@ public sealed partial class BotErrorJudge : Godot.Logger
             BotFindings.Write(me, _profile, "client-error", error.Message.Length > 200 ? error.Message.Substring(0, 200) : error.Message, new Dictionary<string, object?>
             {
                 { "zone", body.ZoneId },
+                { "body_age", Math.Round(body.BodyAge, 1) },
                 { "position", new double[] { System.Math.Round(at.X, 2), System.Math.Round(at.Y, 2), System.Math.Round(at.Z, 2) } },
                 { "activity", activity },
                 { "step", step?.Name ?? "" },

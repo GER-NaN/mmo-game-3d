@@ -70,6 +70,10 @@ def main():
         print(str(len(items)).rjust(4) + "  " + kind + " in " + (zone or "?") + (" (" + persona + ")" if persona else "")
               + ", doing \"" + activity + "\"" + (" at \"" + step + "\"" if step else "") + (", on " + under if under else ""))
         print("      bots: " + ", ".join(bots) + "; latest " + newest["_at"].strftime("%H:%M:%S") + ": " + newest["detail"][:110])
+        # Most of a group just after arriving (login or a door) points at arriving.
+        fresh = [f for f in items if f.get("body_age") is not None and f["body_age"] < 15]
+        if fresh:
+            print("      " + str(len(fresh)) + " of " + str(len(items)) + " within 15 s of arriving in the zone")
         print("      look at: " + newest["_dir"])
     return 0
 
