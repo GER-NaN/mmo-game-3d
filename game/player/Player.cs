@@ -91,6 +91,12 @@ public partial class Player : CharacterBody3D
 
     // Server only: walked on the ground and jumped since the skills last looked.
     private float _walkedMetres;
+
+    // Server: how long the body has been asked to walk and gone nowhere, for one log line
+    // that says what holds it (a client that walks on alone is snapped back again and
+    // again, and its log cannot see why).
+    private float _heldFor;
+    private const float HeldReportAfter = 1f;
     private int _jumps;
 
     // Whoever runs the physics: the server, and the owner predicting.
@@ -662,6 +668,8 @@ public partial class Player : CharacterBody3D
             _jumps++;
         }
 
+        JudgeHeld(_moveDirection, before, delta);
+
         // Only walking on the ground counts: a fall or a respawn is not travel.
         if (walk != Vector2.Zero && IsOnFloor())
         {
@@ -675,6 +683,28 @@ public partial class Player : CharacterBody3D
         }
 
         PublishPose();
+    }
+
+    private void JudgeHeld(Vector2 asked, Vector3 before, float delta)
+    {
+        bool held = asked != Vector2.Zero && new Vector2(Position.X - before.X, Position.Z - before.Z).Length() < 0.2f * delta;
+        _heldFor = held ? _heldFor + delta : 0f;
+
+        if (_heldFor < HeldReportAfter || _heldFor - delta >= HeldReportAfter)
+        {
+            return;
+        }
+
+        string against = "nothing";
+
+        if (GetSlideCollisionCount() > 0)
+        {
+            Node? collider = GetSlideCollision(0).GetCollider() as Node;
+            against = collider == null ? "something" : collider.GetPath().ToString();
+        }
+
+        GD.Print(DisplayName + " is asked to walk and has not moved for " + HeldReportAfter + " s: online " + IsOnline + ", gesture \"" + GestureId + "\", on the floor "
+            + IsOnFloor() + ", against " + against + ", at (" + Position.X.ToString("0.0") + ", " + Position.Y.ToString("0.0") + ", " + Position.Z.ToString("0.0") + ")");
     }
 
     private void PublishPose()
