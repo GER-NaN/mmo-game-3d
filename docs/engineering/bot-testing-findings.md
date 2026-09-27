@@ -30,7 +30,16 @@ first ride.
 Not reproduced since (run 5): the `taxi-ride` scenario rides a whole taxi ride, 4 s and
 then 30 s long, with no error, and neither did four bot rides that night. It comes and
 goes; the scenario and the bot watch now flag any C# exception in a client's log, so
-the next time it happens it is caught with its log. The error is inside Godot's C# bridge: while loading the scene it swaps the
+the next time it happens it is caught with its log.
+
+Caught again at 02:29 by the client-error judge (Soak6), with its stack, and it is not
+about taxis: Soak6 was walking back into town through a door from another zone. This
+time it failed inside `PackedScene.Instantiate` (`World.LoadZone`, line 35), where the
+first one failed in `ResourceLoader.Load`. The common thread is the client loading Old
+Town again after being elsewhere; about twice an hour over eight bots. It is inside
+Godot's C# bridge (a C# handle for an engine object is already gone when the engine
+swaps it). One thing to try: keep each zone's scene loaded for the whole run, so Old
+Town is never loaded from disk again; then see whether the error stops. The error is inside Godot's C# bridge: while loading the scene it swaps the
 handle of a C# script instance that is already gone. The next step is to find which
 resource in the town scene it is.
 

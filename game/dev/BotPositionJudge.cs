@@ -72,6 +72,10 @@ public sealed class BotPositionJudge
     private readonly List<Sample> _track = new List<Sample>();
     private string _trackZone = "";
 
+    // The thrashing check's samples, for its finding: seconds ago, x, z, how far apart
+    // the client and the server have the body, and the movement keys held.
+    private List<object[]>? _thrashTrack;
+
     // Further than this between two quarter-second samples is not walking.
     private const float Teleport = 4f;
     private string _historyZone = "";
@@ -200,7 +204,7 @@ public sealed class BotPositionJudge
             _trackZone = body.ZoneId;
         }
 
-        _track.Add(new Sample(_clock, me.GlobalPosition, step != null && step.Walks));
+        _track.Add(new Sample(_clock, me.GlobalPosition, step != null && step.Walks) { Gap = me.Position.DistanceTo(me.NetPosition), Keys = HeldKeys() });
 
         while (_track.Count > 0 && _track[0].Time < _clock - TrackWindow)
         {
@@ -240,7 +244,22 @@ public sealed class BotPositionJudge
             string under;
             float above;
             Under(body, me, out under, out above);
-            Report("thrashing", reversals + " sharp reversals in " + TrackWindow + " s, " + travelled.ToString("0.0") + " m travelled, " + net.ToString("0.0") + " m gained", body, me, activity, step, under, above);
+
+            // Whether the server put the body back (a wide gap between where the client
+            // and the server have it) or the bot's own keys flipped: the track tells.
+            float widest = 0f;
+            List<object[]> track = new List<object[]>();
+
+            foreach (Sample sample in _track)
+            {
+                widest = Mathf.Max(widest, sample.Gap);
+                track.Add(new object[] { Math.Round(_clock - sample.Time, 2), Round(sample.At.X), Round(sample.At.Z), Math.Round(sample.Gap, 2), sample.Keys });
+            }
+
+            _thrashTrack = track;
+            Report("thrashing", reversals + " sharp reversals in " + TrackWindow + " s, " + travelled.ToString("0.0") + " m travelled, " + net.ToString("0.0")
+                + " m gained; client and server up to " + widest.ToString("0.0") + " m apart", body, me, activity, step, under, above);
+            _thrashTrack = null;
         }
     }
 
@@ -487,7 +506,24 @@ public sealed class BotPositionJudge
             { "target", target == null ? null : new double[] { Round(target.Value.X), Round(target.Value.Y), Round(target.Value.Z) } },
             { "to_target", target == null ? null : Math.Round(body.DistanceTo(target.Value), 1) },
             { "recent", recent },
+            { "track", _thrashTrack },
         });
+    }
+
+    private static string HeldKeys()
+    {
+        string[] keys = { "move_forward", "move_back", "turn_left", "turn_right", "strafe_left", "strafe_right", "jump" };
+        List<string> held = new List<string>();
+
+        foreach (string key in keys)
+        {
+            if (Input.IsActionPressed(key))
+            {
+                held.Add(key.Replace("move_", "").Replace("strafe_", "step_"));
+            }
+        }
+
+        return string.Join("+", held);
     }
 
     private static double Round(float value)
@@ -509,5 +545,10 @@ public sealed class BotPositionJudge
         public Vector3 At { get; }
 
         public bool Walking { get; }
+
+        // How far apart the client and the server had the body, and the keys held then.
+        public float Gap { get; set; }
+
+        public string Keys { get; set; } = "";
     }
 }
