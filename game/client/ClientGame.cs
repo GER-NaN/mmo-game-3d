@@ -626,6 +626,13 @@ public partial class ClientGame : Node
     {
         GD.Print("Connected as peer " + Multiplayer.GetUniqueId() + "; saying hello");
 
+        // ENet's throttle drops unreliable packets while the round trip wavers, as it does
+        // in a login's burst: at 0 of 32 every walk was dropped for seconds, and the body
+        // snapped back again and again. Our unreliable packets are small; never throttle
+        // them. ENet passes this to the server's end of the link too.
+        ENetPacketPeer? server = (Multiplayer.MultiplayerPeer as ENetMultiplayerPeer)?.GetPeer(1);
+        server?.ThrottleConfigure(5000, 2, 0);
+
         // Before the hello, so it is set when the player is loaded.
         if (_options.Scenario != null)
         {
