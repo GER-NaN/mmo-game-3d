@@ -319,6 +319,16 @@ the floor, so the judge read it as floating. A player can walk off again. There 
 seat mechanic; a chair that the body cannot step onto, or one that seats it, would fix
 it.
 
+### Panels run off a short window
+
+**Found** 2026-09-27, 8 bots tiled on one screen (`off-screen`).
+**Status:** open, for the author.
+
+In a window 944 by 476 pixels, Agent Defense's "Start a run", the bag's "Drop" and the
+recycler's "Recycle" sat below the bottom edge, with nothing to scroll. Full-size
+windows do not show it. The game has no smallest window size, so a player may make one
+this short.
+
 ## Bot problems
 
 Fixed as found; kept here so the same thing is recognised next time.
