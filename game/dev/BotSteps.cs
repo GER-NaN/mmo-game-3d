@@ -202,6 +202,15 @@ public sealed class Walker
             _next = 1;
             _pathTo = target;
             _repathIn = RepathEvery;
+
+            // Straight at the target from here on: worth a line in the log, for a finding.
+            float shortBy = _path.Length == 0 ? float.MaxValue : Flat(_path[_path.Length - 1], target);
+
+            if (body.Navigation.Ready && shortBy > 2f)
+            {
+                GD.Print("Bot: " + (_path.Length == 0 ? "no path" : "the path ends " + shortBy.ToString("0.0") + " m short") + " from ("
+                    + at.X.ToString("0") + ", " + at.Z.ToString("0") + ") to (" + target.X.ToString("0") + ", " + target.Z.ToString("0") + "); straight on");
+            }
         }
 
         while (_next < _path.Length - 1 && Flat(at, _path[_next]) < WaypointReached)

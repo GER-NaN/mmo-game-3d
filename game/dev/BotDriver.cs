@@ -81,7 +81,8 @@ public partial class BotDriver : Node
     // Who it is (BotPersonas): what it likes to do, and at what pace.
     public string PersonaName { get; set; } = BotPersonas.Default;
 
-    // Only this activity or goal, again and again (--bot-only), or "" for all of them.
+    // Only these activities or goals (--bot-only, comma-separated), again and again, or
+    // "" for all of them.
     public string Only { get; set; } = "";
 
     private BotPersona _persona = BotPersonas.Get(BotPersonas.Default);
@@ -360,7 +361,7 @@ public partial class BotDriver : Node
 
     private bool Allowed(string name)
     {
-        return Only.Length == 0 || name == Only;
+        return Only.Length == 0 || Array.IndexOf(Only.Split(','), name) >= 0;
     }
 
     // Its own weight, times what the persona thinks of it.

@@ -108,6 +108,12 @@ public sealed class BotNavigation
         }
     }
 
+    // Whether this zone has a mesh (open land and zones too big to bake have none).
+    public bool Ready
+    {
+        get { return _ready; }
+    }
+
     // The points to walk through, first to last; empty with no mesh here.
     public Vector3[] Path(Vector3 from, Vector3 to)
     {
