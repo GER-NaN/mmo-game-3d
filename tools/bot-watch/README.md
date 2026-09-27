@@ -23,8 +23,8 @@ screen is ever in it.
 ## Memory
 
 ```
-powershell -File toolsbot-watch\memory.ps1                  every 5 minutes, until the server stops
-powershell -File toolsbot-watch\memory.ps1 -EverySeconds 60
+powershell -File tools\bot-watch\memory.ps1                  every 5 minutes, until the server stops
+powershell -File tools\bot-watch\memory.ps1 -EverySeconds 60
 ```
 
 Adds a row per process to `%TEMP%\mmo-game-3d-bots\memory.csv` on each look: the time,
