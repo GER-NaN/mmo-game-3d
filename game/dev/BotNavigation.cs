@@ -125,6 +125,12 @@ public sealed class BotNavigation
         get { return _ready && NavigationServer3D.MapGetIterationId(_map) == _bakedAt && Time.GetTicksMsec() - _bakedMsec < 1000; }
     }
 
+    // The nearest point of the mesh, for the log when a path fails.
+    public Vector3 Closest(Vector3 to)
+    {
+        return _ready ? NavigationServer3D.MapGetClosestPoint(_map, to) : to;
+    }
+
     // The points to walk through, first to last; empty with no mesh here.
     public Vector3[] Path(Vector3 from, Vector3 to)
     {

@@ -217,7 +217,8 @@ public sealed class Walker
             if (body.Navigation.Ready && shortBy > 3f)
             {
                 GD.Print("Bot: " + (_path.Length == 0 ? "no path" : "the path ends " + shortBy.ToString("0.0") + " m short") + " from ("
-                    + at.X.ToString("0") + ", " + at.Z.ToString("0") + ") to (" + target.X.ToString("0") + ", " + target.Z.ToString("0") + "); straight on");
+                    + at.X.ToString("0") + ", " + at.Z.ToString("0") + ") to (" + target.X.ToString("0") + ", " + target.Z.ToString("0") + "); straight on; the mesh is "
+                    + at.DistanceTo(body.Navigation.Closest(at)).ToString("0.0") + " m from here and " + target.DistanceTo(body.Navigation.Closest(target)).ToString("0.0") + " m from there");
             }
         }
 
