@@ -463,7 +463,7 @@ transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -15, 0, -4.5)
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 15, 0, -4.5)
 
 [node name="FromSubway" type="Marker3D" parent="Arrivals"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.8, 0, 6.2)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 27.8, 0, 6.2)
 
 [node name="Spawn" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 8)

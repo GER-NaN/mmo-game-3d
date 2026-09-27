@@ -325,7 +325,7 @@ TargetArrival = "FromOutskirts"
 [node name="Arrivals" type="Node3D" parent="."]
 
 [node name="FromGreenhouse" type="Marker3D" parent="Arrivals"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, 27.5)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 24, 0, 27.5)
 
 [node name="FromTown" type="Marker3D" parent="Arrivals"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 32)
