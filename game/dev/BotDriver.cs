@@ -187,13 +187,14 @@ public partial class BotDriver : Node
             {
                 Button? giveOne = GetTree().GetFirstNodeInGroup(GivePanel.GiveGroup) as Button;
 
+                // Too far away, no give panel opens; Esc then would open the game menu,
+                // where a stray click can leave to the main menu.
                 if (giveOne != null && giveOne.IsVisibleInTree())
                 {
                     GD.Print("Bot: clicking Give 1");
                     Click(giveOne.GetGlobalRect().GetCenter());
+                    Press("ui_cancel");
                 }
-
-                Press("ui_cancel");
             }
 
             return;

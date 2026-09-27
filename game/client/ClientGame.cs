@@ -164,6 +164,12 @@ public partial class ClientGame : Node
 
         _ui = new CanvasLayer { Name = "Ui" };
         AddChild(_ui);
+
+        // For the whole run, not only in the world: it brings a bot back from the menus.
+        if (options.Bot)
+        {
+            AddChild(new Dev.BotKeeper { Name = "BotKeeper" });
+        }
         _settings.ApplyVolumes();
 
         // A headless client (a bot, a test) has nobody to hear it.
