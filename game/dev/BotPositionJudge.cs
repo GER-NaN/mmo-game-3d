@@ -34,12 +34,13 @@ public sealed class BotPositionJudge
     private const double VehiclesEvery = 0.5;
 
     // Back and forth in one place: sharp reversals, each move against the one before,
-    // with little gained, over a few seconds. A walk in a circle has none.
+    // with little gained, over a few seconds. A walk in a circle has none. A move counts
+    // from 1 m/s: a body wedged in a gap jitters a few centimetres as it turns.
     private const double TrackEvery = 0.25;
     private const double TrackWindow = 5;
     private const int ThrashReversals = 4;
     private const float ThrashNet = 1.5f;
-    private const float MinMove = 0.05f;
+    private const float MinMove = 0.25f;
     private const double WalkFailedRepeat = 60;
     private const double BadFootingFor = 10;
     private const float StuckRadius = 2.5f;
@@ -496,6 +497,7 @@ public sealed class BotPositionJudge
         BotFindings.Write(me, _profile, kind, detail, new Dictionary<string, object?>
         {
             { "zone", body.ZoneId },
+            { "body_age", Math.Round(body.BodyAge, 1) },
             { "position", new double[] { Round(me.GlobalPosition.X), Round(me.GlobalPosition.Y), Round(me.GlobalPosition.Z) } },
             { "under", under },
             { "above", Math.Round(above, 2) },
