@@ -230,6 +230,15 @@ Fixed as found; kept here so the same thing is recognised next time.
   radius, so paths hugged the door boxes with about 5 cm to spare, and an earner
   heading for the outskirts went into the shop three times in a minute. Doors are now
   carved 1.5 m wider.
+- **Wandering out of the college.** The wander step presses keys blind, and in the
+  college's small room it walked into the exit door within seconds of arriving, so a
+  visit never reached the registrar (three ping-pongs in a row). It now turns from a
+  door's trigger up to 3 m ahead, as a person idling about would.
+- **Pushing on purpose read as stuck.** The escaper presses against the world's edge
+  for 45 seconds and the wedger into gaps; both were called stuck. A step now says it
+  presses, and the judges count from the step after (where the gap trap showed).
+- **Bobbing read as thrashing.** Against the world's edge the escaper bobbed up and
+  down; the check now counts moves across the ground only.
 
 ## Tooling
 
