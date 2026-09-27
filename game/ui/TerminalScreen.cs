@@ -70,6 +70,8 @@ public partial class TerminalScreen : Control
     // Bots find Whois's parts by these groups.
     public const string WhoisMineGroup = "whois_mine";
     public const string WhoisPropsGroup = "whois_props";
+    public const string WhoisPlanGroup = "whois_plan";
+    public const string WhoisShowSkillsGroup = "whois_show_skills";
 
     // What Whois shows: the last results, or a page (null for none).
     private string[] _whoisIds = Array.Empty<string>();
@@ -547,6 +549,8 @@ public partial class TerminalScreen : Control
             LineEdit planEdit = new LineEdit { Text = plan, PlaceholderText = "e.g. \"Fixing the street lights. Need RAM sticks.\" Enter saves.", MaxLength = WhoisSettings.MaxPlanLength };
             CheckBox showSkills = new CheckBox { Text = "Show Skills", ButtonPressed = (bool)page["showSkills"], FocusMode = FocusModeEnum.None };
             CheckBox showLocation = new CheckBox { Text = "Show Location", ButtonPressed = (bool)page["showLocation"], FocusMode = FocusModeEnum.None };
+            planEdit.AddToGroup(WhoisPlanGroup);
+            showSkills.AddToGroup(WhoisShowSkillsGroup);
             planEdit.TextSubmitted += value => WhoisEditSubmitted?.Invoke(value, showSkills.ButtonPressed, showLocation.ButtonPressed);
             showSkills.Toggled += on => WhoisEditSubmitted?.Invoke(planEdit.Text, on, showLocation.ButtonPressed);
             showLocation.Toggled += on => WhoisEditSubmitted?.Invoke(planEdit.Text, showSkills.ButtonPressed, on);

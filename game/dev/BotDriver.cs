@@ -67,6 +67,9 @@ public partial class BotDriver : Node
     // Who it is (BotPersonas): what it likes to do, and at what pace.
     public string PersonaName { get; set; } = BotPersonas.Default;
 
+    // Only this activity or goal, again and again (--bot-only), or "" for all of them.
+    public string Only { get; set; } = "";
+
     private BotPersona _persona = BotPersonas.Get(BotPersonas.Default);
     private bool _introduced;
 
@@ -226,25 +229,32 @@ public partial class BotDriver : Node
         List<BotGoal> goals = new List<BotGoal>();
         int total = 0;
 
-        List<BotActivity> choices = new List<BotActivity>(BotActivities.All);
+        List<BotActivity> choices = new List<BotActivity>(BotCatalog.All.Activities);
         choices.AddRange(_persona.Own);
 
         foreach (BotActivity activity in choices)
         {
-            if (activity.CanStart(_body) && Weight(activity) > 0)
+            if (activity.CanStart(_body) && Weight(activity) > 0 && Allowed(activity.Name))
             {
                 open.Add(activity);
                 total += Weight(activity);
             }
         }
 
-        foreach (BotGoal goal in BotGoals.All)
+        foreach (BotGoal goal in BotCatalog.All.Goals)
         {
-            if (goal.CanStart(_body) && Weight(goal) > 0)
+            if (goal.CanStart(_body) && Weight(goal) > 0 && Allowed(goal.Name))
             {
                 goals.Add(goal);
                 total += Weight(goal);
             }
+        }
+
+        // Only one thing, and it cannot start here: back to town, where most things can.
+        if (Only.Length > 0 && open.Count == 0 && goals.Count == 0 && BotActivities.GoBackToTown.CanStart(_body))
+        {
+            Start(BotActivities.GoBackToTown);
+            return;
         }
 
         // A goal, by the same weights as the activities.
@@ -316,6 +326,11 @@ public partial class BotDriver : Node
     private void Announce(string line)
     {
         _body.Chat("[bot] " + line);
+    }
+
+    private bool Allowed(string name)
+    {
+        return Only.Length == 0 || name == Only;
     }
 
     // Its own weight, times what the persona thinks of it.

@@ -876,7 +876,7 @@ public partial class ClientGame : Node
 
         if (_options.Bot)
         {
-            _bot = new BotDriver { Name = "Bot", Profile = _options.Profile, PersonaName = _options.Persona };
+            _bot = new BotDriver { Name = "Bot", Profile = _options.Profile, PersonaName = _options.Persona, Only = _options.BotOnly };
             AddChild(_bot);
         }
 
