@@ -39,6 +39,15 @@ public partial class ChatBox : VBoxContainer
     // (player id, text): a private message.
     public event Action<string, string>? DirectSubmitted;
 
+    // Bots find the chat by this group.
+    public const string Group = "chat_box";
+
+    // A line typed now goes to everyone; on a private tab it goes to one player, as text.
+    public bool OnAllTab
+    {
+        get { return _shown == AllTab; }
+    }
+
     public bool IsTyping
     {
         get { return _input.Visible; }
@@ -49,6 +58,7 @@ public partial class ChatBox : VBoxContainer
         _history = GetNode<RichTextLabel>("%History");
         _input = GetNode<LineEdit>("%Input");
         _tabRow = GetNode<HBoxContainer>("%Tabs");
+        AddToGroup(Group);
         _input.TextSubmitted += OnSubmitted;
         _input.GuiInput += OnInputGui;
         AddTab(AllTab, "All");

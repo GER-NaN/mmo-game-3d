@@ -329,6 +329,16 @@ recycler's "Recycle" sat below the bottom edge, with nothing to scroll. Full-siz
 windows do not show it. The game has no smallest window size, so a player may make one
 this short.
 
+### A slash emote on a private chat tab goes as text
+
+**Found** 2026-09-27, several bots (`activity-failed`, emote).
+**Status:** open, a design question for the author.
+
+With a private conversation's tab shown, "/wave" goes to that player as the text
+"/wave", and the body does not wave. The tab says whom the line goes to, and its hint
+does not offer the emotes, so this may be meant. Most games read a slash command on
+any tab.
+
 ## Bot problems
 
 Fixed as found; kept here so the same thing is recognised next time.
@@ -417,6 +427,9 @@ Fixed as found; kept here so the same thing is recognised next time.
   running off the screen, "put the fullest battery in" saw no button for 3 s and ended
   as done, so the judge said the swap broke its promise (phone still at 0%). A swap
   starts only with a spare battery, so no button now fails the step.
+- **An emote typed on a private tab judged as not done.** The emote judge called the
+  chat clear when no screen was open, but a private tab sends the line to one player
+  as text. A private tab now counts as in the way (`ChatBox.OnAllTab`).
 
 ## Tooling
 
