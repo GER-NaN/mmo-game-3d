@@ -3,6 +3,7 @@ namespace MmoGame3d.Dev;
 using System;
 using System.Collections.Generic;
 using Godot;
+using MmoGame3d.BotJudging;
 using MmoGame3d.Players;
 using MmoGame3d.Zones;
 
@@ -18,7 +19,7 @@ using MmoGame3d.Zones;
 ///   the world; well above the surface under it and not jumping, it is floating.
 /// - Vehicles: within a car's footprint, the car is driving through it (cars do not
 ///   collide with players) or it stands inside one.
-/// - Progress: where it has been. Within StuckRadius for StuckAfter, most of that time on
+/// - Progress: where it has been. Within Stuck.Radius for Stuck.After, most of that time on
 ///   walking steps, it is stuck (between buildings, in a corner).
 ///
 /// A finding is written once per kind per bot per RepeatAfter: one JSON line in the soak
@@ -33,19 +34,12 @@ public sealed class BotPositionJudge
     // A taxi passes through a bot in about a second: checked far more often.
     private const double VehiclesEvery = 0.5;
 
-    // Back and forth in one place: sharp reversals, each move against the one before,
-    // with little gained, over a few seconds. A walk in a circle has none. A move counts
-    // from 1 m/s: a body wedged in a gap jitters a few centimetres as it turns.
-    private const double TrackEvery = 0.25;
-    private const double TrackWindow = 5;
-    private const int ThrashReversals = 4;
-    private const float ThrashNet = 1.5f;
-    private const float MinMove = 0.25f;
+    // The thrashing and stuck checks themselves are plain C# (MmoGame3d.BotJudging), so
+    // unit tests hand them any track they like; this class looks and reports.
+    private const double TrackEvery = Thrashing.Every;
+    private const double TrackWindow = Thrashing.Window;
     private const double WalkFailedRepeat = 60;
     private const double BadFootingFor = 10;
-    private const float StuckRadius = 2.5f;
-    private const double StuckAfter = 30;
-    private const double WalkingShare = 0.9;
     private const double RepeatAfter = 60;
     private const float RayUp = 0.5f;
     private const float FloatAbove = 0.8f;
@@ -64,13 +58,13 @@ public sealed class BotPositionJudge
     private static readonly HashSet<string> Walkable = new HashSet<string> { "Ground", "Roads", "Terrain", "Room", "Cabin" };
 
     private readonly string _profile;
-    private readonly List<Sample> _history = new List<Sample>();
+    private readonly List<TrackSample> _history = new List<TrackSample>();
     private readonly Dictionary<string, double> _reportedAt = new Dictionary<string, double>();
     private double _clock;
     private double _checkIn = CheckEvery;
     private double _vehiclesIn = VehiclesEvery;
     private double _trackIn = TrackEvery;
-    private readonly List<Sample> _track = new List<Sample>();
+    private readonly List<TrackSample> _track = new List<TrackSample>();
     private string _trackZone = "";
 
     // The thrashing check's samples, for its finding: seconds ago, x, z, how far apart
@@ -164,9 +158,9 @@ public sealed class BotPositionJudge
             _historyZone = body.ZoneId;
         }
 
-        _history.Add(new Sample(_clock, me.GlobalPosition, step != null && step.Walks));
+        _history.Add(new TrackSample(_clock, Numeric(me.GlobalPosition), step != null && step.Walks));
 
-        while (_history.Count > 0 && _history[0].Time < _clock - StuckAfter - CheckEvery)
+        while (_history.Count > 0 && _history[0].Time < _clock - Stuck.After - CheckEvery)
         {
             _history.RemoveAt(0);
         }
@@ -231,71 +225,43 @@ public sealed class BotPositionJudge
     {
         // A new zone, or a jump no walk makes (a door, a respawn, the party pulling it
         // along): the track starts again, or the jump would count as travel.
-        if (body.ZoneId != _trackZone || (_track.Count > 0 && me.GlobalPosition.DistanceTo(_track[_track.Count - 1].At) > Teleport))
+        if (body.ZoneId != _trackZone || (_track.Count > 0 && System.Numerics.Vector3.Distance(Numeric(me.GlobalPosition), _track[_track.Count - 1].At) > Teleport))
         {
             _track.Clear();
             _trackZone = body.ZoneId;
         }
 
-        _track.Add(new Sample(_clock, me.GlobalPosition, step != null && step.Walks) { Gap = me.Position.DistanceTo(me.NetPosition), Keys = HeldKeys() });
+        _track.Add(new TrackSample(_clock, Numeric(me.GlobalPosition), step != null && step.Walks) { Gap = me.Position.DistanceTo(me.NetPosition), Keys = HeldKeys() });
 
         while (_track.Count > 0 && _track[0].Time < _clock - TrackWindow)
         {
             _track.RemoveAt(0);
         }
 
-        if (_track.Count < 2 || _clock - _track[0].Time < TrackWindow - TrackEvery)
+        ThrashVerdict? verdict = Thrashing.Judge(_track);
+
+        if (verdict == null)
         {
             return;
         }
 
-        float travelled = 0f;
-        int reversals = 0;
+        string under;
+        float above;
+        Under(body, me, out under, out above);
 
-        for (int i = 1; i < _track.Count; i++)
+        // Whether the server put the body back (a wide gap between where the client and
+        // the server have it) or the bot's own keys flipped: the track tells.
+        List<object[]> track = new List<object[]>();
+
+        foreach (TrackSample sample in _track)
         {
-            // Across the ground only: a jump, or a body bobbing against a wall, goes up
-            // and down without going anywhere.
-            Vector3 move = Flat(_track[i].At - _track[i - 1].At);
-            travelled += move.Length();
-
-            if (i < 2)
-            {
-                continue;
-            }
-
-            Vector3 before = Flat(_track[i - 1].At - _track[i - 2].At);
-
-            if (move.Length() > MinMove && before.Length() > MinMove && move.Normalized().Dot(before.Normalized()) < -0.5f)
-            {
-                reversals++;
-            }
+            track.Add(new object[] { Math.Round(_clock - sample.Time, 2), Round(sample.At.X), Round(sample.At.Z), Math.Round(sample.Gap, 2), sample.Keys });
         }
 
-        float net = Flat(_track[_track.Count - 1].At - _track[0].At).Length();
-
-        if (reversals >= ThrashReversals && net < ThrashNet)
-        {
-            string under;
-            float above;
-            Under(body, me, out under, out above);
-
-            // Whether the server put the body back (a wide gap between where the client
-            // and the server have it) or the bot's own keys flipped: the track tells.
-            float widest = 0f;
-            List<object[]> track = new List<object[]>();
-
-            foreach (Sample sample in _track)
-            {
-                widest = Mathf.Max(widest, sample.Gap);
-                track.Add(new object[] { Math.Round(_clock - sample.Time, 2), Round(sample.At.X), Round(sample.At.Z), Math.Round(sample.Gap, 2), sample.Keys });
-            }
-
-            _thrashTrack = track;
-            Report("thrashing", reversals + " sharp reversals in " + TrackWindow + " s, " + travelled.ToString("0.0") + " m travelled, " + net.ToString("0.0")
-                + " m gained; client and server up to " + widest.ToString("0.0") + " m apart", body, me, activity, step, under, above);
-            _thrashTrack = null;
-        }
+        _thrashTrack = track;
+        Report("thrashing", verdict.Reversals + " sharp reversals in " + TrackWindow + " s, " + verdict.Travelled.ToString("0.0") + " m travelled, " + verdict.Net.ToString("0.0")
+            + " m gained; client and server up to " + verdict.WidestGap.ToString("0.0") + " m apart", body, me, activity, step, under, above);
+        _thrashTrack = null;
     }
 
     // A vehicle's body does not collide with players, so it can drive through one, or
@@ -431,27 +397,7 @@ public sealed class BotPositionJudge
     {
         IsStuck = false;
 
-        if (_history.Count == 0 || _clock - _history[0].Time < StuckAfter)
-        {
-            return;
-        }
-
-        int walking = 0;
-
-        foreach (Sample sample in _history)
-        {
-            if (sample.At.DistanceTo(me.GlobalPosition) > StuckRadius)
-            {
-                return;
-            }
-
-            if (sample.Walking)
-            {
-                walking++;
-            }
-        }
-
-        if (walking < _history.Count * WalkingShare)
+        if (!Stuck.Judge(_history, Numeric(me.GlobalPosition), _clock))
         {
             return;
         }
@@ -460,7 +406,7 @@ public sealed class BotPositionJudge
         string under;
         float above;
         Under(body, me, out under, out above);
-        Report("stuck", "within " + StuckRadius + " m for " + (int)(_clock - _history[0].Time) + " s while walking", body, me, activity, step, under, above);
+        Report("stuck", "within " + Stuck.Radius + " m for " + (int)(_clock - _history[0].Time) + " s while walking", body, me, activity, step, under, above);
     }
 
     // What the ray down from the feet hits, as its path under the zone ("Roads/Main0",
@@ -524,7 +470,7 @@ public sealed class BotPositionJudge
 
         for (int i = Math.Max(0, _history.Count - 8); i < _history.Count; i++)
         {
-            Sample sample = _history[i];
+            TrackSample sample = _history[i];
             recent.Add(new double[] { Math.Round(_clock - sample.Time), Round(sample.At.X), Round(sample.At.Y), Round(sample.At.Z) });
         }
 
@@ -544,11 +490,6 @@ public sealed class BotPositionJudge
             { "recent", recent },
             { "track", _thrashTrack },
         });
-    }
-
-    private static Vector3 Flat(Vector3 move)
-    {
-        return new Vector3(move.X, 0f, move.Z);
     }
 
     private static string HeldKeys()
@@ -572,24 +513,8 @@ public sealed class BotPositionJudge
         return Math.Round(value, 2);
     }
 
-    private sealed class Sample
+    private static System.Numerics.Vector3 Numeric(Vector3 v)
     {
-        public Sample(double time, Vector3 at, bool walking)
-        {
-            Time = time;
-            At = at;
-            Walking = walking;
-        }
-
-        public double Time { get; }
-
-        public Vector3 At { get; }
-
-        public bool Walking { get; }
-
-        // How far apart the client and the server had the body, and the keys held then.
-        public float Gap { get; set; }
-
-        public string Keys { get; set; } = "";
+        return new System.Numerics.Vector3(v.X, v.Y, v.Z);
     }
 }

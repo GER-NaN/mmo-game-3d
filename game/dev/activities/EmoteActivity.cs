@@ -1,6 +1,7 @@
 namespace MmoGame3d.Dev.Activities;
 
 using System.Collections.Generic;
+using MmoGame3d.BotJudging;
 using MmoGame3d.Dev.Screens;
 using MmoGame3d.Players;
 using MmoGame3d.Rules.Social;
@@ -97,21 +98,6 @@ public sealed class EmoteJudge : BotActivityJudge
 
     public override string? After(BotBody body, BotEnd end)
     {
-        if (end != BotEnd.Finished)
-        {
-            return null;
-        }
-
-        if (_clear && !_seen)
-        {
-            return "typed /" + _activity.Emote + " with nothing in the way, and the body did not do it within 2 s";
-        }
-
-        if (_online && _seen)
-        {
-            return "typed /" + _activity.Emote + " while online, and the body did it";
-        }
-
-        return null;
+        return end == BotEnd.Finished ? EmoteCheck.Judge(_activity.Emote, _clear, _online, _seen) : null;
     }
 }

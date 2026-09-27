@@ -2,6 +2,7 @@ namespace MmoGame3d.Dev;
 
 using System.Collections.Generic;
 using Godot;
+using MmoGame3d.BotJudging;
 using MmoGame3d.Players;
 using MmoGame3d.Rules.World;
 using MmoGame3d.Zones;
@@ -250,41 +251,27 @@ public sealed class TravelActivity : BotActivity
 
 /// <summary>
 /// A traveller as its player sees it: not moving, and not there yet, for a good while, is
-/// stuck.
+/// stuck (TravelWatch decides; this looks).
 /// </summary>
 public sealed class TravelJudge : BotActivityJudge
 {
-    private const double StillFor = 25;
-    private const float Moved = 1.5f;
-
-    private readonly string _to;
-    private Vector3 _from;
-    private string _zone = "";
-    private double _still;
+    private readonly TravelWatch _watch;
 
     public TravelJudge(string to)
     {
-        _to = to;
-    }
-
-    public override void Before(BotBody body)
-    {
-        _zone = body.ZoneId;
-        _from = body.Me?.GlobalPosition ?? Vector3.Zero;
-        _still = 0;
+        _watch = new TravelWatch(to);
     }
 
     public override string? Watch(BotBody body, double delta)
     {
         Player? me = body.Me;
 
-        if (me == null || body.ZoneId != _zone || me.GlobalPosition.DistanceTo(_from) > Moved)
+        if (me == null)
         {
-            Before(body);
             return null;
         }
 
-        _still += delta;
-        return _still >= StillFor ? "not moving for " + (int)StillFor + " s, and still in " + body.ZoneId + " on the way to " + _to : null;
+        Vector3 at = me.GlobalPosition;
+        return _watch.Look(delta, body.ZoneId, new System.Numerics.Vector3(at.X, at.Y, at.Z));
     }
 }

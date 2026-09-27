@@ -1,32 +1,27 @@
 namespace MmoGame3d.Dev;
 
-using System;
 using System.Collections.Generic;
+using MmoGame3d.BotJudging;
 using MmoGame3d.Players;
 
 /// <summary>
 /// Judges how a bot moves between zones. It keeps each zone change with its time and
-/// reports two things, each once per RepeatAfter:
+/// reports two things, each once per RepeatAfter (the checks themselves are ZoneChanges,
+/// plain C# the unit tests drive):
 ///
-/// - Too many: more than MaxChanges zone changes in Window, far more than a person
+/// - Too many: more than ZoneChanges.MaxChanges in its window, far more than a person
 ///   walking between places makes.
-/// - Ping-pong: back and forth between the same two zones (A, B, A, B...) PingPongs
-///   times in a row, each stay shorter than QuickStay: bounced straight back, as when
-///   an arrival puts a player in the door they came through. A visit to the shop and
-///   one to the college are town, shop, town, college, town: that is play, not this.
+/// - Ping-pong: back and forth between the same two zones, each stay short: bounced
+///   straight back, as when an arrival puts a player in the door they came through.
 ///
 /// A ride counts: town to a taxi cabin and back is two changes.
 /// </summary>
 public sealed class BotZoneJudge
 {
-    private const double Window = 60;
-    private const int MaxChanges = 8;
-    private const int PingPongs = 3;
-    private const double QuickStay = 10;
     private const double RepeatAfter = 60;
 
     private readonly string _profile;
-    private readonly List<Change> _changes = new List<Change>();
+    private readonly ZoneChanges _changes = new ZoneChanges();
     private readonly Dictionary<string, double> _reportedAt = new Dictionary<string, double>();
     private double _clock;
     private string _zone = "";
@@ -51,50 +46,22 @@ public sealed class BotZoneJudge
 
         if (_zone.Length > 0)
         {
-            _changes.Add(new Change(_clock, _zone, zone));
+            _changes.Add(_clock, _zone, zone);
         }
 
         _zone = zone;
+        IReadOnlyList<ZoneChange> recent = _changes.Recent;
 
-        while (_changes.Count > 0 && _changes[0].Time < _clock - Window)
+        if (_changes.Churning)
         {
-            _changes.RemoveAt(0);
+            Report(me, "zone-churn", recent.Count + " zone changes in " + (int)(_clock - recent[0].Time) + " s", doing);
         }
 
-        if (_changes.Count > MaxChanges)
+        if (_changes.PingPonging)
         {
-            Report(me, "zone-churn", _changes.Count + " zone changes in " + (int)(_clock - _changes[0].Time) + " s", doing);
+            ZoneChange last = recent[recent.Count - 1];
+            Report(me, "zone-ping-pong", "back and forth between " + last.From + " and " + last.To + " " + _changes.BackAndForth() + " times in a row", doing);
         }
-
-        int back = BackAndForth();
-
-        if (back >= PingPongs)
-        {
-            Change last = _changes[_changes.Count - 1];
-            Report(me, "zone-ping-pong", "back and forth between " + last.From + " and " + last.To + " " + back + " times in a row", doing);
-        }
-    }
-
-    // How many of the latest changes, in a row, go between the same two zones and turn
-    // straight back: A to B, B to A, A to B.
-    private int BackAndForth()
-    {
-        int count = 0;
-
-        for (int i = _changes.Count - 1; i > 0; i--)
-        {
-            Change later = _changes[i];
-            Change earlier = _changes[i - 1];
-
-            if (later.From != earlier.To || later.To != earlier.From || later.Time - earlier.Time > QuickStay)
-            {
-                break;
-            }
-
-            count++;
-        }
-
-        return count;
     }
 
     private void Report(Player me, string kind, string detail, string doing)
@@ -109,7 +76,7 @@ public sealed class BotZoneJudge
         _reportedAt[kind] = _clock;
         List<string> recent = new List<string>();
 
-        foreach (Change change in _changes)
+        foreach (ZoneChange change in _changes.Recent)
         {
             recent.Add((int)(_clock - change.Time) + " s ago: " + change.From + " to " + change.To);
         }
@@ -120,21 +87,5 @@ public sealed class BotZoneJudge
             { "activity", doing },
             { "changes", recent },
         });
-    }
-
-    private sealed class Change
-    {
-        public Change(double time, string from, string to)
-        {
-            Time = time;
-            From = from;
-            To = to;
-        }
-
-        public double Time { get; }
-
-        public string From { get; }
-
-        public string To { get; }
     }
 }
