@@ -5,6 +5,8 @@
 # .NET build output
 bin/
 obj/
+# ...but the Terrain3D add-on's native libraries are part of the game
+!/addons/terrain_3d/bin/
 
 # Private agent instructions
 CLAUDE.local.md

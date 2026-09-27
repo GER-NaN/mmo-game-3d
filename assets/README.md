@@ -27,6 +27,15 @@ From Tiny Treats Collection 1 (CC0, Isa Lousberg, www.isalousberg.com), at
 | `tinytreats/License.txt` | `License.txt` |
 | `tinytreats/house_plants/` | `House Plants/Assets/gltf/` (every file) |
 
+Ground textures for Terrain3D, from ambientCG (CC0), copied from the Terrain3D v1.0.2
+demo (`demo/assets/textures/`):
+
+| Here | From |
+| --- | --- |
+| `terrain/asset_licenses.txt` | the demo's licence note |
+| `terrain/ground037_alb_ht.png`, `ground037_nrm_rgh.png` | Ground037 (grass) |
+| `terrain/rock023_alb_ht.png`, `rock023_nrm_rgh.png` | Rock023 (cliff) |
+
 Sounds, from the sound library at `C:\game-sound`, go in `audio/` with the same paths.
 Only the files the game uses are copied, by `tools/audio-subset/copy.py`, which reads
 the catalog (`game/audio/sounds.json`) and brings each pack's licence along. The packs
