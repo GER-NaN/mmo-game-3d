@@ -1,9 +1,10 @@
-"""Soak watch: one look at the bots of a soak run (scripts/bots-up.ps1) and the server,
-printed as one line, with a screenshot of any bot that looks stuck.
+"""Bot watch: one look at the bots (scripts/bots-up.ps1) and the server, printed as
+one line, with a picture of any bot that looks stuck; and the judges' findings
+completed with the server's side and gathered on one page (report.py).
 
-    python tools/soak-watch/watch.py                one look now
-    python tools/soak-watch/watch.py --every 300    a look every 5 minutes, until the
-                                                    server stops
+    python tools/bot-watch/watch.py                one look now
+    python tools/bot-watch/watch.py --every 120    a look every 2 minutes, until the
+                                                   server stops
 
 A bot is flagged when it did nothing since the last look (idle), when one action is
 most of what it did (looping), when its process is gone, or when its log has new
@@ -21,6 +22,8 @@ import re
 import subprocess
 import sys
 import time
+
+import report
 
 LOGS = os.path.join(os.environ.get("TEMP", "/tmp"), "mmo-game-3d-bots")
 SHOTS = os.path.join(LOGS, "shots")
@@ -95,7 +98,7 @@ def look(state, shots):
         if errors:
             problem = (problem + "; " if problem else "") + str(len(errors)) + " new errors: " + " | ".join(errors[:2])
         if judged:
-            # The judge took its own picture and wrote its finding (judge_report.py).
+            # The judge took its own picture and wrote its finding (report.py).
             problem = (problem + "; " if problem else "") + "judge: " + " | ".join(judged[:2])
         if problem:
             shot = ""
@@ -107,7 +110,7 @@ def look(state, shots):
 
     server = server_errors(state)
     stamp = datetime.datetime.now().strftime("%H:%M")
-    line = stamp + " server " + ("up" if server_up else "DOWN") + ", " + str(quiet) + " bots fine"
+    line = stamp + " server " + ("up" if server_up else "DOWN") + ", " + str(quiet) + " bots fine; " + report.run()
     if server:
         line += "; server: " + server
     if flags:

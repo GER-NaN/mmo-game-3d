@@ -21,7 +21,7 @@ public sealed class BotZoneJudge
     private const double Window = 300;
     private const int MaxChanges = 8;
     private const int PingPongs = 3;
-    private const double RepeatAfter = 600;
+    private const double RepeatAfter = 60;
 
     private readonly string _profile;
     private readonly List<Change> _changes = new List<Change>();

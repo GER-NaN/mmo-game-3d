@@ -1,41 +1,41 @@
-# soak-watch
+# bot-watch
 
-Watches a soak run: the bots started by `scripts/bots-up.ps1`, and the server.
+Watches a bot run (`scripts/bots-up.ps1`) and gathers what the bots' judges find into
+one page to review. The framework itself is described in
+`docs/engineering/bot-testing.md`.
 
 ```
-python tools/soak-watch/watch.py                one look now
-python tools/soak-watch/watch.py --every 300    a look every 5 minutes, until the server stops
-python tools/soak-watch/watch.py --no-shots     flag, but take no screenshots
+python tools/bot-watch/watch.py                one look now
+python tools/bot-watch/watch.py --every 120    a look every 2 minutes, until the server stops
+python tools/bot-watch/watch.py --no-shots     flag, but take no pictures
+python tools/bot-watch/report.py               only complete the findings and rewrite the page
 ```
 
-Each look prints one line: whether the server is up, how many bots are fine, and each
-bot that is not: idle (no action since the last look), looping (one action is most of
-what it did), not running, refused at login, with new errors in its log, or with new
-judge findings. New warnings and errors in the server's diagnostics file are listed
-too.
+Each look prints one line: whether the server is up, how many bots are fine, the
+findings so far, and each bot that is not fine: idle (no action since the last look),
+looping (one action is most of what it did), not running, refused at login, with new
+errors in its log, or with new judge findings. New warnings and errors in the server's
+diagnostics are listed too. A flagged bot's picture goes to
+`%TEMP%\mmo-game-3d-bots\shots\`: the watcher leaves a request file, and the bot's own
+client (`game/dev/BotKeeper.cs`) saves its game view there, so nothing else on the
+screen is ever in it.
 
-A flagged bot's picture is saved to `%TEMP%\mmo-game-3d-bots\shots\`: the watcher
-leaves a request file, and the bot's own client (`game/dev/BotKeeper.cs`) saves its
-game view there. Nothing else on the screen is ever in it.
+## Findings
 
-Where it looks since the last look is kept in `%TEMP%\mmo-game-3d-bots\watch-state.json`;
+The judges in each bot (`BotPositionJudge`, `BotZoneJudge`) write a folder per finding
+under `%TEMP%\mmo-game-3d-bots\judge\`:
+
+| File | What | Written by |
+| --- | --- | --- |
+| `finding.json` | what the judge saw: where, on what, doing what, heading where, where it was before (or its zone changes) | the bot |
+| `picture.png` | the game view at that moment | the bot |
+| `client.log` | the bot's last 300 log lines | the bot |
+| `server.jsonl` | every server record about that player in the minute either side, as written | `report.py` |
+| `server.txt` | the same, readable: what the server received and sent, zone changes, warnings and errors | `report.py` |
+
+`report.py`, run on every look, completes new folders and rewrites
+`judge\report.html`: every finding, newest first, with its picture and links to its
+files. Open it in a browser. `judge\findings.jsonl` lists every finding, a line each.
+
+Where the watcher has looked so far is kept in `%TEMP%\mmo-game-3d-bots\watch-state.json`;
 delete it to start over. Needs Python 3.
-
-## The judge
-
-Each bot judges its own position (`game/dev/BotPositionJudge.cs`): what is under its
-feet (a player stands on `Ground`, `Roads`, `Terrain`, `Room` or `Cabin`, never on a
-car, a roof or a tree), and whether it has stayed within a few metres for minutes while
-walking. A finding is written once per kind per bot per 10 minutes, to
-`%TEMP%\mmo-game-3d-bots\judge\findings.jsonl`, with a picture of the game view.
-
-```
-python tools/soak-watch/judge_report.py
-```
-
-writes `judge\report.md` beside it: every finding with its picture, the client's side
-(where, on what, doing what, heading where, where it was before) and the server's
-(what it received from and sent to that player in the minute around it, zone changes,
-errors).
-
-What the runs turn up is written up in `docs/engineering/soak-findings.md`.

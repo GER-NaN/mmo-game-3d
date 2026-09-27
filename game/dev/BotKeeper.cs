@@ -11,7 +11,7 @@ using MmoGame3d.Ui;
 /// go, then clicks Play; the game menu left open too long, it clicks Resume. It acts
 /// through clicks, like the bot.
 ///
-/// It also takes the bot's picture when tools/soak-watch asks: a request file named for
+/// It also takes the bot's picture when tools/bot-watch asks: a request file named for
 /// the profile holds the path to save to. The picture is the game's own view, so nothing
 /// else on the screen is ever in it.
 /// </summary>
@@ -29,7 +29,7 @@ public partial class BotKeeper : Node
     private double _onGameMenuFor;
     private double _shotCheckIn;
 
-    // The profile names the request file, as in tools/soak-watch.
+    // The profile names the request file, as in tools/bot-watch.
     public string Profile { get; set; } = "";
 
     public override void _Process(double delta)

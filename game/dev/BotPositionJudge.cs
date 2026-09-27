@@ -24,7 +24,7 @@ using MmoGame3d.Zones;
 /// A finding is written once per kind per bot per RepeatAfter: one JSON line in the soak
 /// folder's judge/findings.jsonl with the client's side of it (where, on what, doing
 /// what, heading where, where it was before), and a picture of the game view.
-/// tools/soak-watch/judge_report.py adds the server's side and writes the report.
+/// tools/bot-watch/report.py adds the server's side and writes the report.
 /// </summary>
 public sealed class BotPositionJudge
 {
@@ -33,20 +33,27 @@ public sealed class BotPositionJudge
     // A taxi passes through a bot in about a second: checked far more often.
     private const double VehiclesEvery = 0.5;
 
-    // Back and forth in one place: far travelled, little gained, over a few seconds.
+    // Back and forth in one place: sharp reversals, each move against the one before,
+    // with little gained, over a few seconds. A walk in a circle has none.
     private const double TrackEvery = 0.25;
     private const double TrackWindow = 5;
-    private const float ThrashTravelled = 5f;
-    private const float ThrashNet = 1f;
-    private const double WalkFailedRepeat = 180;
+    private const int ThrashReversals = 4;
+    private const float ThrashNet = 1.5f;
+    private const float MinMove = 0.05f;
+    private const double WalkFailedRepeat = 60;
     private const double BadFootingFor = 10;
     private const float StuckRadius = 2.5f;
     private const double StuckAfter = 30;
     private const double WalkingShare = 0.9;
-    private const double RepeatAfter = 180;
+    private const double RepeatAfter = 60;
     private const float RayUp = 0.5f;
     private const float FloatAbove = 0.8f;
     private const float InsideVehicle = 1.6f;
+
+    // Feet this far above the zone's highest arrival or spawn marker: up on something
+    // (a roof) even where that something counts as walkable (a taxi cabin's roof is part
+    // of the cabin). Not on sculpted ground, which rises far above its markers.
+    private const float AboveMarkers = 1.2f;
     private const float RayDown = 4f;
 
     private static readonly HashSet<string> Walkable = new HashSet<string> { "Ground", "Roads", "Terrain", "Room", "Cabin" };
@@ -137,7 +144,8 @@ public sealed class BotPositionJudge
         // On walkable ground, the feet are on it; well above it and not jumping, the body
         // stands on something the world does not have (or hangs in the air).
         bool floating = under.Length > 0 && above > FloatAbove && !me.IsAirborne;
-        bool wrong = under.Length == 0 || !Walkable.Contains(root) || floating;
+        bool tooHigh = root != "Terrain" && !me.IsAirborne && me.GlobalPosition.Y > HighestMarker(body) + AboveMarkers;
+        bool wrong = under.Length == 0 || !Walkable.Contains(root) || floating || tooHigh;
 
         if (!wrong)
         {
@@ -151,16 +159,18 @@ public sealed class BotPositionJudge
 
         if (_badFootingFor >= BadFootingFor)
         {
-            string kind = under.Length == 0 ? "no-footing" : floating && Walkable.Contains(root) ? "floating" : "footing";
+            string kind = under.Length == 0 ? "no-footing" : !Walkable.Contains(root) ? "footing" : floating ? "floating" : "too-high";
             string detail = under.Length == 0
                 ? "nothing under the feet for " + _badFootingFor + " s (falling out of the world?)"
-                : (kind == "floating" ? "floating " : "standing on ") + under + " for " + _badFootingFor + " s, " + above.ToString("0.00") + " m above it";
+                : kind == "too-high"
+                    ? "standing on " + under + ", " + (me.GlobalPosition.Y - HighestMarker(body)).ToString("0.0") + " m above the zone's markers, for " + _badFootingFor + " s"
+                    : (kind == "floating" ? "floating " : "standing on ") + under + " for " + _badFootingFor + " s, " + above.ToString("0.00") + " m above it";
             Report(kind, detail, body, me, activity, step, under, above);
         }
     }
 
-    // Many metres travelled over a few seconds, and barely anywhere gained: the bot
-    // jerks back and forth in one place (its own steering, or the server putting it back).
+    // Sharp reversals over a few seconds, and barely anywhere gained: the bot jerks back
+    // and forth in one place (its own steering, or the server putting it back).
     private void JudgeThrashing(BotBody body, Player me, string activity, BotStep? step)
     {
         _track.Add(new Sample(_clock, me.GlobalPosition, step != null && step.Walks));
@@ -176,20 +186,34 @@ public sealed class BotPositionJudge
         }
 
         float travelled = 0f;
+        int reversals = 0;
 
         for (int i = 1; i < _track.Count; i++)
         {
-            travelled += _track[i].At.DistanceTo(_track[i - 1].At);
+            Vector3 move = _track[i].At - _track[i - 1].At;
+            travelled += move.Length();
+
+            if (i < 2)
+            {
+                continue;
+            }
+
+            Vector3 before = _track[i - 1].At - _track[i - 2].At;
+
+            if (move.Length() > MinMove && before.Length() > MinMove && move.Normalized().Dot(before.Normalized()) < -0.5f)
+            {
+                reversals++;
+            }
         }
 
         float net = _track[_track.Count - 1].At.DistanceTo(_track[0].At);
 
-        if (travelled > ThrashTravelled && net < ThrashNet)
+        if (reversals >= ThrashReversals && net < ThrashNet)
         {
             string under;
             float above;
             Under(body, me, out under, out above);
-            Report("thrashing", "travelled " + travelled.ToString("0.0") + " m in " + TrackWindow + " s and ended " + net.ToString("0.0") + " m from where it began", body, me, activity, step, under, above);
+            Report("thrashing", reversals + " sharp reversals in " + TrackWindow + " s, " + travelled.ToString("0.0") + " m travelled, " + net.ToString("0.0") + " m gained", body, me, activity, step, under, above);
         }
     }
 
@@ -245,6 +269,43 @@ public sealed class BotPositionJudge
         Vector3? target = step.Target(body);
         _reportedAt.Remove("walk-failed");
         Report("walk-failed", "could not get to " + (target == null ? "its target" : "(" + target.Value.X.ToString("0") + ", " + target.Value.Z.ToString("0") + ")") + " in \"" + step.Name + "\"", body, me, activity, step, under, above);
+    }
+
+    // The highest of the zone's arrival and spawn markers, in world space: the level its
+    // players are meant to stand at.
+    private static float HighestMarker(BotBody body)
+    {
+        Zone? zone = body.Zone;
+        float highest = float.MinValue;
+
+        if (zone == null)
+        {
+            return 0f;
+        }
+
+        Node3D? spawn = zone.GetNodeOrNull<Node3D>("Spawn");
+
+        if (spawn != null)
+        {
+            highest = spawn.GlobalPosition.Y;
+        }
+
+        Node? arrivals = zone.GetNodeOrNull("Arrivals");
+
+        if (arrivals != null)
+        {
+            foreach (Node node in arrivals.GetChildren())
+            {
+                Node3D? marker = node as Node3D;
+
+                if (marker != null)
+                {
+                    highest = Mathf.Max(highest, marker.GlobalPosition.Y);
+                }
+            }
+        }
+
+        return highest == float.MinValue ? zone.GlobalPosition.Y : highest;
     }
 
     private void JudgeProgress(BotBody body, Player me, string activity, BotStep? step)
