@@ -72,6 +72,46 @@ public sealed class BotBody
         }
     }
 
+    // Whether a door's trigger lies up to this far straight ahead: what a person sees
+    // and steps round when they do not mean to go in.
+    public bool DoorAhead(float reach)
+    {
+        Player? me = Me;
+        Node? doors = Zone?.GetNodeOrNull("Doors");
+
+        if (me == null || doors == null)
+        {
+            return false;
+        }
+
+        // Heading 0 faces -Z, and a positive heading is turned left.
+        Vector3 forward = new Vector3(-Mathf.Sin(me.Heading), 0f, -Mathf.Cos(me.Heading));
+
+        foreach (Node node in doors.GetChildren())
+        {
+            CollisionShape3D? shape = node.GetNodeOrNull<CollisionShape3D>("Shape");
+            BoxShape3D? box = shape?.Shape as BoxShape3D;
+
+            if (shape == null || box == null)
+            {
+                continue;
+            }
+
+            for (float ahead = 0.5f; ahead <= reach; ahead += 0.5f)
+            {
+                Vector3 local = shape.ToLocal(me.GlobalPosition + (forward * ahead));
+
+                // Widened by the body's half width, as the body touches it first.
+                if (Mathf.Abs(local.X) < (box.Size.X / 2f) + 0.5f && Mathf.Abs(local.Z) < (box.Size.Z / 2f) + 0.5f)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     // The "[F] ..." line: what F would use now, or "" when nothing is in reach.
     public string Prompt
     {

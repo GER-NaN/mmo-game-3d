@@ -458,6 +458,7 @@ public sealed class ShadowStep : BotStep
     private Walker _walker = new Walker();
     private double _useIn;
     private double _closeIn = -1;
+    private bool _walking;
 
     public ShadowStep(double seconds)
         : base("shadow someone", seconds + 10)
@@ -465,9 +466,11 @@ public sealed class ShadowStep : BotStep
         _seconds = seconds;
     }
 
+    // Only while closing in or following: at the elbow of someone standing still, the
+    // shadow stands still too.
     public override bool Walks
     {
-        get { return true; }
+        get { return _walking; }
     }
 
     public override bool MovesZone
@@ -499,6 +502,7 @@ public sealed class ShadowStep : BotStep
     public override StepResult Tick(BotBody body, double delta)
     {
         _left -= delta;
+        _walking = false;
 
         if (_left <= 0 || body.Me == null)
         {
@@ -523,6 +527,7 @@ public sealed class ShadowStep : BotStep
         // find them on the other side.
         if (_door != null)
         {
+            _walking = true;
             StepResult through = _door.Tick(body, delta);
 
             if (through == StepResult.Running)
@@ -562,6 +567,7 @@ public sealed class ShadowStep : BotStep
 
         if (walked != StepResult.Done)
         {
+            _walking = true;
             return StepResult.Running;
         }
 

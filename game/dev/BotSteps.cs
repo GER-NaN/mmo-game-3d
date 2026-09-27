@@ -478,6 +478,16 @@ public sealed class WanderStep : BotStep
 
         _spell -= delta;
 
+        // A door ahead: turn from it, as a person idling about would, rather than
+        // leave the zone by chance.
+        if (body.DoorAhead(3f))
+        {
+            body.Stop();
+            Input.ActionPress("turn_left");
+            _spell = 0.3;
+            return StepResult.Running;
+        }
+
         if (_spell > 0)
         {
             return StepResult.Running;
