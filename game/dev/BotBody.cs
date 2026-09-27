@@ -274,6 +274,39 @@ public sealed class BotBody
         }
     }
 
+    // The fullest battery in the bag, 0 to 100: a new one is full; -1 with none.
+    public int SpareBatteryPercent
+    {
+        get
+        {
+            Client.ClientGame? game = Game;
+            int best = -1;
+
+            if (game == null)
+            {
+                return best;
+            }
+
+            foreach (Rules.Items.ItemStack stack in game.Stacks)
+            {
+                if (stack.Type == Rules.Items.ItemType.Battery && stack.Quantity > 0)
+                {
+                    best = 100;
+                }
+            }
+
+            foreach (Rules.Items.ItemInstance item in game.Instances)
+            {
+                if (item.Type == Rules.Items.ItemType.Battery && item.IsLoose)
+                {
+                    best = Math.Max(best, Rules.Items.Power.Percent(item.Charge));
+                }
+            }
+
+            return best;
+        }
+    }
+
     // The worn phone's charge, 0 to 100; -1 with no phone worn.
     public int PhonePercent
     {

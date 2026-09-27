@@ -195,7 +195,18 @@ public static class BotGoals
                 return null;
             }
 
-            return body.Has(ItemType.Battery) ? SwapBattery : body.Money >= BatteryPrice ? Buy(ItemType.Battery) : Earn(body);
+            // A swap that finished and left the phone low worked on another phone, or put
+            // in a battery no better: again would only loop.
+            if (state.LastActivity == SwapBattery.Name && state.LastFinished)
+            {
+                state.GiveUp = "the swap left the phone at " + body.PhonePercent + "%";
+                return null;
+            }
+
+            // Only a battery clearly fuller than the phone's is worth the trip; the old one
+            // comes back into the bag after a swap.
+            bool better = body.SpareBatteryPercent >= Math.Max(50, body.PhonePercent + 30);
+            return better ? SwapBattery : body.Money >= BatteryPrice ? Buy(ItemType.Battery) : Earn(body);
         }, 10, 240),
 
         new BotGoal("explore this zone", 2, body => InWorld(body) && body.Undiscovered().Count > 0, (body, state) =>
