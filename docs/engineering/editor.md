@@ -48,6 +48,32 @@ making-changes.md.
   well if it should also stop the camera (walls, buildings). The layer numbers are in
   `game/PhysicsLayers.cs`.
 
+## Sculpting ground (Terrain3D)
+
+Outdoor ground is a **Terrain3D** node named `Terrain` in the zone (the add-on is in
+`addons/terrain_3d`, on in Project Settings > Plugins). `game/zones/meadows/meadows.tscn`
+is the example.
+
+1. Open the zone and select the `Terrain` node. The Terrain3D toolbar appears on the
+   left of the viewport, and its settings along the bottom.
+2. Sculpt: raise, lower, smooth, flatten, with brush size and strength at the bottom.
+   Paint: pick a texture (rock is 0, grass is 1) and paint; unpainted ground keeps the
+   automatic grass-on-flat, rock-on-slopes.
+3. Save the scene. The heights live in `game/zones/<id>/terrain/` (one file per 256 m
+   region), not in the `.tscn`: commit those files too.
+4. Restart the server: it reads the terrain at start.
+
+Keep the ground under doors and arrival markers where they are: the server puts an
+arriving player on the ground under the marker, but a door's trigger floating in the air
+or sunk in a hill will not be walked into. Players cannot climb slopes steeper than
+about 45 degrees.
+
+To start a new terrain zone from generated hills rather than flat ground, run
+`tools/terrain-seed` once (its README), then sculpt. Running it again replaces the
+sculpting.
+
+The official Terrain3D documentation (terrain3d.readthedocs.io) has the full tool list.
+
 ## Doors between zones
 
 1. In the zone you leave from, add an instance of `game/zones/Door.tscn` where the way

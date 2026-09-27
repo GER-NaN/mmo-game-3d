@@ -51,6 +51,21 @@ example-tree-chopping.md.
 8. **Run:** restart the server, walk in. For a lasting test, copy the `college` dev
    scenario, which stands a player in front of a door and walks through.
 
+## A terrain zone (hills, cliffs, open country)
+
+1. **Run:** `tools/terrain-seed` with the zone id, size and where the entry is (its
+   README). It writes `game/zones/<id>/terrain/`, flat at height 0 round the entry.
+2. **Editor:** make the zone as above, and add a **Terrain3D** node named `Terrain` with
+   `data_directory` = `res://game/zones/<id>/terrain`, `material` =
+   `game/terrain/ground_material.tres`, `assets` = `game/terrain/ground_assets.tres`
+   (copy the node from `meadows.tscn`). `Zone.cs` finds it by that name and builds all
+   its collision on both sides.
+3. **Editor:** walls round the edge (`meadows.tscn` has four under `Edges`), and doors
+   and arrivals on the flat entry.
+4. Set `ItemStock` to 0 unless the item area is flat: ground items drop at height 0.
+5. **Editor:** sculpt and paint (editor.md).
+6. **Run:** a scenario that walks in and stays on the ground: copy `meadows`.
+
 ## A door between zones
 
 1. **Editor:** in the zone you leave from, add an instance of `game/zones/Door.tscn`

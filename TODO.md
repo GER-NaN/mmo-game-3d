@@ -92,7 +92,7 @@ All four are in docs/engineering/performance.md, with the numbers.
 - A lean server copy of terrain: the server holds all of Terrain3D (about 165 MB for a
   3 km zone) but needs only heights; a height grid at 2 m, 16-bit, is about 4.5 MB, and
   collision could be built only round players. Until server memory matters.
-- The generated wild (world.md's travel ring) runs on its own server or instance,
+- The generated wild (the travel ring, docs/sources/data-centers-and-travel.md) runs on its own server or instance,
   generating ground round its players from a seed; hand-built zones stay loaded.
 
 ## Planned, not built
