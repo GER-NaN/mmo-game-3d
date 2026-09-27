@@ -103,6 +103,9 @@ All four are in docs/engineering/performance.md, with the numbers.
       deconstruction) and StyleCop, wired in by mmo-game's `Directory.Build.props`.
       One rule at a time, each for the author to look at, since the code here was
       written without them.
+- [ ] Go through mmo-game's tests (their names, mostly): for each, whether the behaviour
+      it checks applies to this game and is not tested here yet; list those, to be
+      written here.
 - [ ] More test zones on Terrain3D: cliffs (terraces, `tools/terrain-seed --terraces`),
       woods (many trees and rocks; Terrain3D's instancer has no collision, so trunks
       need their own shapes), a movement proving ground (ramps, stairs, gaps).
