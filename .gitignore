@@ -29,3 +29,6 @@ TestResults/
 
 # Python bytecode
 __pycache__/
+
+# The wiki site, built by scripts/wiki-publish.ps1
+/tools/wiki/site/

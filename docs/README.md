@@ -1,5 +1,8 @@
 # Docs
 
+Read them as a site at http://localhost:8000 (`scripts/wiki-publish.ps1`; see
+`tools/wiki/README.md`).
+
 | Folder or file | What it is | Trust it? |
 | --- | --- | --- |
 | `world.md` | The game, in the author's words. If it is not here, it is not design. | Canon |

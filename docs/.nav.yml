@@ -1,0 +1,14 @@
+# The wiki's top-level order (tools/wiki). Everything else appears by itself.
+nav:
+  - README.md
+  - world.md
+  - backlog.md
+  - features
+  - planning
+  - engineering
+  - fiction
+  - sources
+  - glob: "*"
+    ignore: outdated
+    ignore_no_matches: true
+  - outdated

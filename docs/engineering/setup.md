@@ -17,7 +17,7 @@ author's machine.
 ## 2. Postgres
 
 Postgres runs in this repo's own Docker Compose project, `mmo-game-3d`, with the
-diagnostics viewer (`docker/docker-compose.yml`). One command starts both, and they
+diagnostics viewer and the docs wiki (`docker/docker-compose.yml`). One command starts both, and they
 start again with Docker:
 
 ```
