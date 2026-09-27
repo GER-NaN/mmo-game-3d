@@ -33,6 +33,10 @@ theme:
         icon: material/weather-sunny
         name: Light
 
+# Links every mention of a Codex term to its page (docs/codex/README.md).
+hooks:
+  - hooks/codex.py
+
 plugins:
   - search
   - awesome-nav
