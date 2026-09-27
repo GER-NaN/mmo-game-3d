@@ -174,6 +174,20 @@ there for bulky unreliable streams; ours are small. The client now sets the link
 never throttle down (`ThrottleConfigure(5000, 2, 0)` on connecting), and ENet applies
 that at the server's end too, so position updates keep flowing as well.
 
+### A drop facing a wall lands inside it, lost
+
+**Found** 2026-09-27, run 12, Soak6 (four walk-failed findings on one item). **Status:**
+fixed.
+
+The earner could not reach an item at x -20, z 9: inside the gap fill between two
+south-side buildings. Spawns check for free space, so it was a drop: a drop lands 1.8 m
+in front of the player (past pickup reach), whatever is there, and the wedger drops
+things while facing walls. An item inside a wall is lost to everyone, and it still
+counts toward the zone's stock, so the street refills with one fewer. A drop now goes
+in front, or to the right, the left or behind, whichever has a clear line and room;
+with none, it is refused and stays in the bag. The dev scenario `drop-wall` drops
+facing a building (it fails on the old code).
+
 ### The phone's Go Offline button falls off a short window
 
 **Found** 2026-09-27, run 1, all bots. **Status:** open.
