@@ -84,3 +84,33 @@ Systems standing in for the real thing:
 - Pooled taxi cabins instead of loading one per ride.
 
 All four are in docs/engineering/performance.md, with the numbers.
+
+
+
+Playtest 9/26/2026s
+- Exiting a zone (greenhouse for example) walking forwards, I should continue walking forwards out of the greenhouse. I think this might mean lining up directions with the doors / transitions between zones
+- Zone entry markers are too big, we need something nicer 
+- street light doesnt function as electric repair>???
+- Cameras need to be mounted on something and visible in the world (they are part of the repaoir )
+- The drone report was a cool idea, make sure thats a real feature in the game
+- drones appear to be flying through buildings
+- npc should stop when you talk to them instead of keeping walking
+- when repairing things, we should equip a tool (kaykit has a tool models
+- Requirements for skills need more explanation. I think the skills themselves need an explainer somewhere. For example I am not entirely sure what the electrical repair is
+- Old town map exploration triggered even though I had one square left (at least on the mini map)
+- Compass?
+- Drone flight seems stuttery
+- I would like to be able to record drone flight and then thats their pattern in game. 
+- No auto payment, you get receipts from the terminal and need to collect in the town <whast the name... courthouse/office/headquarters/majors> I forget what the "headquarters" of a town is... Same goes for recycler, you get a receipt and it needs to be redeemed. This is something that can be traded too but its in the playres name like 
+Recycler Redemption 
+-----------------
+Town: Far-Away-Vill
+Date: 2026-11-21 09:08:12 AM
+Player: Player XYZ (put this at the top)
+Amount: $2.00
+
+Redeem at Far-Away-Vill City Headquarters
+
+Expires On: ....
+---------------------
+- Same thing happened in outskirts with the map exploration. In the mini map I had 2 spots left and i got the achievement pop up before those two black spots were "discovered" on the mini map
