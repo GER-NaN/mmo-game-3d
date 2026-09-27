@@ -248,6 +248,23 @@ So it is not leaked nodes or resources but native memory (rendering, ENet, navig
 finding it needs a native memory profiler. A player who logs in again a few times a
 session would not notice.
 
+### A client jumps into the subway entrance where the server does not
+
+**Found** 2026-09-27, run 16, Soak2 (the new `door-ignored` finding, twice). **Status:**
+open, minor.
+
+The subway entrance is a pit behind walls a metre high, with a 2 m trigger inside
+(its own shape in `town.tscn`, not the doors' usual 6 m). Soak2 walked and jumped at
+it from the side: on its client it cleared the wall and stood in the doorway (y 0.6),
+while on the server its body stayed outside the wall, 1 m away. The server logged the
+body held against the entrance's right wall, and no door touch. A gap of a metre is
+under the 3 m a client snaps back at, and a walking client settles back only when it
+stops, so the player sees themselves in the doorway, not going down, until they let go
+of the keys. The jump is predicted by the client and applied by the server a little
+later, so a jump over a low wall can land on one side for one and the other side for
+the other. The `door-ignored` judge now uses the server's position, so it flags only a
+door that really did not take someone.
+
 ### Panels open over the game menu
 
 **Found** 2026-09-27, run 12, Soak8 (the masher; the first `cannot-close`). **Status:**

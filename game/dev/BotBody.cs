@@ -79,16 +79,21 @@ public sealed class BotBody
         return DoorToward(0f, reach);
     }
 
-    // The door whose trigger the body stands in, by name, or "".
+    // The door whose trigger the body stands in on the server, by name, or "". The server's
+    // position, not the client's: only the server's touch takes a player through, and a
+    // client can run ahead of it (over a wall the server's body did not clear).
     public string DoorIn()
     {
         Player? me = Me;
         Node? doors = Zone?.GetNodeOrNull("Doors");
+        Node3D? players = me?.GetParent() as Node3D;
 
-        if (me == null || doors == null)
+        if (me == null || doors == null || players == null)
         {
             return "";
         }
+
+        Vector3 server = players.ToGlobal(me.NetPosition);
 
         foreach (Node node in doors.GetChildren())
         {
@@ -100,7 +105,7 @@ public sealed class BotBody
                 continue;
             }
 
-            Vector3 local = shape.ToLocal(me.GlobalPosition);
+            Vector3 local = shape.ToLocal(server);
 
             if (Mathf.Abs(local.X) < box.Size.X / 2f && Mathf.Abs(local.Z) < (box.Size.Z / 2f) + 0.5f)
             {
