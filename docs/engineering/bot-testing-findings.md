@@ -288,6 +288,16 @@ and the click. The bots showed it as clicks that did nothing: a new button has n
 or place until the next layout (the bots now wait for one). Rebuilding only when
 something shown changed would keep the list still.
 
+### An emote right after walking may not show
+
+**Found** 2026-09-27, Soak7 (`activity-failed`, the emote judge). **Status:** watch.
+
+Soak7 was hunting a drone; the emote aside stopped the walk and typed /cheer, with
+nothing open and not online, and the body did not cheer within two seconds. Walks go
+unreliably and emotes reliably, so a walk sent just before the stop may reach the
+server after the emote; the server ends a gesture on any walk. If it comes back, a
+person who emotes straight after walking sees the emote cut off at once.
+
 ### Panels open over the game menu
 
 **Found** 2026-09-27, run 12, Soak8 (the masher; the first `cannot-close`). **Status:**
