@@ -10,11 +10,19 @@ public static class ChatUi
 {
     public static BotStep Say(string line)
     {
-        return new DoStep("say \"" + line + "\"", 2, (b, d) =>
+        bool opened = false;
+        return new DoStep("say \"" + line + "\"", 3, (b, d) =>
         {
-            GD.Print("Bot: saying \"" + line + "\"");
-            b.Chat(line);
-            return StepResult.Done;
+            if (!opened)
+            {
+                opened = true;
+                GD.Print("Bot: saying \"" + line + "\"");
+                b.Chat(line);
+                return StepResult.Running;
+            }
+
+            // Done once typed (or given up on): the next step starts after the line is out.
+            return b.Chatting ? StepResult.Running : StepResult.Done;
         });
     }
 

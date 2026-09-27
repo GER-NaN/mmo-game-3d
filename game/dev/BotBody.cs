@@ -583,6 +583,7 @@ public sealed class BotBody
 
     public void Tick(double delta)
     {
+        TypePendingChat(delta);
         Player? me = Me;
         ulong id = me == null ? 0 : me.GetInstanceId();
         BodyAge = id == _bodyId ? BodyAge + delta : 0;
@@ -675,11 +676,50 @@ public sealed class BotBody
     }
 
     // Opens the chat and types a line: talk, or an emote ("/wave").
+    // Opens the chat line and types once it has the focus, as a person waits for it to
+    // open: typed at once, the letters went to the game as keys (E steps aside, R fires
+    // the EMP) and the line was never sent.
     public void Chat(string text)
     {
         Stop();
         Press("chat");
-        BotDriver.Type(text);
+        _chatPending = text;
+        _chatWaited = 0;
+    }
+
+    // Whether a line is still waiting for the chat to open.
+    public bool Chatting
+    {
+        get { return _chatPending != null; }
+    }
+
+    private const double ChatOpensWithin = 1;
+    private string? _chatPending;
+    private double _chatWaited;
+
+    private void TypePendingChat(double delta)
+    {
+        if (_chatPending == null)
+        {
+            return;
+        }
+
+        Control? focus = _node.GetViewport().GuiGetFocusOwner();
+
+        if (focus is LineEdit)
+        {
+            BotDriver.Type(_chatPending);
+            _chatPending = null;
+            return;
+        }
+
+        _chatWaited += delta;
+
+        if (_chatWaited > ChatOpensWithin)
+        {
+            GD.Print("Bot: the chat line did not open; not saying \"" + _chatPending + "\"");
+            _chatPending = null;
+        }
     }
 
     public void Stop()
