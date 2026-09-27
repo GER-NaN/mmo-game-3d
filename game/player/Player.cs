@@ -51,10 +51,13 @@ public partial class Player : CharacterBody3D
     private const double InputSendInterval = 0.05;
 
     // Speeds, in world units a second, where the look changes from standing to walking
-    // to running, and the vertical speed that counts as in the air.
+    // to running.
     private const float WalkFrom = 0.3f;
     private const float RunFrom = 3f;
-    private const float AirborneFrom = 1.2f;
+
+    // Off the floor this long counts as in the air, so a bump or a stair edge does not
+    // flash the jump pose.
+    private const float AirborneAfter = 0.1f;
 
     // Owner only.
     private Vector2 _sentDirection;
@@ -74,7 +77,6 @@ public partial class Player : CharacterBody3D
     // Client only: how the body is seen to move, smoothed, for the animation.
     private CharacterModel? _model;
     private float _seenSpeed;
-    private float _seenRise;
     private float _sinceStep;
 
     // Server only.
@@ -86,6 +88,9 @@ public partial class Player : CharacterBody3D
     // Server only: walked on the ground and jumped since the skills last looked.
     private float _walkedMetres;
     private int _jumps;
+
+    // Whoever runs the physics: the server, and the owner predicting.
+    private float _offFloorFor;
 
     private Vector3 _netPosition;
     private float _netYaw;
@@ -104,6 +109,11 @@ public partial class Player : CharacterBody3D
     // The career and rank, public by design ("Mechanical Engineer · Senior"); "" for none.
     [Export]
     public string CareerTitle { get; set; } = "";
+
+    // Off the floor, from the server's physics. A vertical speed cannot tell: walking up
+    // a hill rises as fast as a jump.
+    [Export]
+    public bool IsAirborne { get; set; }
 
     // At a terminal, in the terminal world. The server holds an online body still; others
     // see it under the name.
@@ -319,6 +329,7 @@ public partial class Player : CharacterBody3D
 
         Velocity = velocity;
         MoveAndSlide();
+        _offFloorFor = IsOnFloor() ? 0f : _offFloorFor + delta;
     }
 
     // Owner only: move now from the keys, send them on, and settle onto the server's
@@ -430,7 +441,7 @@ public partial class Player : CharacterBody3D
         Vector3 moved = Position - before;
         float blend = 1f - Mathf.Exp(-10f * delta);
         _seenSpeed = Mathf.Lerp(_seenSpeed, new Vector2(moved.X, moved.Z).Length() / delta, blend);
-        _seenRise = Mathf.Lerp(_seenRise, moved.Y / delta, blend);
+        bool airborne = IsOwnedHere ? _offFloorFor > AirborneAfter : IsAirborne;
 
         Gesture? gesture = GestureId.Length > 0 ? Gestures.Find(GestureId) : null;
 
@@ -445,7 +456,7 @@ public partial class Player : CharacterBody3D
         {
             _model.Play(gesture.Animation);
         }
-        else if (Mathf.Abs(_seenRise) > AirborneFrom)
+        else if (airborne)
         {
             _model.Play(CharacterModel.Airborne);
         }
@@ -462,7 +473,7 @@ public partial class Player : CharacterBody3D
             _model.Play(CharacterModel.Idle);
         }
 
-        if (!IsOnline && Mathf.Abs(_seenRise) <= AirborneFrom)
+        if (!IsOnline && !airborne)
         {
             Step(new Vector2(moved.X, moved.Z).Length());
         }
@@ -664,5 +675,6 @@ public partial class Player : CharacterBody3D
     {
         NetPosition = Position;
         NetYaw = Rotation.Y;
+        IsAirborne = _offFloorFor > AirborneAfter;
     }
 }

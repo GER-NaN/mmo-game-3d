@@ -92,6 +92,9 @@ public class ServerScenarios
                 StandBy(record, ZoneIds.Town, "../Doors/ToMeadows", new Vector3(-3f, 0f, 0f));
                 record.Yaw = -Mathf.Pi / 2f;
                 break;
+            case "hills":
+                StandAtFootOfHill(record);
+                break;
             case "lights":
                 StandBy(record, ZoneIds.Town, "JunctionBox", new Vector3(0f, 0f, 1.3f));
                 Town?.DevLightsJob(record.PlayerId);
@@ -184,6 +187,36 @@ public class ServerScenarios
                 return;
             }
         }
+    }
+
+    // Facing east at the foot of the first rise along the meadows' middle steep enough
+    // that a walk up it climbs faster than a jump starts: the old animation took that for
+    // a jump. Found, not set, so sculpting the meadows does not break the test.
+    private void StandAtFootOfHill(PlayerRecord record)
+    {
+        const float Look = 5f;
+        const float Steep = 0.35f;
+        Zone zone = _world.GetZone(ZoneIds.Meadows)!;
+        Vector3 at = new Vector3(-1450f, 0f, 0f);
+
+        for (float x = -1450f; x < 1400f; x += Look)
+        {
+            float? here = SpaceQueries.GroundUnder(zone, new Vector3(x, 0f, 0f), 300f, 600f);
+            float? ahead = SpaceQueries.GroundUnder(zone, new Vector3(x + Look, 0f, 0f), 300f, 600f);
+            float? further = SpaceQueries.GroundUnder(zone, new Vector3(x + (Look * 2f), 0f, 0f), 300f, 600f);
+
+            if (here != null && ahead != null && further != null && ahead - here > Steep * Look && further - ahead > Steep * Look)
+            {
+                at = new Vector3(x, here.Value, 0f);
+                break;
+            }
+        }
+
+        record.Zone = ZoneIds.Meadows;
+        record.PositionX = at.X;
+        record.PositionY = at.Y;
+        record.PositionZ = at.Z;
+        record.Yaw = -Mathf.Pi / 2f;
     }
 
     private void StandBy(PlayerRecord record, string zoneId, string thing, Vector3 offset)

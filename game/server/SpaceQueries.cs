@@ -41,10 +41,10 @@ public static class SpaceQueries
 
     // The ground's height under a zone-local spot: from a little above it (a marker set
     // by hand may sit under sculpted ground) down past it. Null when nothing is there.
-    public static float? GroundUnder(Zone zone, Vector3 spot)
+    public static float? GroundUnder(Zone zone, Vector3 spot, float above = 5f, float below = 50f)
     {
         Vector3 at = zone.ToGlobal(spot);
-        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(at + (Vector3.Up * 5f), at + (Vector3.Down * 50f), PhysicsLayers.World);
+        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(at + (Vector3.Up * above), at + (Vector3.Down * below), PhysicsLayers.World);
         Godot.Collections.Dictionary hit = zone.GetWorld3D().DirectSpaceState.IntersectRay(query);
 
         if (hit.Count == 0)

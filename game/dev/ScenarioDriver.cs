@@ -38,6 +38,11 @@ public partial class ScenarioDriver : Node
     private string _lastStatus = "";
     private int _guessesSeen = -1;
     private double _releaseIn = -1;
+    private double _walkedFor;
+    private float _lastY = float.NaN;
+    private double _sinceRiseSample;
+    private float _fastestRise;
+    private bool _sawAirborne;
 
     public ScenarioDriver(string name, Networks networks)
     {
@@ -118,6 +123,25 @@ public partial class ScenarioDriver : Node
                 });
                 Expect("standing on the terrain", StandingInMeadows);
                 break;
+            case "hills":
+                Step("land", () =>
+                {
+                    Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+                    return me != null && me.IsOnFloor() && _elapsed > 1.5;
+                });
+                Step("walk up the hill", () =>
+                {
+                    Input.ActionPress("move_forward");
+                    return _walkedFor > 2.5;
+                });
+                Step("stop", () =>
+                {
+                    Input.ActionRelease("move_forward");
+                    return true;
+                });
+                Expect("a climb faster than the old jump guess", () => _fastestRise > 1.2f);
+                Expect("never airborne on the way", () => !_sawAirborne);
+                break;
             case "lights":
                 Use("junction box");
                 Expect("the lights on", () => Noticed("Achievement: Lights on"));
@@ -170,6 +194,28 @@ public partial class ScenarioDriver : Node
         if (_zone == "meadows" && me != null)
         {
             _lowest = Mathf.Min(_lowest, me.GlobalPosition.Y);
+        }
+
+        // A walk uphill: how fast it climbed, and whether the server ever called it a jump.
+        if (_name == "hills" && me != null && Input.IsActionPressed("move_forward"))
+        {
+            _walkedFor += delta;
+            _sinceRiseSample += delta;
+
+            // Over a quarter second: a single frame's rise jumps when the client corrects.
+            if (float.IsNaN(_lastY))
+            {
+                _lastY = me.GlobalPosition.Y;
+                _sinceRiseSample = 0;
+            }
+            else if (_sinceRiseSample >= 0.25)
+            {
+                _fastestRise = Mathf.Max(_fastestRise, (me.GlobalPosition.Y - _lastY) / (float)_sinceRiseSample);
+                _lastY = me.GlobalPosition.Y;
+                _sinceRiseSample = 0;
+            }
+
+            _sawAirborne = _sawAirborne || me.IsAirborne;
         }
 
         if (_releaseIn >= 0)
