@@ -113,6 +113,218 @@ public sealed class BotBody
         return buttons;
     }
 
+    // ---------------------------------------------------------------- what it has
+
+    private Client.ClientGame? Game
+    {
+        get { return _node.GetParent() as Client.ClientGame; }
+    }
+
+    public int Money
+    {
+        get { return Game?.Dollars ?? 0; }
+    }
+
+    // In the bag: a stack of it, or one loose.
+    public bool Has(Rules.Items.ItemType type)
+    {
+        Client.ClientGame? game = Game;
+
+        if (game == null)
+        {
+            return false;
+        }
+
+        foreach (Rules.Items.ItemStack stack in game.Stacks)
+        {
+            if (stack.Type == type && stack.Quantity > 0)
+            {
+                return true;
+            }
+        }
+
+        foreach (Rules.Items.ItemInstance item in game.Instances)
+        {
+            if (item.Type == type && item.ParentId == null && item.Slot == null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public bool Wears(Rules.Items.ItemType type)
+    {
+        Client.ClientGame? game = Game;
+
+        if (game == null)
+        {
+            return false;
+        }
+
+        foreach (Rules.Items.ItemInstance item in game.Instances)
+        {
+            if (item.Type == type && item.ParentId == null && item.Slot != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Anything in the bag the recycler would take: not worn.
+    public bool HasSomethingToSell
+    {
+        get
+        {
+            Client.ClientGame? game = Game;
+            return game != null && (game.Stacks.Count > 0 || Has(Rules.Items.ItemType.Battery) || Has(Rules.Items.ItemType.Phone) || Has(Rules.Items.ItemType.EmpEmitter));
+        }
+    }
+
+    // The worn phone's charge, 0 to 100; -1 with no phone worn.
+    public int PhonePercent
+    {
+        get
+        {
+            Client.ClientGame? game = Game;
+
+            if (game == null)
+            {
+                return -1;
+            }
+
+            Rules.Items.Belongings mine = new Rules.Items.Belongings(new Rules.Items.Inventory(), new List<Rules.Items.ItemInstance>(game.Instances));
+
+            if (mine.Equipped(Rules.Items.SlotType.Device) == null)
+            {
+                return -1;
+            }
+
+            Rules.Items.ItemInstance? battery = mine.DeviceBattery();
+            return battery == null ? 0 : Rules.Items.Power.Percent(battery.Charge);
+        }
+    }
+
+    public List<Node3D> GroundItems()
+    {
+        return Children<Items.GroundItem>("Items");
+    }
+
+    public List<Node3D> LiveDrones()
+    {
+        List<Node3D> live = new List<Node3D>();
+
+        foreach (Node3D node in Children<Drones.Drone>("Drones"))
+        {
+            if (!((Drones.Drone)node).Down)
+            {
+                live.Add(node);
+            }
+        }
+
+        return live;
+    }
+
+    // The middle of every map cell of this zone not discovered yet, in world space.
+    public List<Vector3> Undiscovered()
+    {
+        List<Vector3> spots = new List<Vector3>();
+        Zone? zone = Zone;
+        byte[]? cells = zone == null ? null : Game?.MapCells(zone.ZoneId);
+
+        if (zone == null || cells == null || zone.MapSize == Vector2.Zero)
+        {
+            return spots;
+        }
+
+        Rules.Maps.Discovery map = new Rules.Maps.Discovery(zone.MapSize.X, zone.MapSize.Y);
+        map.Load(cells);
+
+        for (int row = 0; row < map.Rows; row++)
+        {
+            for (int column = 0; column < map.Columns; column++)
+            {
+                if (!map.IsDiscovered(column, row))
+                {
+                    float x = (-map.Width / 2f) + ((column + 0.5f) * Rules.Maps.Discovery.CellSize);
+                    float z = (-map.Depth / 2f) + ((row + 0.5f) * Rules.Maps.Discovery.CellSize);
+                    spots.Add(zone.ToGlobal(new Vector3(x, 0f, z)));
+                }
+            }
+        }
+
+        return spots;
+    }
+
+    public T? Nearest<T>(List<T> things)
+        where T : Node3D
+    {
+        T? nearest = null;
+
+        foreach (T thing in things)
+        {
+            if (nearest == null || DistanceTo(thing.GlobalPosition) < DistanceTo(nearest.GlobalPosition))
+            {
+                nearest = thing;
+            }
+        }
+
+        return nearest;
+    }
+
+    private List<Node3D> Children<T>(string parent)
+        where T : Node3D
+    {
+        List<Node3D> found = new List<Node3D>();
+        Node? under = Zone?.GetNodeOrNull(parent);
+
+        if (under == null || !under.IsInsideTree())
+        {
+            return found;
+        }
+
+        foreach (Node node in under.GetChildren())
+        {
+            T? thing = node as T;
+
+            if (thing != null && thing.IsInsideTree())
+            {
+                found.Add(thing);
+            }
+        }
+
+        return found;
+    }
+
+    // The group's button on the row that names the item ("Buy" beside "EMP Emitter").
+    public Button? RowButton(string group, string itemName)
+    {
+        foreach (Button button in UsableAll(group))
+        {
+            Node? row = button.GetParent();
+
+            if (row == null)
+            {
+                continue;
+            }
+
+            foreach (Node cell in row.GetChildren())
+            {
+                Label? label = cell as Label;
+
+                if (label != null && label.Text.Contains(itemName))
+                {
+                    return button;
+                }
+            }
+        }
+
+        return null;
+    }
+
     // Something standing in the current zone, by its path under the zone.
     public Node3D? Thing(string path)
     {

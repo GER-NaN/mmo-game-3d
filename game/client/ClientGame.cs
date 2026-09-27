@@ -114,6 +114,30 @@ public partial class ClientGame : Node
 
     // What the server last said this player carries.
     private List<ItemStack> _stacks = new List<ItemStack>();
+
+    // For bots (game/dev), which may look things up but act only through input: what
+    // this client knows of its player.
+    public int Dollars
+    {
+        get { return _dollars; }
+    }
+
+    public IReadOnlyList<ItemStack> Stacks
+    {
+        get { return _stacks; }
+    }
+
+    public IReadOnlyList<ItemInstance> Instances
+    {
+        get { return _instances; }
+    }
+
+    public byte[]? MapCells(string zoneId)
+    {
+        byte[]? cells;
+        return _maps.TryGetValue(zoneId, out cells) ? cells : null;
+    }
+
     private CharacterSelect? _select;
     private CharacterCreator? _creator;
 

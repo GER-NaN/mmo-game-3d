@@ -54,6 +54,28 @@ public static class BotActivities
 
     private static readonly string[] Emotes = { "/wave", "/cheer", "/sit", "/pushups" };
 
+    public static readonly BotActivity LeaveParty = new BotActivity("leave the party", 2, body => body.Usable(PartyPanel.LeaveGroup) != null, body => new List<BotStep>
+    {
+        new DoStep("click Leave party", 2, (b, d) =>
+        {
+            Button? leave = b.Usable(PartyPanel.LeaveGroup);
+
+            if (leave != null)
+            {
+                GD.Print("Bot: clicking Leave party");
+                b.Click(leave);
+            }
+
+            return StepResult.Done;
+        }),
+    });
+
+    // Walks back to Old Town from wherever the bot is (a door toward town).
+    public static readonly BotActivity GoBackToTown = new BotActivity("go back to town", 0, OutOfTown, body => new List<BotStep>
+    {
+        new DoorStep(body.ZoneId == ZoneIds.Greenhouse ? "ToOutskirts" : "ToTown", 150),
+    });
+
     // Not picked by weight: the brain runs it after walks fail twice running.
     public static readonly BotActivity Escape = new BotActivity("get unstuck", 0, body => true, body => new List<BotStep>
     {
@@ -134,7 +156,7 @@ public static class BotActivities
             new CloseAllStep(),
         }),
 
-        new BotActivity("ride a robo taxi", 2, InTown, body => new List<BotStep>
+        new BotActivity("ride a robo taxi", 1, InTown, body => new List<BotStep>
         {
             new WalkToStep("walk to the taxi stand", b => b.Thing("Interactables/TaxiStand")),
             new UseStep("robo taxi", b => b.ZoneId.StartsWith("taxi"), 10, true),
@@ -203,6 +225,8 @@ public static class BotActivities
             new PauseStep(1),
             new CloseAllStep(),
         }),
+
+        LeaveParty,
 
         new BotActivity("recycle something", 1, InTown, body => new List<BotStep>
         {

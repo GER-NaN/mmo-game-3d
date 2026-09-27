@@ -2,8 +2,6 @@ namespace MmoGame3d.Dev;
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
 using Godot;
 using MmoGame3d.Players;
 using MmoGame3d.Zones;
@@ -31,6 +29,10 @@ using MmoGame3d.Zones;
 public sealed class BotPositionJudge
 {
     private const double CheckEvery = 5;
+
+    // A taxi passes through a bot in about a second: checked far more often.
+    private const double VehiclesEvery = 0.5;
+    private const double WalkFailedRepeat = 180;
     private const double BadFootingFor = 10;
     private const float StuckRadius = 3f;
     private const double StuckAfter = 240;
@@ -44,11 +46,11 @@ public sealed class BotPositionJudge
     private static readonly HashSet<string> Walkable = new HashSet<string> { "Ground", "Roads", "Terrain", "Room", "Cabin" };
 
     private readonly string _profile;
-    private readonly string _folder;
     private readonly List<Sample> _history = new List<Sample>();
     private readonly Dictionary<string, double> _reportedAt = new Dictionary<string, double>();
     private double _clock;
     private double _checkIn = CheckEvery;
+    private double _vehiclesIn = VehiclesEvery;
     private string _historyZone = "";
     private string _badFooting = "";
     private double _badFootingFor;
@@ -56,20 +58,13 @@ public sealed class BotPositionJudge
     public BotPositionJudge(string profile)
     {
         _profile = profile;
-        _folder = Path.Combine(Path.GetTempPath(), "mmo-game-3d-bots", "judge");
     }
 
     public void Tick(BotBody body, double delta, string activity, BotStep? step)
     {
         _clock += delta;
         _checkIn -= delta;
-
-        if (_checkIn > 0)
-        {
-            return;
-        }
-
-        _checkIn = CheckEvery;
+        _vehiclesIn -= delta;
         Player? me = body.Me;
 
         if (me == null || !me.IsInsideTree())
@@ -79,8 +74,19 @@ public sealed class BotPositionJudge
             return;
         }
 
+        if (_vehiclesIn <= 0)
+        {
+            _vehiclesIn = VehiclesEvery;
+            JudgeVehicles(body, me, activity, step);
+        }
+
+        if (_checkIn > 0)
+        {
+            return;
+        }
+
+        _checkIn = CheckEvery;
         JudgeFooting(body, me, activity, step);
-        JudgeVehicles(body, me, activity, step);
 
         // A ride's cabin stands still in its own instance: sitting there is not stuck.
         if (body.ZoneId.StartsWith("taxi"))
@@ -169,6 +175,26 @@ public sealed class BotPositionJudge
                 return;
             }
         }
+    }
+
+    // A walk the bot gave up on after its tries at working round something: stuck, if
+    // only for a while, and the picture shows where.
+    public void WalkFailed(BotBody body, string activity, BotStep step)
+    {
+        Player? me = body.Me;
+        double last;
+
+        if (me == null || (_reportedAt.TryGetValue("walk-failed", out last) && _clock - last < WalkFailedRepeat))
+        {
+            return;
+        }
+
+        string under;
+        float above;
+        Under(body, me, out under, out above);
+        Vector3? target = step.Target(body);
+        _reportedAt.Remove("walk-failed");
+        Report("walk-failed", "could not get to " + (target == null ? "its target" : "(" + target.Value.X.ToString("0") + ", " + target.Value.Z.ToString("0") + ")") + " in \"" + step.Name + "\"", body, me, activity, step, under, above);
     }
 
     private void JudgeProgress(BotBody body, Player me, string activity, BotStep? step)
@@ -260,11 +286,6 @@ public sealed class BotPositionJudge
         }
 
         _reportedAt[kind] = _clock;
-        Directory.CreateDirectory(Path.Combine(_folder, "shots"));
-        string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-        string shot = stamp + "-" + _profile + "-" + kind + ".png";
-        me.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(_folder, "shots", shot));
-
         Vector3? target = step?.Target(body);
         List<double[]> recent = new List<double[]>();
 
@@ -274,14 +295,8 @@ public sealed class BotPositionJudge
             recent.Add(new double[] { Math.Round(_clock - sample.Time), Round(sample.At.X), Round(sample.At.Y), Round(sample.At.Z) });
         }
 
-        Dictionary<string, object?> record = new Dictionary<string, object?>
+        BotFindings.Write(me, _profile, kind, detail, new Dictionary<string, object?>
         {
-            { "ts", DateTime.UtcNow.ToString("o") },
-            { "bot", _profile },
-            { "player", me.DisplayName },
-            { "peer", me.Name.ToString() },
-            { "kind", kind },
-            { "detail", detail },
             { "zone", body.ZoneId },
             { "position", new double[] { Round(me.GlobalPosition.X), Round(me.GlobalPosition.Y), Round(me.GlobalPosition.Z) } },
             { "under", under },
@@ -293,11 +308,7 @@ public sealed class BotPositionJudge
             { "target", target == null ? null : new double[] { Round(target.Value.X), Round(target.Value.Y), Round(target.Value.Z) } },
             { "to_target", target == null ? null : Math.Round(body.DistanceTo(target.Value), 1) },
             { "recent", recent },
-            { "shot", shot },
-        };
-
-        File.AppendAllText(Path.Combine(_folder, "findings.jsonl"), JsonSerializer.Serialize(record) + "\n");
-        GD.Print("Judge: " + kind + ": " + detail + " [" + shot + "]");
+        });
     }
 
     private static double Round(float value)

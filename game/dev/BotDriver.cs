@@ -25,6 +25,9 @@ public partial class BotDriver : Node
     // A person takes a moment to read before clicking.
     private const double JoinAfter = 0.8;
 
+    // Most invites are turned down, so parties stay small.
+    private const double JoinChance = 0.35;
+
     // With nothing that can start, it looks again after this long.
     private const double PickAgain = 2;
 
@@ -41,10 +44,21 @@ public partial class BotDriver : Node
     private double _closingFor;
     private double _pickIn;
     private double _joinSeenFor;
+    private bool _joinDecided;
+    private bool _willJoin;
     private BotPositionJudge _judge = null!;
+    private BotZoneJudge _zoneJudge = null!;
 
     // Walks that failed in a row: two, and it is trapped somewhere; it escapes first.
     private int _failedWalks;
+
+    // A goal in hand: what it wants, and the activities chosen for it one by one. A
+    // quarter of goals are dropped at a random moment, wherever the bot is then.
+    private const double DropChance = 0.25;
+    private BotGoal? _goal;
+    private GoalState _goalState = new GoalState();
+    private double _goalFor;
+    private double _dropAt = -1;
 
     // Names the bot in the judge's findings and pictures.
     public string Profile { get; set; } = "";
@@ -53,6 +67,7 @@ public partial class BotDriver : Node
     {
         _body = new BotBody(this, _random);
         _judge = new BotPositionJudge(Profile);
+        _zoneJudge = new BotZoneJudge(Profile);
         _closer.Begin(_body);
     }
 
@@ -72,7 +87,20 @@ public partial class BotDriver : Node
         }
 
         AcceptInvites(delta);
-        _judge.Tick(_body, delta, _activity?.Name ?? (_closing ? "closing up" : "choosing"), _activity != null ? _steps[_step] : null);
+        string doing = (_goal != null ? _goal.Name + " > " : "") + (_activity?.Name ?? (_closing ? "closing up" : "choosing"));
+        _judge.Tick(_body, delta, doing, _activity != null ? _steps[_step] : null);
+        _zoneJudge.Tick(_body, delta, doing);
+
+        if (_goal != null)
+        {
+            _goalFor += delta;
+
+            if (_dropAt >= 0 && _goalFor >= _dropAt)
+            {
+                DropGoal();
+                return;
+            }
+        }
 
         if (_closing)
         {
@@ -90,7 +118,7 @@ public partial class BotDriver : Node
         {
             _pickIn -= delta;
 
-            if (_pickIn <= 0)
+            if (_pickIn <= 0 && !NextForGoal())
             {
                 Pick();
             }
@@ -116,6 +144,12 @@ public partial class BotDriver : Node
                 break;
             case StepResult.Failed:
                 _failedWalks = step.Walks ? _failedWalks + 1 : 0;
+
+                if (step.Walks && !tooLong)
+                {
+                    _judge.WalkFailed(_body, (_goal != null ? _goal.Name + " > " : "") + (_activity?.Name ?? ""), step);
+                }
+
                 End("\"" + step.Name + "\" " + (tooLong ? "took too long" : "failed"), false);
                 break;
             default:
@@ -148,6 +182,7 @@ public partial class BotDriver : Node
         }
 
         List<BotActivity> open = new List<BotActivity>();
+        List<BotGoal> goals = new List<BotGoal>();
         int total = 0;
 
         foreach (BotActivity activity in BotActivities.All)
@@ -157,6 +192,36 @@ public partial class BotDriver : Node
                 open.Add(activity);
                 total += activity.Weight;
             }
+        }
+
+        foreach (BotGoal goal in BotGoals.All)
+        {
+            if (goal.CanStart(_body))
+            {
+                goals.Add(goal);
+                total += goal.Weight;
+            }
+        }
+
+        // A goal, by the same weights as the activities.
+        int goalRoll = _random.Next(Math.Max(1, total));
+
+        foreach (BotGoal goal in goals)
+        {
+            if (goalRoll < goal.Weight)
+            {
+                StartGoal(goal);
+                return;
+            }
+
+            goalRoll -= goal.Weight;
+        }
+
+        total = 0;
+
+        foreach (BotActivity activity in open)
+        {
+            total += activity.Weight;
         }
 
         if (open.Count > 1 && open.Exists(a => a.Name == _lastActivity))
@@ -171,6 +236,8 @@ public partial class BotDriver : Node
             _pickIn = PickAgain;
             return;
         }
+
+        GD.Print("Bot: wander mode");
 
         int roll = _random.Next(total);
         BotActivity pick = open[open.Count - 1];
@@ -200,6 +267,84 @@ public partial class BotDriver : Node
         StartStep();
     }
 
+    private void StartGoal(BotGoal goal)
+    {
+        _goal = goal;
+        _goalState = new GoalState();
+        _goalFor = 0;
+        _dropAt = _random.NextDouble() < DropChance ? 3 + (_random.NextDouble() * (goal.UsualSeconds - 3)) : -1;
+        GD.Print("Bot: goal \"" + goal.Name + "\"" + (_dropAt >= 0 ? " (will drop it after " + (int)_dropAt + " s)" : ""));
+
+        if (!NextForGoal())
+        {
+            Pick();
+        }
+    }
+
+    // The goal's next activity, started; false with no goal, or when it is met or out of
+    // activities.
+    private bool NextForGoal()
+    {
+        if (_goal == null)
+        {
+            return false;
+        }
+
+        if (_goalState.Rounds >= _goal.Budget)
+        {
+            GD.Print("Bot: gave up goal \"" + _goal.Name + "\": out of activities");
+            _goal = null;
+            return false;
+        }
+
+        // Its own business: out of any party first.
+        if (_goal.Solo && BotActivities.LeaveParty.CanStart(_body))
+        {
+            Start(BotActivities.LeaveParty);
+            return true;
+        }
+
+        BotActivity? next = _goal.Next(_body, _goalState);
+
+        if (next == null)
+        {
+            GD.Print(_goalState.GiveUp.Length > 0 ? "Bot: gave up goal \"" + _goal.Name + "\": " + _goalState.GiveUp : "Bot: goal met \"" + _goal.Name + "\"");
+            _goal = null;
+            return false;
+        }
+
+        // Somewhere else than the next thing needs (pulled away, or a plan cut short):
+        // back to town first.
+        if (!next.CanStart(_body) && BotActivities.GoBackToTown.CanStart(_body))
+        {
+            Start(BotActivities.GoBackToTown);
+            return true;
+        }
+
+        if (!next.CanStart(_body))
+        {
+            GD.Print("Bot: gave up goal \"" + _goal.Name + "\": cannot " + next.Name + " here");
+            _goal = null;
+            return false;
+        }
+
+        Start(next);
+        return true;
+    }
+
+    // Walks off from whatever it was doing, mid-step, leaving it as it is: the state a
+    // distracted player leaves behind.
+    private void DropGoal()
+    {
+        GD.Print("Bot: dropped goal \"" + _goal?.Name + "\" after " + (int)_goalFor + " s, during \"" + (_activity?.Name ?? "") + "\""
+            + (_activity != null ? " at \"" + _steps[_step].Name + "\"" : ""));
+        _goal = null;
+        _activity = null;
+        _closing = false;
+        _body.Stop();
+        _pickIn = 0;
+    }
+
     private void StartStep()
     {
         _inStep = 0;
@@ -208,6 +353,13 @@ public partial class BotDriver : Node
 
     private void End(string how, bool finished)
     {
+        if (_goal != null)
+        {
+            _goalState.Rounds++;
+            _goalState.LastActivity = _activity?.Name ?? "";
+            _goalState.LastFinished = finished;
+        }
+
         GD.Print("Bot: " + (finished ? "finished" : "gave up on") + " \"" + _activity?.Name + "\": " + how);
         _activity = null;
         _body.Stop();
@@ -223,7 +375,15 @@ public partial class BotDriver : Node
         if (join == null)
         {
             _joinSeenFor = 0;
+            _joinDecided = false;
             return;
+        }
+
+        if (!_joinDecided)
+        {
+            // On a solo goal, never; in wander mode, now and then.
+            _joinDecided = true;
+            _willJoin = (_goal == null || !_goal.Solo) && _random.NextDouble() < JoinChance;
         }
 
         _joinSeenFor += delta;
@@ -231,8 +391,10 @@ public partial class BotDriver : Node
         if (_joinSeenFor >= JoinAfter)
         {
             _joinSeenFor = 0;
-            GD.Print("Bot: clicking Join");
-            _body.Click(join);
+            Button? no = _body.Usable(InvitePrompt.NoGroup);
+            Button? answer = _willJoin || no == null ? join : no;
+            GD.Print("Bot: clicking " + answer.Text);
+            _body.Click(answer);
         }
     }
 

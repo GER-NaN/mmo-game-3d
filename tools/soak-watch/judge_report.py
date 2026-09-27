@@ -75,6 +75,18 @@ def server_side(finding, records):
     return received, sent, events
 
 
+def client_side(f):
+    """The judge's own fields: a position finding's, or a zone finding's."""
+    if "changes" in f:
+        return "**Client:** in " + f["zone"] + ", doing \"" + f["activity"] + "\". Zone changes, newest last: " + "; ".join(f["changes"]) + "."
+    text = ("**Client:** at " + str(f["position"]) + " in " + f["zone"] + ", on `" + (f["under"] or "nothing") + "` ("
+            + str(f["above"]) + " m above it), HP " + str(f["hp"]) + (", airborne" if f["airborne"] else "") + ". "
+            + "Doing \"" + f["activity"] + "\", step \"" + f["step"] + "\""
+            + (", heading for " + str(f["target"]) + ", " + str(f["to_target"]) + " m away" if f["target"] else "") + ". "
+            + "Before (seconds ago, x, y, z): " + "; ".join(str(r) for r in f["recent"]))
+    return text
+
+
 def write(findings, records):
     lines = ["# Judge report", "",
              "Written " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M") + " from " + str(len(findings)) + " findings.", "",
@@ -86,11 +98,7 @@ def write(findings, records):
         received, sent, events = server_side(f, records)
         lines += ["", "## " + when(f["ts"]).astimezone().strftime("%H:%M:%S") + " " + f["bot"] + ": " + f["kind"], "",
                   f["detail"], "", "![" + f["bot"] + "](shots/" + f["shot"] + ")", "",
-                  "**Client:** at " + str(f["position"]) + " in " + f["zone"] + ", on `" + (f["under"] or "nothing") + "` ("
-                  + str(f["above"]) + " m above it), HP " + str(f["hp"]) + (", airborne" if f["airborne"] else "") + ".",
-                  "Doing \"" + f["activity"] + "\", step \"" + f["step"] + "\""
-                  + (", heading for " + str(f["target"]) + ", " + str(f["to_target"]) + " m away" if f["target"] else "") + ".",
-                  "Before (seconds ago, x, y, z): " + "; ".join(str(r) for r in f["recent"]), "",
+                  client_side(f), "",
                   "**Server, a minute either side:** received " + (", ".join(k + " x" + str(n) for k, n in received.most_common(8)) or "nothing")
                   + "; sent " + (", ".join(k + " x" + str(n) for k, n in sent.most_common(8)) or "nothing") + "."]
         if events:
