@@ -76,13 +76,24 @@ while.
 
 ### Players wedge into the gaps between Old Town's buildings
 
-**Found** 2026-09-27, run 3, Soak1, Soak5, Soak8 and others. **Status:** open (map).
+**Found** 2026-09-27, run 3, Soak1, Soak5, Soak8 and others. **Status:** the traps
+fixed (run 7); the map itself open, for the author.
 
 Old Town's buildings stand with narrow gaps between them that a player can walk into
 and get wedged in; walking straight at a target only pushes deeper in, and the camera
 ends up inside the building. A person can usually back out; a bot could not until it
 learned to (EscapeStep: eight directions in turn). Hand-built maps should close such
 gaps or leave them wide enough to turn in.
+
+Run 7 showed how bad it is: the wedger pushed into the back of the gap between two
+north-side buildings (at x -20.5, z -18) and could not get out at all, in any of eight
+directions, for minutes. Every building's collision is a 10 m box, and the rows stand
+with 1 m between the boxes: eight such gaps, 10 m deep, each exactly as wide as a
+player's capsule. A player pushed in askew is held by both boxes, and logging in again
+puts them back on the same spot. Each gap is now filled by an invisible box
+(`GapFills` in `town.tscn`), which changes no look; the dev scenario `gap` pushes in
+from behind and backs out (it fails without the fills). If the buildings are moved
+later, the fills go with them.
 
 ![Soak5 in a gap behind a dumpster](bot-shots/20260927-0049-soak5-wedged.png)
 
