@@ -79,6 +79,38 @@ public sealed class BotBody
         return DoorToward(0f, reach);
     }
 
+    // The door whose trigger the body stands in, by name, or "".
+    public string DoorIn()
+    {
+        Player? me = Me;
+        Node? doors = Zone?.GetNodeOrNull("Doors");
+
+        if (me == null || doors == null)
+        {
+            return "";
+        }
+
+        foreach (Node node in doors.GetChildren())
+        {
+            CollisionShape3D? shape = node.GetNodeOrNull<CollisionShape3D>("Shape");
+            BoxShape3D? box = shape?.Shape as BoxShape3D;
+
+            if (shape == null || box == null)
+            {
+                continue;
+            }
+
+            Vector3 local = shape.ToLocal(me.GlobalPosition);
+
+            if (Mathf.Abs(local.X) < box.Size.X / 2f && Mathf.Abs(local.Z) < (box.Size.Z / 2f) + 0.5f)
+            {
+                return node.Name;
+            }
+        }
+
+        return "";
+    }
+
     // The same, off to one side: a quarter turn right is -Pi/2, left +Pi/2.
     public bool DoorToward(float turn, float reach)
     {

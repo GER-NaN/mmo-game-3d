@@ -83,6 +83,13 @@ public sealed class BotPositionJudge
     private string _badFooting = "";
     private double _badFootingFor;
 
+    // Standing in a door's trigger with no zone change: the door fires only on the way
+    // in, so a touch it dropped leaves the player in the doorway.
+    private const double DoorIgnoredAfter = 6;
+    private string _inDoor = "";
+    private string _inDoorZone = "";
+    private double _inDoorFor;
+
     public BotPositionJudge(string profile)
     {
         _profile = profile;
@@ -131,6 +138,7 @@ public sealed class BotPositionJudge
 
         _checkIn = CheckEvery;
         JudgeFooting(body, me, activity, step);
+        JudgeDoorway(body, me, activity, step);
         JudgeBounds(body, me, activity, step);
 
         // Online (a terminal, the phone) or reading a panel, standing still is the point:
@@ -164,6 +172,22 @@ public sealed class BotPositionJudge
         }
 
         JudgeProgress(body, me, activity, step);
+    }
+
+    private void JudgeDoorway(BotBody body, Player me, string activity, BotStep? step)
+    {
+        string door = body.DoorIn();
+        _inDoorFor = door.Length > 0 && door == _inDoor && body.ZoneId == _inDoorZone ? _inDoorFor + CheckEvery : 0;
+        _inDoor = door;
+        _inDoorZone = body.ZoneId;
+
+        if (_inDoorFor >= DoorIgnoredAfter && _inDoorFor - CheckEvery < DoorIgnoredAfter)
+        {
+            string under;
+            float above;
+            Under(body, me, out under, out above);
+            Report("door-ignored", "standing in the trigger of " + door + " for " + (int)_inDoorFor + " s and still in " + body.ZoneId, body, me, activity, step, under, above);
+        }
     }
 
     private void JudgeFooting(BotBody body, Player me, string activity, BotStep? step)

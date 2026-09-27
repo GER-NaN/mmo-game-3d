@@ -953,6 +953,9 @@ public partial class ServerGame : Node
 
         if (session == null || session.State != SessionState.InWorld || session.Record == null || session.Body == null)
         {
+            // A touch is only noticed on the way in: one dropped here leaves the player
+            // standing in the doorway until they step out and in again.
+            GD.Print("Door " + door.Name + " ignored " + player.DisplayName + ": " + (session == null ? "no session" : "session " + session.State + (session.Body == null ? ", no body" : "")));
             return;
         }
 
