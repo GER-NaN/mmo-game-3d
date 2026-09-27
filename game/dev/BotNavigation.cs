@@ -52,6 +52,7 @@ public sealed class BotNavigation
         };
         NavigationMeshSourceGeometryData3D source = new NavigationMeshSourceGeometryData3D();
         NavigationServer3D.ParseSourceGeometryData(mesh, source, zone);
+        CarveDoors(zone, source);
         NavigationServer3D.BakeFromSourceGeometryData(mesh, source);
 
         // The geometry is parsed relative to the zone, so the region stands where it does.
@@ -63,6 +64,44 @@ public sealed class BotNavigation
         NavigationServer3D.MapForceUpdate(_map);
         _ready = mesh.GetPolygonCount() > 0;
         GD.Print("Bot: navigation for " + zone.ZoneId + ": " + mesh.GetPolygonCount() + " polygons in " + (Time.GetTicksMsec() - started) + " ms");
+    }
+
+    // Doors are cut out of the walkable area, so a path never crosses one it does not mean
+    // to use (a door's trigger reaches out onto the pavement and swallows passers-by). A
+    // walk to a door still gets there: past the path's end it steers straight in.
+    private static void CarveDoors(Zone zone, NavigationMeshSourceGeometryData3D source)
+    {
+        Node? doors = zone.GetNodeOrNull("Doors");
+
+        if (doors == null)
+        {
+            return;
+        }
+
+        foreach (Node node in doors.GetChildren())
+        {
+            Area3D? door = node as Area3D;
+            CollisionShape3D? shape = door?.GetNodeOrNull<CollisionShape3D>("Shape");
+            BoxShape3D? box = shape?.Shape as BoxShape3D;
+
+            if (door == null || shape == null || box == null)
+            {
+                continue;
+            }
+
+            // The box's footprint, padded by a player's width, in the zone's own space.
+            Vector3 half = (box.Size / 2f) + new Vector3(0.5f, 0f, 0.5f);
+            Transform3D toZone = zone.GlobalTransform.AffineInverse() * shape.GlobalTransform;
+            Vector3[] corners =
+            {
+                toZone * new Vector3(-half.X, 0f, -half.Z),
+                toZone * new Vector3(half.X, 0f, -half.Z),
+                toZone * new Vector3(half.X, 0f, half.Z),
+                toZone * new Vector3(-half.X, 0f, half.Z),
+            };
+            float bottom = (toZone * new Vector3(0f, -half.Y, 0f)).Y;
+            source.AddProjectedObstruction(corners, bottom, box.Size.Y, true);
+        }
     }
 
     // The points to walk through, first to last; empty with no mesh here.

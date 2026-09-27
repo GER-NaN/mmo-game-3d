@@ -110,6 +110,19 @@ after the taxi scenario in the same batch. It passed alone and in every run sinc
 door that sometimes does not take a player would be a real bug; if it comes back, its
 log is in `%TEMP%\mmo-game-3d-scenarios\meadows.log`.
 
+### Doors swallow players walking past them
+
+**Found** 2026-09-27, run 6, Soak5 (the zone judge's ping-pong). **Status:** open, for the
+author: it goes with the playtest note that door thresholds are too big.
+
+A door's trigger is a box 6 m wide and 1 m deep, standing out from the building front
+onto the pavement. Soak5, hunting a drone in front of the electronics shop, walked
+through it and was in the shop (02:14:55); it walked back out and, 9 seconds later,
+crossed it again on its way elsewhere (02:15:07). A player walking along the shops can
+be pulled inside without meaning to go. The bots now keep their paths off doors they
+do not mean to use (the doors are carved out of their navigation mesh), so this now
+shows only when a bot means it.
+
 ### The phone's Go Offline button falls off a short window
 
 **Found** 2026-09-27, run 1, all bots. **Status:** open.
