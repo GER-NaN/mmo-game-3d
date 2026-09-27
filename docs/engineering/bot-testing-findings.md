@@ -328,12 +328,24 @@ Fixed as found; kept here so the same thing is recognised next time.
 - **Closing under the chat line.** With the chat line focused, the map's own key
   typed into it, so the map never closed. Closing now lets go of a text field first,
   and closes the top panel first.
+- **Working round into a door.** Stuck at the shop's counter (the shop's mesh has
+  holes, so walks there go straight), the walker's unstick stepped sideways or pushed
+  forward out through the door: zone churn in the shop, over and over, from several
+  bots. It now takes the side without a door and skips the push with a door ahead;
+  no finding in the 15 minutes after.
 - **Walking into parked cars.** The blind wander walked into a car spell after spell;
   a spell that got nowhere now turns away first.
 - **Bobbing read as thrashing.** Against the world's edge the escaper bobbed up and
   down; the check now counts moves across the ground only.
 
 ## Tooling
+
+- **What holds a server body.** A thrashing finding had the walks arriving every
+  0.25 s and the server's body still. The server now logs, once per hold, a body asked
+  to walk that has not moved for a second: online or not, its gesture, on the floor or
+  not, what it is against. The line names the player, so a finding's `server.txt`
+  carries it. Most holds are props (the shop's counter, the subway entrance's walls,
+  a signal box, the lamp post and dumpster by the kiosk).
 
 - **`scenario-test.ps1` counted a FAIL as a pass** when the failure's notices held the
   word "Passenger": the check was case-blind. Fixed: it matches ": PASS" by case.
