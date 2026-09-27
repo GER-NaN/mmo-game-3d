@@ -89,8 +89,10 @@ public sealed class BotNavigation
                 continue;
             }
 
-            // The box's footprint, padded by a player's width, in the zone's own space.
-            Vector3 half = (box.Size / 2f) + new Vector3(0.5f, 0f, 0.5f);
+            // The box's footprint, in the zone's own space. A carve is not grown by the
+            // agent radius, and paths hug its corners: padded by a body's width and a
+            // stride more, or a bot passing the door grazes it and goes through.
+            Vector3 half = (box.Size / 2f) + new Vector3(1.5f, 0f, 1.5f);
             Transform3D toZone = zone.GlobalTransform.AffineInverse() * shape.GlobalTransform;
             Vector3[] corners =
             {
