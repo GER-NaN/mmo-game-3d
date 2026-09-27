@@ -41,14 +41,17 @@ feature under `docs/features/`. The file is the record. Chat is the interview.
 - Write the file as you go. Update it after every answer, not at the end.
 - Chat replies follow the project's Simplified Technical English rules
   (`CLAUDE.local.md`). The file follows the same style.
-- CRLF line endings on the file after every edit.
+- LF line endings on the file (`.gitattributes`).
 - A question may stay open on purpose. Say so in the file and say why.
 
 ## Steps
 
 1. **Basic idea.** Ask the author for the basic idea of the feature if the request did
    not include one. Read `docs/world.md` for every mention of the feature before asking
-   anything. Cite the section numbers you read in the file header.
+   anything. Cite the section numbers you read in the file header. If an MVP session
+   exists (`docs/features/<slug>-mvp.md`, from `mvp-design`), read it first: its Outcome
+   is built or agreed, so its decisions go under "Already decided", and this session
+   builds on them rather than asking them again.
 2. **Create the file** at `docs/features/<slug>.md` from the template below. Put the
    author's basic idea under "Feature design / Developer thoughts", verbatim.
 3. **Feature fork.** Ask clarifying questions until the feature is agreed: what it is
