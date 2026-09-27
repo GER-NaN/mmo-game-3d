@@ -12,7 +12,7 @@ public static class SpaceQueries
     // A player-sized capsule, lifted a little so the floor it stands on does not count.
     private static readonly Vector3 Lift = new Vector3(0f, 1.05f, 0f);
 
-    // feet is a global position: physics works in the one space all zones share.
+    // feet is a global position, in the zone's own physics space.
     public static bool IsFree(Zone zone, Vector3 feet)
     {
         PhysicsShapeQueryParameters3D query = new PhysicsShapeQueryParameters3D
@@ -20,6 +20,20 @@ public static class SpaceQueries
             Shape = new CapsuleShape3D(),
             CollisionMask = PhysicsLayers.World,
             Transform = new Transform3D(Basis.Identity, feet + Lift),
+        };
+
+        return zone.GetWorld3D().DirectSpaceState.IntersectShape(query, 1).Count == 0;
+    }
+
+    // Nothing of the world in a flat disc of this radius and height around a zone-local
+    // centre: room for something flying there.
+    public static bool IsOpenAir(Zone zone, Vector3 centre, float radius, float height)
+    {
+        PhysicsShapeQueryParameters3D query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new CylinderShape3D { Radius = radius, Height = height },
+            CollisionMask = PhysicsLayers.World,
+            Transform = new Transform3D(Basis.Identity, zone.ToGlobal(centre)),
         };
 
         return zone.GetWorld3D().DirectSpaceState.IntersectShape(query, 1).Count == 0;

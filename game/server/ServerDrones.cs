@@ -33,6 +33,9 @@ public class ServerDrones
     private const float KeepFromSpawn = 15f;
     private const int SpotReward = 3;
 
+    // Room kept between a drone's circle and anything solid, beyond the drone's own size.
+    private const float FlightClearance = 0.8f;
+
     private readonly Zone _zone;
     private readonly VisibilityGate _gate;
     private readonly Network _session;
@@ -102,23 +105,26 @@ public class ServerDrones
         }
 
         _sinceCheck = 0;
-        Vector3 center = Vector3.Zero;
 
-        // Not over the spawn: a player who fainted wakes there.
-        for (int tries = 0; tries < 20; tries++)
+        // Not over the spawn, where a player who fainted wakes, and only where the whole
+        // circle is open air, so they never fly through a building, a lamp or a tree. No
+        // spot found: none this time, try at the next check.
+        for (int tries = 0; tries < 40; tries++)
         {
-            center = new Vector3(
+            Vector3 center = new Vector3(
                 (float)((_random.NextDouble() * 2) - 1) * SpawnArea,
                 0f,
                 (float)((_random.NextDouble() * 2) - 1) * SpawnArea);
 
-            if (center.DistanceTo(_zone.SpawnPoint) >= KeepFromSpawn)
+            if (center.DistanceTo(_zone.SpawnPoint) >= KeepFromSpawn
+                && SpaceQueries.IsOpenAir(_zone, center + new Vector3(0f, Drone.Height, 0f), Drone.CircleRadius + FlightClearance, 1.5f))
             {
-                break;
+                SpawnPair(center);
+                return;
             }
         }
 
-        SpawnPair(center);
+        GD.Print("No open air for drones this time");
     }
 
     // Two drones circling a spot. Also used by dev test scenarios, which want them at once.
