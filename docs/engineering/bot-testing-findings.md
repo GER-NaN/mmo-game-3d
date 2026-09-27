@@ -102,7 +102,8 @@ this kind of thing wherever it happens.
 
 ### The meadows door once did not take a player
 
-**Found** 2026-09-27, the meadows dev scenario, once in six runs. **Status:** watch.
+**Found** 2026-09-27, the meadows dev scenario, once in six runs. **Status:** watch; six
+passes in a row since, right after the taxi scenario too.
 
 Walking into the ToMeadows door, the scenario timed out without a zone change, run
 after the taxi scenario in the same batch. It passed alone and in every run since. A
@@ -152,5 +153,5 @@ Fixed as found; kept here so the same thing is recognised next time.
 - **`scenario-test.ps1` counted a FAIL as a pass** when the failure's notices held the
   word "Passenger": the check was case-blind. Fixed: it matches ": PASS" by case.
 - **`scenario-test.ps1` waits 20 s for a server to stop** when another server (a bot
-  run on 7070) is up, since `server-stop.ps1` waits for any server. The test server
-  does stop; only the wait is wrong. Open.
+  run on 7070) is up, since `server-stop.ps1` waited for any server. Fixed: it waits for
+  the server on its own port.
