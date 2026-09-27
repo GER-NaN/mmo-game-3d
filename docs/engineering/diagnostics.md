@@ -21,6 +21,11 @@ for development, which is what it is for here. Its data is in the Docker volume
 `--viewer url` sends elsewhere and `--viewer off` sends nowhere. With no viewer running
 the server plays on: the viewer's batches fail on their own thread and are dropped.
 
+Known gap: an RPC argument that is itself an array (a character list, an inventory)
+shows in Grafana as `System.String[]`, since OTLP carries only flat lists of simple
+values. The file has the full values. The fix, for later: build `rpc.args` into a
+readable form on the server before it is recorded, not the exporter's.
+
 ## What is recorded
 
 | What | How | Where in the code |
