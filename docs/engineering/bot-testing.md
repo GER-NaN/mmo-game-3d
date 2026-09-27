@@ -204,13 +204,21 @@ The same replays a finding: run the activity it names, with the persona it names
 
 ## Next
 
-Agreed on 2026-09-27, in this order:
+Agreed on 2026-09-27, in this order, with where each stands:
 
 1. **The bots' screen.** Bot windows are small, and the UI has no scaling, so buttons
-   fall off the edge. Bots will draw their UI at 1280 by 720 and scale it into their
-   window. The real fix, a UI that fits any window, belongs to the HUD and menu redo.
+   fall off the edge. Runs now use `-Layout Full` (each window the size of its screen),
+   which fits everything; the tiled layout still loses the phone's Go Offline button
+   (a game finding). Drawing bot UIs at 1280 by 720 is only needed if tiled runs come
+   back. The real fix, a UI that fits any window, belongs to the HUD and menu redo.
 2. **Scenarios as activities.** The dev scenarios and the bots share one step library,
    so each scenario is also a bot activity (without its setup and checks), and a new
-   feature is played by bots as soon as its scenario exists.
+   feature is played by bots as soon as its scenario exists. Not started; `BotPlan` and
+   the feature files are the step library's likely start.
 3. **Headless bots**, for runs nobody watches. A headless client draws nothing, so its
-   findings come without pictures; visible windows stay the default while they matter.
+   findings come without pictures; visible windows stay the default while pictures
+   matter.
+
+Waiting on the author (see `bot-testing-findings.md`): the size of door triggers, and
+the street kiosk standing in the college door's trigger. Both keep showing as zone
+ping-pong until then.
