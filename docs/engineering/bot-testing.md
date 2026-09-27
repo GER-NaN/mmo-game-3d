@@ -127,6 +127,7 @@ side by side play the game several ways at once:
 | slow | a wanderer at a third of the pace that finishes what it starts | timing that only fails slowly; easy to follow on screen |
 | masher | presses the game's keys fast and in any order, now and then | input the game did not plan for |
 | shadow | follows another player at arm's length, uses what they use, and follows them through doors | two players on one terminal, shopkeeper or door at once, arriving on one spot |
+| eventer | checks Notifications for world events often, and goes to half of those running | a swarm with several players at once, taking part, the drops, the rows after it ends |
 | dropper | a wanderer that loses its connection in about a third of what it does, at a random moment, most of all in taxis, at terminals and in games; the keeper logs it back in | the state a lost connection leaves, and the login back into it |
 
 **Walking** (`BotNavigation`, `Walker`): when a bot arrives in a zone it bakes a
