@@ -289,7 +289,7 @@ public partial class ServerGame : Node
         defense.Achieved = _achievements.Grant;
         defense.SendBoard = _hacking.SendBoard;
         _defense = defense;
-        _scenarios = new ServerScenarios(options.DevScenarios, world) { Town = _town, Defense = defense, Drones = _drones };
+        _scenarios = new ServerScenarios(options.DevScenarios, world) { Town = _town, Defense = defense, Drones = _drones, Rides = _rides };
         network.ScenarioRequested += _scenarios.Ask;
         networks.Terminal.DefenseStartRequested += peer => WithSession(peer, session => defense.Start(session));
         networks.Terminal.DefenseFinishRequested += (peer, presses) => WithSession(peer, session => defense.Finish(session, presses));

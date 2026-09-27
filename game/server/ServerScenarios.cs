@@ -33,6 +33,7 @@ public class ServerScenarios
     public ServerTown? Town { get; set; }
     public ServerDefense? Defense { get; set; }
     public ServerDrones? Drones { get; set; }
+    public ServerRides? Rides { get; set; }
 
     public void Ask(long peer, string name)
     {
@@ -94,6 +95,12 @@ public class ServerScenarios
                 break;
             case "registrar":
                 StandBy(record, ZoneIds.College, "Registrar", new Vector3(0f, 0f, 1.3f));
+                break;
+            case "taxi-ride":
+                // The whole ride, there and back, cut to a few seconds.
+                StandBy(record, ZoneIds.Town, "TaxiStand", new Vector3(0f, 0f, 1.3f));
+                Town?.DevCleanTaxis();
+                Rides?.UseShortRides(session);
                 break;
             case "taxi-relog":
                 // Saved during a ride whose cabin is long gone (or is someone else's now).

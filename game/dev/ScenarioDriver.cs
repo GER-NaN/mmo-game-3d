@@ -131,6 +131,12 @@ public partial class ScenarioDriver : Node
             case "taxi-relog":
                 Expect("logged in at the taxi drop-off in Old Town", AtTheDropOff);
                 break;
+            case "taxi-ride":
+                Use("Call a robo taxi");
+                Expect("the ride", () => _zone.StartsWith("taxi"));
+                Expect("back at the drop-off in Old Town", AtTheDropOff);
+                Step("a moment in town", () => _elapsed > _zoneSince + 2);
+                break;
             case "hills":
                 Step("land", () =>
                 {
