@@ -106,6 +106,18 @@ All four are in docs/engineering/performance.md, with the numbers.
 - [ ] Go through mmo-game's tests (their names, mostly): for each, whether the behaviour
       it checks applies to this game and is not tested here yet; list those, to be
       written here.
+- [ ] Mini game levels (needs an MVP Q&A, `mvp-design`): the mini games (Agent
+      Defense, the code cracker) have levels and get harder (longer puzzles, tighter
+      time, more mechanics), scaled to the player's experience with that game.
+- [ ] Agent Defense as "cut the wire before the agent gets across it", not guitar
+      hero (the current game is a prototype). Six cut areas in two rows of three, on
+      the numpad: 4 5 6 on the top row, 1 2 3 below.
+- [ ] Tips and tricks (needs an MVP Q&A, `mvp-design`): a tip for each thing, shown
+      once (the game keeps which tips a player has seen or acknowledged); tips can be
+      turned off, all of them, for a pro. A tips page of its own in the pause menu, to
+      read through like a tutorial at the player's pace, which should not show
+      advanced mechanics before the player has reached them: likely a new way to track
+      what a player has seen and done.
 - [ ] More test zones on Terrain3D: cliffs (terraces, `tools/terrain-seed --terraces`),
       woods (many trees and rocks; Terrain3D's instancer has no collision, so trunks
       need their own shapes), a movement proving ground (ramps, stairs, gaps).
