@@ -119,7 +119,9 @@ A door's trigger is a box 6 m wide and 1 m deep, standing out from the building 
 onto the pavement. Soak5, hunting a drone in front of the electronics shop, walked
 through it and was in the shop (02:14:55); it walked back out and, 9 seconds later,
 crossed it again on its way elsewhere (02:15:07). A player walking along the shops can
-be pulled inside without meaning to go. The bots now keep their paths off doors they
+be pulled inside without meaning to go. Backing up does it too: a player arrives about
+3 m in front of the door they came out of, so a few steps back put them straight
+back in (the gamer bot, greenhouse and outskirts, three times in a minute). The bots now keep their paths off doors they
 do not mean to use (the doors are carved out of their navigation mesh), so this now
 shows only when a bot means it.
 

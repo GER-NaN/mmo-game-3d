@@ -111,6 +111,22 @@ public partial class BotDriver : Node
         _zoneJudge.Tick(_body, delta, doing);
         _errorJudge.Tick(_body, delta, doing, _activity != null ? _steps[_step] : null);
 
+        // Judged stuck (a wedge a wander never notices): out of it before anything else.
+        if (_judge.IsStuck && _activity != BotActivities.Escape)
+        {
+            GD.Print("Bot: the judge says stuck; escaping");
+
+            if (_activity != null)
+            {
+                End("judged stuck", false);
+            }
+
+            _closing = false;
+            _judge.Forget();
+            Start(BotActivities.Escape);
+            return;
+        }
+
         if (_goal != null)
         {
             _goalFor += delta;

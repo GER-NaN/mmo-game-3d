@@ -126,6 +126,7 @@ public sealed class BotPositionJudge
         if ((body.IsOnline || body.OpenPanels().Count > 0) && (step == null || !step.Walks))
         {
             _history.Clear();
+            IsStuck = false;
             return;
         }
 
@@ -362,8 +363,20 @@ public sealed class BotPositionJudge
         return highest == float.MinValue ? zone.GlobalPosition.Y : highest;
     }
 
+    // Stuck by the judge's own measure, now: the bot acts on it (BotDriver escapes).
+    public bool IsStuck { get; private set; }
+
+    // Starts the stuck clock again: after an escape, the old spot no longer counts.
+    public void Forget()
+    {
+        _history.Clear();
+        IsStuck = false;
+    }
+
     private void JudgeProgress(BotBody body, Player me, string activity, BotStep? step)
     {
+        IsStuck = false;
+
         if (_history.Count == 0 || _clock - _history[0].Time < StuckAfter)
         {
             return;
@@ -389,6 +402,7 @@ public sealed class BotPositionJudge
             return;
         }
 
+        IsStuck = true;
         string under;
         float above;
         Under(body, me, out under, out above);

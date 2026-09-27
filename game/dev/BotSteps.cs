@@ -209,15 +209,18 @@ public sealed class Walker
         return new Vector2(a.X - b.X, a.Z - b.Z).Length();
     }
 
-    // Back off, turn aside, walk on with a jump.
+    // Step aside, turn, walk on with a jump. Sideways, not back: backing blind walked
+    // bots into the door they had just come out of.
     private void Unstick(BotBody body, double delta)
     {
         body.Stop();
+        Input.ActionRelease("strafe_left");
+        Input.ActionRelease("strafe_right");
         _unstickLeft -= delta;
 
         if (_unstickLeft > _turnFor + _onFor)
         {
-            Input.ActionPress("move_back");
+            Input.ActionPress(_turnLeft ? "strafe_left" : "strafe_right");
         }
         else if (_unstickLeft > _onFor)
         {
