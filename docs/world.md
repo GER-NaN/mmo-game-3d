@@ -82,6 +82,22 @@ at once, a unique, repeatable, scalable event fires with a powerful reward. The 
 distinct, geographically distributed players, never resources, so no single wealthy
 player can trigger it and a team of ten can do what one person cannot. [B]
 
+World events run in the world on their own. A world event has a type; the first is the
+AI Swarm, and its first kind the Drone Swarm: drones appear in a zone (the first, in the
+meadows near the door from town, so players do not have to walk for five minutes), in a
+set number. Each event is tracked: when it started and ended, its status, and how it
+ended: all the drones killed, or its time limit ran out; later, with more mechanics, the
+swarm can complete its goal (destroy something, hack a thing). A server restart ends it.
+Its settings and its kickoff (a schedule, every so many minutes) are a record the server
+reads; an admin panel on the server is for later. [C-2026-09-27]
+
+Why a player goes: it counts towards participation (world event points, for credit
+somewhere in the future), and a completed event has special drops, scattered on the
+ground near the event (for now GPUs). Taking part is being in the event's area of
+effect; for now, being in the zone during the event, to be tightened later. Nothing
+announces it in the world: you see the drones, or read about it on the terminal or the
+phone; push notifications on the phone and the player UI are for later. [C-2026-09-27]
+
 ## 3. Two worlds, one link
 
 The game has two parallel layers: the physical world and the terminal world. A player
@@ -124,7 +140,8 @@ has all the in-game features as apps: chat, the Defense Objectives, remote monit
 Other apps named since: the town's TODO list of repairs [Q20, Q31], the town log [Q20],
 a status board of events happening in the world [Q31], the crypto exchange rate [Q33],
 the online meeting room where teams form [Q24, Q25], and the schedule board for
-transit [Q30].
+transit [Q30]. A notifications app shows world events, current and past, a row each
+("Drone Swarm in Meadows!"). [C-2026-09-27]
 
 Specific terminals look the same but are bound to a place or a target. The data centre
 terminal you need to hack is the same concept, but you must perform certain tasks in it:
