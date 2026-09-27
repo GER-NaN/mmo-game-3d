@@ -41,7 +41,14 @@ public class ServerFixables
         fixable.Broken = false;
         session.Body?.Show(Gestures.Repair);
         _session.SendNotice(session.PeerId, "You fixed the " + fixable.FixableName + ".");
-        _progress.Award(session, SkillId.FieldRepair, SkillAwards.FieldRepairPerFix);
+        if (fixable.Electrical)
+        {
+            _progress.Award(session, SkillId.ElectricalRepair, SkillAwards.ElectricalRepairPerCamera);
+        }
+        else
+        {
+            _progress.Award(session, SkillId.FieldRepair, SkillAwards.FieldRepairPerFix);
+        }
     }
 
     public void Tick(double delta)

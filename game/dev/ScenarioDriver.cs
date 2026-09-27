@@ -283,8 +283,10 @@ public partial class ScenarioDriver : Node
         CctvView? view = GetTree().GetFirstNodeInGroup(CctvView.Group) as CctvView;
         Vector2? at = view?.ScreenPointOfADrone();
 
+        // None in this picture: on to the next camera, as a person would.
         if (at == null)
         {
+            view?.Show(view.CameraNumber);
             return false;
         }
 

@@ -761,7 +761,7 @@ public partial class TerminalScreen : Control
         content.AddChild(bottom);
     }
 
-    // Old Town's cameras: a live picture, four cameras, click a drone to report it.
+    // Old Town's cameras: a live picture from each security camera, click a drone to report it.
     private void ShowCameras(VBoxContainer content)
     {
         AddLine(content, "Watch for drones over Old Town. Click one to report it: the town pays for each drone reported.", Dim, 15);
@@ -780,7 +780,7 @@ public partial class TerminalScreen : Control
         switches.AddThemeConstantOverride("separation", 6);
         Label caption = new Label { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < view.CameraCount; i++)
         {
             int camera = i;
             Button button = new Button { Text = "Cam " + (i + 1), FocusMode = FocusModeEnum.None };
@@ -793,7 +793,7 @@ public partial class TerminalScreen : Control
 
         // The caption follows the camera shown, which moves on by itself.
         Timer tick = new Timer { WaitTime = 0.5, Autostart = true };
-        tick.Timeout += () => caption.Text = "  REC   CAM " + view.CameraNumber + "   OLD TOWN";
+        tick.Timeout += () => caption.Text = view.ShownWorks ? "  REC   CAM " + view.CameraNumber + "   OLD TOWN" : "  CAM " + view.CameraNumber + " IS DOWN   FIX IT IN TOWN";
         switches.AddChild(tick);
     }
 

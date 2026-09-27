@@ -4,8 +4,8 @@ using Godot;
 using MmoGame3d.Interact;
 
 /// <summary>
-/// A small thing in town that breaks now and then (a hydrant, a bench): the Field repair
-/// skill's act. The prop is a child; this adds the broken state, synced so everyone sees
+/// A small thing in town that breaks now and then (a hydrant, a bench, a security
+/// camera): the Field repair skill's act, or Electrical repair's for wired things. The prop is a child; this adds the broken state, synced so everyone sees
 /// the sparks, and the prompt. The server breaks them (ServerFixables).
 /// </summary>
 public partial class Fixable : Interactable
@@ -15,6 +15,10 @@ public partial class Fixable : Interactable
 
     [Export]
     public bool Broken { get; set; }
+
+    // Wired (a security camera): fixing it is Electrical repair, not Field repair.
+    [Export]
+    public bool Electrical { get; set; }
 
     public override string Prompt
     {
@@ -138,6 +142,7 @@ public partial class Fixable : Interactable
             return 1f;
         }
 
-        return shape.Position.Y + (box.Size.Y / 2f);
+        // In this node's space, so a prop raised off the ground (a camera on a wall) counts.
+        return ToLocal(shape.GlobalPosition).Y + (box.Size.Y / 2f);
     }
 }
