@@ -28,6 +28,8 @@ using MmoGame3d.Rules.Time;
 ///   --address 1.2.3.4   the server to connect to
 ///   --autoconnect       skip the main menu and connect at once
 ///   --bot               the client plays by itself (implies --autoconnect)
+///   --windowed          stay in a window whatever the saved settings say, without
+///                       changing them (scripts/bots-up.ps1 tiles its bots)
 ///   --report-every 2    print what the client sees every 2 seconds
 ///   --scenario defense  dev: ask the server to set this player up for a test and run
 ///                       that test (see ServerScenarios, ScenarioDriver); implies
@@ -71,6 +73,7 @@ public class LaunchOptions
     public string? Address { get; private set; }
     public bool AutoConnect { get; private set; }
     public bool Bot { get; private set; }
+    public bool Windowed { get; private set; }
     public string? Scenario { get; private set; }
 
     // Load tests: the dev scenario every load bot asks for and then keeps doing.
@@ -171,6 +174,9 @@ public class LaunchOptions
                 case "--bot":
                     options.Bot = true;
                     options.AutoConnect = true;
+                    break;
+                case "--windowed":
+                    options.Windowed = true;
                     break;
                 case "--scenario":
                     options.Scenario = next;

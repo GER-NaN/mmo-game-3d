@@ -150,7 +150,10 @@ public partial class ClientGame : Node
 
         if (DisplayServer.GetName() != "headless")
         {
-            _settings.Apply();
+            if (!options.Windowed)
+            {
+                _settings.Apply();
+            }
         }
         else
         {
