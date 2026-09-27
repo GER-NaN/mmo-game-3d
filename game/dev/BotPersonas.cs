@@ -72,6 +72,8 @@ public static class BotPersonas
                 return Masher();
             case "dropper":
                 return Dropper();
+            case "shadow":
+                return Shadow();
             default:
                 return new BotPersona(Default, "I walk around and do a bit of everything.");
         }
@@ -154,6 +156,16 @@ public static class BotPersonas
         p.Likes["use a public terminal"] = 3;
         p.Likes["play Agent Defense"] = 3;
         p.Likes["make a house plant"] = 2;
+        return p;
+    }
+
+    // Follows someone and does what they do, where they do it.
+    private static BotPersona Shadow()
+    {
+        BotPersona p = new BotPersona("shadow", "I follow someone and use what they use.");
+        p.Own.Add(BotExtraActivities.ShadowSomeone);
+        p.Likes["walk around town"] = 0.3;
+        p.JoinChance = 0.6;
         return p;
     }
 

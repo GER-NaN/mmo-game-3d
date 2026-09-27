@@ -16,7 +16,7 @@ way people do, for as long as it runs.
 
 ```
 .\scripts\server-up.ps1                       the server (Postgres must be up)
-.\scripts\bots-up.ps1                         8 bots, soak1 to soak8, tiled over every screen
+.\scripts\bots-up.ps1                         9 bots, soak1 to soak9, tiled over every screen
 .\scripts\bots-up.ps1 -Count 4 -Layout Full   4 bots, each window the size of its screen
 .\scripts\bots-up.ps1 -Personas gamer,curious  who each bot is, in turn (one of each by default)
 python tools/bot-watch/watch.py --every 120   a look every 2 minutes, until the server stops
@@ -103,6 +103,7 @@ it joins a party, and how often its connection drops. Several side by side play 
 | earner | picks up, recycles, reports drones, for all the money it can | the economy's loops |
 | slow | a wanderer at a third of the pace that finishes what it starts | timing that only fails slowly; easy to follow on screen |
 | masher | presses the game's keys fast and in any order, now and then | input the game did not plan for |
+| shadow | follows another player at arm's length, uses what they use, and follows them through doors | two players on one terminal, shopkeeper or door at once, arriving on one spot |
 | dropper | a wanderer that loses its connection in about a third of what it does, at a random moment, most of all in taxis, at terminals and in games; the keeper logs it back in | the state a lost connection leaves, and the login back into it |
 
 **Walking** (`BotNavigation`, `Walker`): when a bot arrives in a zone it bakes a
