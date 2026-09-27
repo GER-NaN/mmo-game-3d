@@ -6,11 +6,17 @@ namespace MmoGame3d.Rules.Social;
 public class Gesture
 {
     public Gesture(string id, string animation, double seconds, bool isEmote)
+        : this(id, animation, seconds, isEmote, "")
+    {
+    }
+
+    public Gesture(string id, string animation, double seconds, bool isEmote, string tool)
     {
         Id = id;
         Animation = animation;
         Seconds = seconds;
         IsEmote = isEmote;
+        Tool = tool;
     }
 
     public string Id { get; }
@@ -23,6 +29,10 @@ public class Gesture
 
     // True for what a player may ask for in chat; false for what only the server shows.
     public bool IsEmote { get; }
+
+    // What is in the right hand while it plays: a model in the KayKit tools pack, by
+    // name ("hammer"), or empty for nothing.
+    public string Tool { get; }
 }
 
 /// <summary>
@@ -34,6 +44,7 @@ public static class Gestures
     public const string PickUp = "pickup";
     public const string Repair = "repair";
     public const string Work = "work";
+    public const string Tinker = "tinker";
 
     private static readonly Gesture[] All =
     {
@@ -42,8 +53,9 @@ public static class Gestures
         new Gesture("sit", "Sit_Floor_Idle", 0, true),
         new Gesture("pushups", "Push_Ups", 0, true),
         new Gesture(PickUp, "PickUp", 1, false),
-        new Gesture(Repair, "Hammering", 2, false),
+        new Gesture(Repair, "Hammering", 2, false, "hammer"),
         new Gesture(Work, "Working_A", 2, false),
+        new Gesture(Tinker, "Working_A", 2, false, "screwdriver_A_short_color"),
     };
 
     public static Gesture? Find(string id)

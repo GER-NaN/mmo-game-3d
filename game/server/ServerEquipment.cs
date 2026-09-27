@@ -84,7 +84,7 @@ public class ServerEquipment
         {
             if (Apply(session, phoneId, (mine, id) => mine.RemoveBattery(id)))
             {
-                session.Body?.Show(Gestures.Work);
+                session.Body?.Show(Gestures.Tinker);
                 WorkDone?.Invoke(session, session.UsingRepairPack);
             }
         }
@@ -96,7 +96,7 @@ public class ServerEquipment
         {
             if (Apply(session, phoneId, (mine, id) => mine.InsertBattery(id, battery)))
             {
-                session.Body?.Show(Gestures.Work);
+                session.Body?.Show(Gestures.Tinker);
                 WorkDone?.Invoke(session, session.UsingRepairPack);
             }
         }

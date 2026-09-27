@@ -15,6 +15,7 @@ Godot edition at `C:\game-art\3d\kaykit-godot`:
 | `kaykit/city_builder_bits/` | `city_builder_bits/` |
 | `kaykit/furniture_bits/` | `furniture_bits/` |
 | `kaykit/resource_bits/` | `resource_bits/` |
+| `kaykit/rpg_tools_bits/` | `rpg_tools_bits/` (tools held in the hand while working) |
 | `kaykit/character_animations/rig_medium/` | `character_animations/animations/rig_medium/` |
 | `kaykit/characters/` | `mystery_monthly_series_5/10_protagonists/characters/*.glb`, and the townspeople: `mystery_monthly_series_5/11_hiker/characters/Hiker.glb`, `mystery_monthly_series_6/12_farmers/characters/Farmer_A.glb`, `mystery_monthly_series_4/02_driver/characters/Driver.glb` |
 

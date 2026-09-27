@@ -435,6 +435,7 @@ public partial class Player : CharacterBody3D
         Gesture? gesture = GestureId.Length > 0 ? Gestures.Find(GestureId) : null;
 
         _model.ShowPhone(OnPhone);
+        _model.ShowTool(gesture != null && !IsOnline && _seenSpeed <= WalkFrom ? gesture.Tool : "");
 
         if (IsOnline)
         {
