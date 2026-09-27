@@ -8,4 +8,6 @@ foreach ($bot in $bots) {
     Stop-Process -Id $bot.ProcessId -Force
 }
 
-Write-Host (@($bots).Count.ToString() + " bots stopped.")
+# Each bot is two processes, the console and the game.
+$profiles = @($bots | ForEach-Object { if ($_.CommandLine -match '--profile (soak\d+)') { $matches[1] } } | Sort-Object -Unique)
+Write-Host ($profiles.Count.ToString() + " bots stopped.")
