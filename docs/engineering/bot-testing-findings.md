@@ -95,6 +95,12 @@ puts them back on the same spot. Each gap is now filled by an invisible box
 from behind and backs out (it fails without the fills). If the buildings are moved
 later, the fills go with them.
 
+Smaller pockets remain where street furniture stands close to a building corner: by
+the street kiosk (with a lamp post and a dumpster), and by the south-west security
+camera (its post, the taxi stand's sign and the corner, x -10, z 8). Bots walk in and
+are judged stuck; so far every one got out with its escape step, and a person gets
+out too. `tools/map-gaps` counts only the buildings' boxes, not props.
+
 ![Soak5 in a gap behind a dumpster](bot-shots/20260927-0049-soak5-wedged.png)
 
 ![Soak1's camera inside a building](bot-shots/20260927-0049-soak1-wedged.png)
