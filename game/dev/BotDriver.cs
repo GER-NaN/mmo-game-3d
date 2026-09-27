@@ -168,7 +168,7 @@ public partial class BotDriver : Node
         string doing = Doing();
         BotStep? step = _aside != null ? _aside.Step : _activity?.Step;
         _judge.Tick(_body, delta, doing, step);
-        _zoneJudge.Tick(_body, delta, doing);
+        _zoneJudge.Tick(_body, delta, doing, step != null && step.MovesZone);
         _errorJudge.Tick(_body, delta, doing, step);
 
         // Judged stuck (a wedge a walk never notices): out of it before anything else.

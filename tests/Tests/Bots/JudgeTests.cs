@@ -208,6 +208,21 @@ public class JudgeTests
     }
 
     [Fact]
+    public void ALongPlannedRouteIsNotChurn()
+    {
+        // Soak3, 2026-09-27: "travel the long way", nine doors in 48 s, each asked for.
+        ZoneChanges changes = new ZoneChanges();
+        string[] zones = { "college", "town", "outskirts", "greenhouse", "outskirts", "town", "subway", "town", "meadows", "town" };
+
+        for (int i = 1; i < zones.Length; i++)
+        {
+            changes.Add(i * 5, zones[i - 1], zones[i], planned: true);
+        }
+
+        Assert.False(changes.Churning);
+    }
+
+    [Fact]
     public void NineZoneChangesInAMinuteAreChurn()
     {
         ZoneChanges changes = new ZoneChanges();

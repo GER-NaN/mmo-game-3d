@@ -5,11 +5,12 @@ using System.Collections.Generic;
 /// <summary>A zone change: when, from where, to where.</summary>
 public sealed class ZoneChange
 {
-    public ZoneChange(double time, string from, string to)
+    public ZoneChange(double time, string from, string to, bool planned)
     {
         Time = time;
         From = from;
         To = to;
+        Planned = planned;
     }
 
     public double Time { get; }
@@ -17,12 +18,16 @@ public sealed class ZoneChange
     public string From { get; }
 
     public string To { get; }
+
+    // Asked for by a step that goes through doors (a route), not a surprise.
+    public bool Planned { get; }
 }
 
 /// <summary>
 /// How a bot moves between zones, from its changes in the last Window seconds:
 ///
-/// - Churn: more than MaxChanges, far more than a person walking between places makes.
+/// - Churn: more than MaxChanges not asked for, far more than a person walking between
+///   places makes. A route through several doors asks for each of its changes.
 /// - Ping-pong: back and forth between the same two zones PingPongs times in a row, each
 ///   stay shorter than QuickStay: bounced straight back. A visit to the shop and one to
 ///   the college (town, shop, town, college, town) is play, not this.
@@ -41,9 +46,9 @@ public sealed class ZoneChanges
         get { return _changes; }
     }
 
-    public void Add(double time, string from, string to)
+    public void Add(double time, string from, string to, bool planned = false)
     {
-        _changes.Add(new ZoneChange(time, from, to));
+        _changes.Add(new ZoneChange(time, from, to, planned));
 
         while (_changes.Count > 0 && _changes[0].Time < time - Window)
         {
@@ -53,7 +58,20 @@ public sealed class ZoneChanges
 
     public bool Churning
     {
-        get { return _changes.Count > MaxChanges; }
+        get
+        {
+            int unplanned = 0;
+
+            foreach (ZoneChange change in _changes)
+            {
+                if (!change.Planned)
+                {
+                    unplanned++;
+                }
+            }
+
+            return unplanned > MaxChanges;
+        }
     }
 
     // How many of the latest changes, in a row, go between the same two zones and turn

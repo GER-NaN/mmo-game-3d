@@ -31,7 +31,8 @@ public sealed class BotZoneJudge
         _profile = profile;
     }
 
-    public void Tick(BotBody body, double delta, string doing)
+    // planned: the step running now goes through doors, so a change is its own doing.
+    public void Tick(BotBody body, double delta, string doing, bool planned)
     {
         _clock += delta;
         Player? me = body.Me;
@@ -46,7 +47,7 @@ public sealed class BotZoneJudge
 
         if (_zone.Length > 0)
         {
-            _changes.Add(_clock, _zone, zone);
+            _changes.Add(_clock, _zone, zone, planned);
         }
 
         _zone = zone;
