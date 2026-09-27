@@ -30,6 +30,10 @@ public sealed class BotPersona
 
     public double JoinChance { get; set; } = 0.35;
 
+    // The chance, per activity, that the connection drops somewhere in it: the state a
+    // lost connection leaves (in a taxi, online, mid-game), and the login back into it.
+    public double CutChance { get; set; }
+
     // Factors on activity and goal weights, by name; a name not here keeps factor 1.
     public Dictionary<string, double> Likes { get; } = new Dictionary<string, double>();
 
@@ -66,6 +70,8 @@ public static class BotPersonas
                 return Slow();
             case "masher":
                 return Masher();
+            case "dropper":
+                return Dropper();
             default:
                 return new BotPersona(Default, "I walk around and do a bit of everything.");
         }
@@ -134,6 +140,19 @@ public static class BotPersonas
         BotPersona p = new BotPersona("masher", "I press all the keys, fast, in any order.");
         p.Own.Add(BotExtraActivities.MashKeys);
         p.Likes["walk around town"] = 0.5;
+        return p;
+    }
+
+    // A wanderer whose connection drops in the middle of things, most of all where the
+    // server holds state for the player: a ride, a terminal, a game.
+    private static BotPersona Dropper()
+    {
+        BotPersona p = new BotPersona("dropper", "My connection drops at the worst moments.");
+        p.CutChance = 0.3;
+        p.Likes["ride a robo taxi"] = 3;
+        p.Likes["use a public terminal"] = 3;
+        p.Likes["play Agent Defense"] = 3;
+        p.Likes["make a house plant"] = 2;
         return p;
     }
 

@@ -18,7 +18,7 @@ param(
     [int]$Count = 8,
     [ValidateSet("Tiled", "Full")]
     [string]$Layout = "Tiled",
-    [string[]]$Personas = @("wanderer", "curious", "gamer", "escaper", "wedger", "earner", "slow", "masher"),
+    [string[]]$Personas = @("dropper", "curious", "gamer", "escaper", "wedger", "earner", "slow", "masher"),
     [string]$Godot = "C:\Users\geral\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
 )
 

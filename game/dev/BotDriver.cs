@@ -61,6 +61,14 @@ public partial class BotDriver : Node
     private double _goalFor;
     private double _dropAt = -1;
 
+    // When the connection is cut in this activity (the persona's CutChance), or -1.
+    private double _activityFor;
+    private double _cutAt = -1;
+
+    // Drops the connection as a lost one does, back to the main menu, where BotKeeper
+    // logs in again. Set by ClientGame.
+    public Action? CutConnection { get; set; }
+
     // Names the bot in the judge's findings and pictures.
     public string Profile { get; set; } = "";
 
@@ -165,6 +173,14 @@ public partial class BotDriver : Node
                 Pick();
             }
 
+            return;
+        }
+
+        _activityFor += delta;
+
+        if (_cutAt >= 0 && _activityFor >= _cutAt)
+        {
+            Cut();
             return;
         }
 
@@ -317,7 +333,9 @@ public partial class BotDriver : Node
         _steps = activity.Plan(_body);
         _step = 0;
         _zone = _body.ZoneId;
-        GD.Print("Bot: starting \"" + activity.Name + "\"");
+        _activityFor = 0;
+        _cutAt = CutConnection != null && _random.NextDouble() < _persona.CutChance ? 1 + (_random.NextDouble() * 20 * _persona.Pace) : -1;
+        GD.Print("Bot: starting \"" + activity.Name + "\"" + (_cutAt >= 0 ? " (will lose the connection after " + (int)_cutAt + " s)" : ""));
         Announce((_goal != null ? _goal.Name + " -> " : "wandering: ") + activity.Name);
         StartStep();
     }
@@ -423,6 +441,19 @@ public partial class BotDriver : Node
         _closing = false;
         _body.Stop();
         _pickIn = 0;
+    }
+
+    // The connection goes mid-step, with whatever is open left open; the goal goes too,
+    // since the bot comes back to a fresh login.
+    private void Cut()
+    {
+        GD.Print("Bot: cutting the connection after " + (int)_activityFor + " s of \"" + (_activity?.Name ?? "") + "\" at \"" + _steps[_step].Name + "\"");
+        _goal = null;
+        _activity = null;
+        _closing = true;
+        _closingFor = 0;
+        _body.Stop();
+        CutConnection?.Invoke();
     }
 
     private void StartStep()

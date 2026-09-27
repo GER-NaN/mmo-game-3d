@@ -90,8 +90,8 @@ Bots **say what they are doing** in public chat: `[bot] goal: fight drones`,
 
 **Personas** (`BotPersonas.cs`, `--persona`): who a bot is. A persona weighs the
 activities and goals (a factor on each, 0 to leave one out), adds its own
-(`BotExtraActivities.cs`), and sets its pace, how often it drops a goal and how readily
-it joins a party. Several side by side play the game several ways at once:
+(`BotExtraActivities.cs`), and sets its pace, how often it drops a goal, how readily
+it joins a party, and how often its connection drops. Several side by side play the game several ways at once:
 
 | Persona | What it does | Finds |
 | --- | --- | --- |
@@ -102,6 +102,8 @@ it joins a party. Several side by side play the game several ways at once:
 | wedger | walks straight into the gap between two buildings and keeps pushing | where players get wedged |
 | earner | picks up, recycles, reports drones, for all the money it can | the economy's loops |
 | slow | a wanderer at a third of the pace that finishes what it starts | timing that only fails slowly; easy to follow on screen |
+| masher | presses the game's keys fast and in any order, now and then | input the game did not plan for |
+| dropper | a wanderer that loses its connection in about a third of what it does, at a random moment, most of all in taxis, at terminals and in games; the keeper logs it back in | the state a lost connection leaves, and the login back into it |
 
 **Walking** (`BotNavigation`, `Walker`): when a bot arrives in a zone it bakes a
 navigation mesh from the zone's collision (Old Town in about 35 ms) and follows its
