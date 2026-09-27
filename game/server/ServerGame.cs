@@ -1014,10 +1014,10 @@ public partial class ServerGame : Node
         session.Body?.QueueFree();
         session.Body = null;
 
-        // On the ground there, whatever height the marker was set at: under sculpted ground
-        // a body would fall through, since a height map only stops it from above.
+        // On the marker, as it was placed; on sculpted ground (SnapArrivalsToGround) on the
+        // ground found under it, since a body below a height map falls through.
         Vector3 spot = arrival.Position + new Vector3(offset.X, 0f, offset.Z);
-        float? ground = SpaceQueries.GroundUnder(target, spot);
+        float? ground = target.SnapArrivalsToGround ? SpaceQueries.GroundUnder(target, spot) : null;
         session.Record.Zone = target.ZoneId;
         session.Record.PositionX = spot.X;
         session.Record.PositionY = ground ?? spot.Y;

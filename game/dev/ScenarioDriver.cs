@@ -154,6 +154,7 @@ public partial class ScenarioDriver : Node
             case "taxi":
                 Use("Call a robo taxi");
                 Expect("the ride", () => _zone.StartsWith("taxi"));
+                Expect("sitting inside the cabin, not on its roof", InsideTheCabin);
                 break;
             case "fix":
                 Use("Fix the traffic light");
@@ -434,6 +435,13 @@ public partial class ScenarioDriver : Node
     {
         Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
         return _zone == "meadows" && me != null && me.IsOnFloor() && _lowest > -0.5f && _elapsed > _zoneSince + 2.0;
+    }
+
+    // A moment in, on the cabin's floor: the rider's feet, zone-local, near its height.
+    private bool InsideTheCabin()
+    {
+        Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+        return me != null && _elapsed > _zoneSince + 1.5 && me.IsOnFloor() && me.Position.Y < 0.8f;
     }
 
     private bool ClickDrone()

@@ -25,6 +25,13 @@ public partial class Zone : Node3D
     [Export]
     public Vector2 MapSize { get; set; } = Vector2.Zero;
 
+    // Arrivals land on the ground found under their marker rather than at the marker's
+    // own height: for sculpted ground, where a marker set by hand can end up below the
+    // surface and a body placed there falls through the height map. Everywhere else a
+    // player lands exactly on the marker (inside a taxi's cabin, not on its roof).
+    [Export]
+    public bool SnapArrivalsToGround { get; set; }
+
     // What the ground mostly is, for footsteps: the catalog's "step.<surface>". Empty
     // is silent (a ride).
     [Export]
