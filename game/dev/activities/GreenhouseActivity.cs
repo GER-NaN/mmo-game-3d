@@ -1,6 +1,7 @@
 namespace MmoGame3d.Dev.Activities;
 
 using System.Collections.Generic;
+using MmoGame3d.BotJudging;
 using MmoGame3d.Dev.Screens;
 using MmoGame3d.Gardening;
 using MmoGame3d.Rules.Gardening;
@@ -90,21 +91,6 @@ public sealed class GreenhouseJudge : BotActivityJudge
 
     public override string? After(BotBody body, BotEnd end)
     {
-        if (end == BotEnd.Cancelled)
-        {
-            return null;
-        }
-
-        if (end == BotEnd.Finished && !_madeSeen)
-        {
-            return "finished, but the table never said the plant was made (it said \"" + _status + "\")";
-        }
-
-        if (end == BotEnd.Failed && _madeSeen)
-        {
-            return null;
-        }
-
-        return end == BotEnd.Failed && _mostPieces == 0 && GardenUi.PieceKinds(body) > 0 ? "no piece stayed on the soil (the table said \"" + _status + "\")" : null;
+        return PlantCheck.Judge(end == BotEnd.Finished, end == BotEnd.Cancelled, _madeSeen, _mostPieces, GardenUi.PieceKinds(body) > 0, _status);
     }
 }

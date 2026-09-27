@@ -3,6 +3,7 @@ namespace MmoGame3d.Dev;
 using System;
 using System.Collections.Generic;
 using Godot;
+using MmoGame3d.BotJudging;
 using MmoGame3d.Gardening;
 using MmoGame3d.Players;
 using MmoGame3d.Rules.Movement;
@@ -619,13 +620,6 @@ public sealed class BotBody
     {
         Rect2 window = _node.GetViewport().GetVisibleRect();
         Rect2 rect = button.GetGlobalRect();
-
-        // Just made (a list rebuilt): no size or place until the next layout.
-        if (rect.Size.X < 1 || rect.Size.Y < 1)
-        {
-            return false;
-        }
-
         ScrollContainer? scroll = null;
 
         for (Node? node = button.GetParent(); node != null && scroll == null; node = node.GetParent())
@@ -633,36 +627,40 @@ public sealed class BotBody
             scroll = node as ScrollContainer;
         }
 
-        // What can be clicked: the window, and inside a list only the part it shows.
-        Rect2 shown = scroll == null ? window : scroll.GetGlobalRect().Intersection(window);
+        // The decision is plain C# (ClickReach), tested apart from the game.
+        ClickMove move = ClickReach.Decide(Screen(window), scroll == null ? null : Screen(scroll.GetGlobalRect()), Screen(rect), _wheeled);
 
-        if (shown.Size.X >= 1 && shown.Size.Y >= 1 && shown.Encloses(rect))
+        switch (move)
         {
-            _wheeled = 0;
-            Click(button);
-            return true;
+            case ClickMove.Wait:
+                return false;
+            case ClickMove.Click:
+                _wheeled = 0;
+                Click(button);
+                return true;
+            case ClickMove.OffScreen:
+                _wheeled = 0;
+                Report?.Invoke("off-screen", "\"" + button.Text.Trim() + "\" is at " + rect.Position.Round() + ", size " + rect.Size.Round() + ", outside what a window of " + window.Size
+                    + " shows" + (scroll == null ? ", with nothing to scroll" : ", and the wheel does not bring it in"));
+                return false;
+            default:
+                // Over what the list shows, the wheel: down to bring up what is below.
+                _wheeled++;
+                Vector2 at = scroll!.GetGlobalRect().Intersection(window).GetCenter();
+                MouseButton wheel = move == ClickMove.WheelDown ? MouseButton.WheelDown : MouseButton.WheelUp;
+                Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at });
+                Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = wheel, Pressed = true, Position = at, GlobalPosition = at });
+                Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = wheel, Pressed = false, Position = at, GlobalPosition = at });
+                return false;
         }
+    }
 
-        if (scroll == null || shown.Size.X < 1 || shown.Size.Y < 1 || _wheeled >= MaxWheels)
-        {
-            _wheeled = 0;
-            Report?.Invoke("off-screen", "\"" + button.Text.Trim() + "\" is at " + rect.Position.Round() + ", size " + rect.Size.Round() + ", outside what a window of " + window.Size
-                + " shows" + (scroll == null ? ", with nothing to scroll" : ", and the wheel does not bring it in"));
-            return false;
-        }
-
-        // Down to bring up what is below what the list shows; up for what is above.
-        _wheeled++;
-        Vector2 at = shown.GetCenter();
-        MouseButton wheel = rect.End.Y > shown.End.Y ? MouseButton.WheelDown : MouseButton.WheelUp;
-        Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at });
-        Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = wheel, Pressed = true, Position = at, GlobalPosition = at });
-        Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = wheel, Pressed = false, Position = at, GlobalPosition = at });
-        return false;
+    private static ScreenRect Screen(Rect2 rect)
+    {
+        return new ScreenRect(rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y);
     }
 
     // Wheel turns spent bringing one button in, before it counts as off the screen.
-    private const int MaxWheels = 8;
     private int _wheeled;
 
     // A finding a step or screen saw (kind, detail): the driver writes it.
