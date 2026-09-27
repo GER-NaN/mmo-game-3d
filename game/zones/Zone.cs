@@ -25,15 +25,20 @@ public partial class Zone : Node3D
     [Export]
     public Vector2 MapSize { get; set; } = Vector2.Zero;
 
+    // Arrivals land on the ground found under their marker rather than at the marker's
+    // own height: for sculpted ground, where a marker set by hand can end up below the
+    // surface and a body placed there falls through the height map. Everywhere else a
+    // player lands exactly on the marker (inside a taxi's cabin, not on its roof).
+    [Export]
+    public bool SnapArrivalsToGround { get; set; }
+
     // What the ground mostly is, for footsteps: the catalog's "step.<surface>". Empty
     // is silent (a ride).
     [Export]
     public string Surface { get; set; } = "rock";
 
-    public string ZoneId
-    {
-        get { return Name; }
-    }
+    // Set by World when it loads the zone; the node itself is always named "Zone".
+    public string ZoneId { get; set; } = "";
 
     public Node3D Players
     {
@@ -45,9 +50,8 @@ public partial class Zone : Node3D
         get { return GetNode<Node3D>("Items"); }
     }
 
-    // Positions here are zone-local: the server lays its zones out far apart, while a
-    // client loads its one zone at the origin, so only zone-local numbers mean the same
-    // on both sides. Synced positions are zone-local for the same reason.
+    // Positions here are zone-local. Every zone sits at the origin of its own space, so
+    // today zone-local and global are the same; zone-local keeps it true if that changes.
     public Vector3 SpawnPoint
     {
         get { return GetNode<Node3D>("Spawn").Position; }
@@ -57,5 +61,37 @@ public partial class Zone : Node3D
     public Node3D? Arrival(string name)
     {
         return GetNodeOrNull<Node3D>("Arrivals/" + name);
+    }
+
+    // Terrain3D's collision modes (Terrain3DCollision): it is a GDExtension, so C# reaches
+    // it by name, without generated types.
+    private const int TerrainCollisionFull = 3;
+
+    public override void _Ready()
+    {
+        Node? terrain = GetNodeOrNull("Terrain");
+
+        if (terrain == null || !terrain.IsClass("Terrain3D"))
+        {
+            return;
+        }
+
+        // The ground blocks players and the chase camera, as any wall does. Both sides build
+        // all of it as the zone loads, so it is there before a player is placed: built round
+        // the camera instead (the scene's default), a client's arriving player fell through
+        // ground that did not exist yet, and was snapped back up by the server.
+        GodotObject collision = terrain.Get("collision").AsGodotObject();
+        collision.Set("layer", PhysicsLayers.World | PhysicsLayers.CameraBlock);
+        collision.Set("mode", TerrainCollisionFull);
+
+        if (!Multiplayer.IsServer())
+        {
+            return;
+        }
+
+        // The server has no camera; Terrain3D stops its processing without one.
+        Camera3D stand = new Camera3D { Name = "TerrainCamera" };
+        AddChild(stand);
+        terrain.Call("set_camera", stand);
     }
 }

@@ -1,0 +1,16 @@
+nav:
+  - README.md
+  - The world: world
+  - The AI: ai
+  - Places: places
+  - People: people
+  - The player: player
+  - Items: items
+  - In the world: objects
+  - The terminal: terminal
+  - Skills and careers: progression
+  - Economy: economy
+  - Together: together
+  - Travel: travel
+  - glob: "*"
+    ignore_no_matches: true

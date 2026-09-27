@@ -6,11 +6,15 @@ using Godot;
 // Your party: each member, the leader starred, the offline ones dimmed; and Leave.
 public partial class PartyPanel : PanelContainer
 {
+    // Bots find the Leave button by this group.
+    public const string LeaveGroup = "party_leave";
+
     public event Action? LeavePressed;
 
     public override void _Ready()
     {
         GetNode<Button>("%Leave").Pressed += () => LeavePressed?.Invoke();
+        GetNode<Button>("%Leave").AddToGroup(LeaveGroup);
     }
 
     public void ShowMembers(string leaderId, string[] ids, string[] names, int[] online)

@@ -1,0 +1,52 @@
+# The game's database, the diagnostics viewer, and the docs wiki.
+# Start: docker compose -f docker/docker-compose.yml up -d
+name: mmo-game-3d
+
+services:
+  # Postgres: the world in mmo3d, the tests in mmo3d_test. User and password mmo.
+  db:
+    image: postgres:18
+    container_name: mmo3d-db
+    environment:
+      POSTGRES_USER: mmo
+      POSTGRES_PASSWORD: mmo
+      POSTGRES_DB: mmo3d
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mmo", "-d", "mmo3d"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Grafana with Loki (logs), Tempo (traces) and Prometheus in one container, taking
+  # OTLP from the server. For development, as the image says.
+  # Open http://localhost:3000; no login needed.
+  lgtm:
+    image: grafana/otel-lgtm:0.34.0
+    container_name: mmo3d-lgtm
+    ports:
+      - "3000:3000"
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - lgtm-data:/data
+    restart: unless-stopped
+
+  # The docs as a site, built from docs/ by scripts/wiki-publish.ps1.
+  # Open http://localhost:8000.
+  wiki:
+    image: nginx:1.30-alpine
+    container_name: mmo3d-wiki
+    ports:
+      - "8000:80"
+    volumes:
+      - ../tools/wiki/site:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  lgtm-data:

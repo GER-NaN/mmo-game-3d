@@ -15,5 +15,6 @@
     <ProjectReference Include="src\Rules\Rules.csproj" />
     <ProjectReference Include="src\Data\Data.csproj" />
     <ProjectReference Include="src\Diagnostics\Diagnostics.csproj" />
+    <ProjectReference Include="src\BotJudging\BotJudging.csproj" />
   </ItemGroup>
 </Project>

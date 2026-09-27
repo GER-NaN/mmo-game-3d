@@ -67,6 +67,8 @@ public partial class CharacterModel : Node3D
 
     // The phone the character holds while online on it; made on first use.
     private Node3D? _phone;
+    private BoneAttachment3D? _toolHand;
+    private string _tool = "";
     private OmniLight3D? _glow;
     private double _flicker;
 
@@ -308,6 +310,50 @@ public partial class CharacterModel : Node3D
             _glow.LightEnergy = 0.6f + (0.4f * Mathf.Abs(Mathf.Sin((float)_flicker * 7f)));
         }
     }
+
+    // A tool from the KayKit tools pack in the right hand, by name; empty puts it away.
+    public void ShowTool(string tool)
+    {
+        if (tool == _tool)
+        {
+            return;
+        }
+
+        _tool = tool;
+
+        if (_toolHand == null)
+        {
+            Skeleton3D? skeleton = FindChild("Skeleton3D", true, false) as Skeleton3D;
+
+            if (skeleton == null)
+            {
+                return;
+            }
+
+            _toolHand = new BoneAttachment3D { Name = "ToolHand", BoneName = "handslot.r" };
+            skeleton.AddChild(_toolHand);
+        }
+
+        foreach (Node child in _toolHand.GetChildren())
+        {
+            child.QueueFree();
+        }
+
+        PackedScene? model = tool.Length > 0 ? ResourceLoader.Load<PackedScene>(ToolPath + tool + ".gltf") : null;
+
+        if (model != null)
+        {
+            Node3D held = model.Instantiate<Node3D>();
+            held.Scale = Vector3.One * ToolScale;
+            _toolHand.AddChild(held);
+        }
+    }
+
+    private const string ToolPath = "res://assets/kaykit/rpg_tools_bits/assets/";
+
+    // The pack's tools are prop-sized (the hammer is 0.8 m); in the hand they are made
+    // hand-sized. A placeholder until seen.
+    private const float ToolScale = 0.4f;
 
     public void Play(string animation)
     {

@@ -10,7 +10,7 @@
 # (the test). The server needs Postgres with the mmo3d database, as for server-up.ps1.
 # Each run is a new player ("Test <name>"), so nothing from an earlier run is in the way.
 param(
-    [string[]]$Scenarios = @("cracker", "rootkit", "defense", "cameras", "subway", "book", "workbench", "college", "lights", "taxi", "fix", "garden", "shop"),
+    [string[]]$Scenarios = @("cracker", "rootkit", "defense", "cameras", "subway", "book", "workbench", "college", "meadows", "hills", "lights", "taxi", "taxi-ride", "taxi-relog", "fix", "garden", "shop", "registrar", "too-dear", "phone-dead", "door-exit", "gap", "drop-wall", "swarm"),
     [int]$Port = 7071,
     [int]$TimeoutSeconds = 60,
     [string]$Godot = "C:\Users\geral\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
@@ -71,10 +71,21 @@ foreach ($name in $Scenarios) {
         $failed++
     }
     else {
-        Write-Host $result.Line
+        # A C# exception fails the scenario even when its steps passed: the game logs it
+        # and plays on, so nothing else would notice.
+        $exception = Select-String -Path $log -Pattern "Exception:" | Select-Object -First 1
 
-        if ($result.Line -notmatch "PASS") {
+        if ($result.Line -cmatch ": PASS" -and $null -ne $exception) {
+            Write-Host ("SCENARIO ${name}: FAIL the client logged an exception: " + $exception.Line.Trim())
             $failed++
+        }
+        else {
+            Write-Host $result.Line
+
+            # Case-sensitive, on the result itself: a notice in a FAIL line can hold "Pass".
+            if ($result.Line -cnotmatch ": PASS") {
+                $failed++
+            }
         }
     }
 }

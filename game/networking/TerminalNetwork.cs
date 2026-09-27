@@ -200,6 +200,21 @@ public partial class TerminalNetwork : NetworkNode
         BoardReceived?.Invoke(objective, lines);
     }
 
+    // Client side: the Notifications app: the player's world event points, the events
+    // running now, and the ones ended, newest first; each a row of text.
+    public event Action<int, string[], string[]>? EventsReceived;
+
+    public void SendEvents(long peer, int points, string[] current, string[] past)
+    {
+        SendTo(peer, MethodName.ReceiveEvents, points, current, past);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveEvents(int points, string[] current, string[] past)
+    {
+        EventsReceived?.Invoke(points, current, past);
+    }
+
     // Client side: the status board, newest first.
     public event Action<string[]>? StatusReceived;
 

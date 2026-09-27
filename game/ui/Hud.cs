@@ -46,6 +46,7 @@ public partial class Hud : Control
     public override void _Ready()
     {
         GetNode<Label>("%Prompt").AddToGroup(PromptGroup);
+        AddChild(new Compass { Name = "Compass" });
     }
 
     // The key shown in the prompt: the one "interact" is on.

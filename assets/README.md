@@ -15,6 +15,7 @@ Godot edition at `C:\game-art\3d\kaykit-godot`:
 | `kaykit/city_builder_bits/` | `city_builder_bits/` |
 | `kaykit/furniture_bits/` | `furniture_bits/` |
 | `kaykit/resource_bits/` | `resource_bits/` |
+| `kaykit/rpg_tools_bits/` | `rpg_tools_bits/` (tools held in the hand while working) |
 | `kaykit/character_animations/rig_medium/` | `character_animations/animations/rig_medium/` |
 | `kaykit/characters/` | `mystery_monthly_series_5/10_protagonists/characters/*.glb`, and the townspeople: `mystery_monthly_series_5/11_hiker/characters/Hiker.glb`, `mystery_monthly_series_6/12_farmers/characters/Farmer_A.glb`, `mystery_monthly_series_4/02_driver/characters/Driver.glb` |
 
@@ -25,6 +26,15 @@ From Tiny Treats Collection 1 (CC0, Isa Lousberg, www.isalousberg.com), at
 | --- | --- |
 | `tinytreats/License.txt` | `License.txt` |
 | `tinytreats/house_plants/` | `House Plants/Assets/gltf/` (every file) |
+
+Ground textures for Terrain3D, from ambientCG (CC0), copied from the Terrain3D v1.0.2
+demo (`demo/assets/textures/`):
+
+| Here | From |
+| --- | --- |
+| `terrain/asset_licenses.txt` | the demo's licence note |
+| `terrain/ground037_alb_ht.png`, `ground037_nrm_rgh.png` | Ground037 (grass) |
+| `terrain/rock023_alb_ht.png`, `rock023_nrm_rgh.png` | Rock023 (cliff) |
 
 Sounds, from the sound library at `C:\game-sound`, go in `audio/` with the same paths.
 Only the files the game uses are copied, by `tools/audio-subset/copy.py`, which reads

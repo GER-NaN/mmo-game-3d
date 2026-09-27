@@ -16,6 +16,9 @@ public partial class CharacterSelect : Control
     public const string PlayGroup = "select_play";
     public const string CreateGroup = "select_create";
 
+    // Bots read which character a Play button is for from the name on its card.
+    public const string NameGroup = "select_name";
+
     public event Action<string>? PlayPressed;
     public event Action? CreatePressed;
     public event Action? BackPressed;
@@ -73,6 +76,7 @@ public partial class CharacterSelect : Control
         card.AddChild(Preview(look));
         Label nameLabel = new Label { Text = name, HorizontalAlignment = HorizontalAlignment.Center };
         nameLabel.AddThemeFontSizeOverride("font_size", 20);
+        nameLabel.AddToGroup(NameGroup);
         card.AddChild(nameLabel);
         card.AddChild(new Label { Text = "Level " + level, HorizontalAlignment = HorizontalAlignment.Center });
         card.AddChild(new Label { Text = title.Length > 0 ? title : "No career", HorizontalAlignment = HorizontalAlignment.Center, Modulate = new Color(1f, 1f, 1f, 0.7f) });

@@ -1,429 +1,947 @@
 namespace MmoGame3d.Dev;
 
 using System;
+using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Players;
 using MmoGame3d.Rules.Terminals;
 using MmoGame3d.Ui;
 
 /// <summary>
-/// Plays a client by itself, for load tests and headless checks. The rule, kept from
-/// mmo-game: a bot may look things up, but it acts through input. It presses the same
-/// actions and clicks the same buttons a person does, so everything past the keyboard
-/// and mouse is the real game.
+/// Plays a client by itself (--bot), for long runs and headless checks. The rule, kept
+/// from mmo-game: a bot may look things up, but it acts through input. It presses the
+/// same keys and clicks the same buttons a person does, so everything past the keyboard
+/// and mouse is the real game (BotBody).
 ///
-/// What it does: walks with pauses and turns, jumps sometimes, says a line in chat now
-/// and then, clicks on a nearby player and invites them, joins any party it is invited
-/// to, goes online at a terminal it passes (then offline again a little later), buys
-/// the first thing a shopkeeper offers, opens chests, equips its phone and goes online on it, and at a
-/// workbench takes the battery out and puts one in. It drops a stack once, and gives one
-/// thing to a party member it clicks on, and adds the first player it clicks on as a
-/// friend. It presses R (the EMP) every few seconds. At the potting table it makes one
-/// house plant a session by dragging three pieces onto the soil, and it inspects plants
-/// on display. At a public terminal it cracks one code, guessing only codes that still fit
-/// every answer so far, and types each guess. Now and then it glances at the map. Once, as it
-/// arrives, it looks at the settings and closes them unchanged (the settings file is the
-/// machine's, shared with the person who plays on it), then at its friends list.
+/// The loop, the same for every persona: when free it picks an activity, a chain or an
+/// aside (BotCatalog), weighted by the persona; rolls whether and when to cancel it or
+/// lose the connection in it; routes to the activity's zone first (BotRouter); and runs
+/// it frame by frame while its judge watches. A chain gives the next activity after each
+/// one ends; an aside fires on its own timer too, pausing what runs. Between runs it
+/// closes whatever is open, except after a cancel, which leaves everything as it is.
+/// The persona is only numbers (BotPersona). Back at the main menu, BotKeeper takes over.
 /// </summary>
 public partial class BotDriver : Node
 {
-    // Placeholders for a wanderer; seconds.
-    private const double MinSpell = 1.0;
-    private const double MaxSpell = 4.0;
-    private const float RecruitRange = 40f;
+    // A person takes a moment to read before clicking.
+    private const double JoinAfter = 0.8;
 
-    // A person takes a moment to read before clicking. The pause also lets a new panel
-    // lay itself out, so a button is where it is drawn when the click lands.
-    private const double ReadDelay = 0.4;
+    // With nothing that can start, it looks again after this long.
+    private const double PickAgain = 2;
 
-    // How long the bot stays online before it goes offline again.
-    private const double OnlineSeconds = 6;
+    // An aside comes this many times as seldom while something else runs.
+    private const double AsideBusyFactor = 3;
 
-    private static readonly string[] Lines =
-    {
-        "anyone seen a battery?",
-        "this town needs more lights",
-        "hello",
-        "found some RAM over here",
-    };
+    // Findings for screens that would not close, each at most every five minutes.
+    private const double CannotCloseRepeat = 300;
 
-    private readonly Random _random = new Random();
-    private double _spellLeft;
-    private double _nextLine = 5;
-    private double _nextRecruit = 1.5;
-    private double _inviteClickIn = -1;
+    private Random _random = new Random();
+    private BotBody _body = null!;
+    private BotPersona _persona = BotPersonas.Get(BotPersonas.Default);
+
+    // What runs now: the activity (a travel first, when it happens elsewhere, with the
+    // activity it is for), its judge, the chain it belongs to, and an aside pausing it.
+    private BotActivity? _activity;
+    private BotActivity? _after;
+    private BotActivityJudge? _judgeOfActivity;
+    private bool _needsMetAtStart;
+    private BotChain? _chain;
+    private BotActivity? _pendingInChain;
+    private BotActivity? _aside;
+    private BotActivityJudge? _judgeOfAside;
+    private string _lastPicked = "";
+
+    // Out of a trap the position judge saw: the escape, and what it interrupted.
+    private bool _escaping;
+    private BotActivity? _escapedFrom;
+
+    // Walks that failed in a row: two, and it is trapped somewhere; it escapes first.
+    private int _failedWalks;
+
+    private readonly CloseAllStep _closer = new CloseAllStep();
+    private bool _closing = true;
+    private double _closingFor;
+    private double _pickIn;
+
+    // The interrupt rolled for the choice running now: seconds into it, or -1.
+    private string _choice = "";
+    private double _choiceFor;
+    private double _cancelAt = -1;
+    private double _cutAt = -1;
+
+    // Seconds until each aside may fire again.
+    private readonly Dictionary<BotActivity, double> _asideIn = new Dictionary<BotActivity, double>();
+
     private double _joinSeenFor;
-    private double _onlineFor;
-    private double _shopSeenFor;
-    private bool _boughtHere;
-    private double _nextPhoneStep = 6;
-    private int _phoneStep;
-    private double _benchSeenFor;
-    private int _benchClicks;
-    private double _giveClickIn = -1;
-    private bool _dropped;
-    private bool _befriended;
-    private bool _packOpened;
-    private bool _messaged;
-    private bool _recycled;
-    private int _gardenStep;
-    private bool _planted;
-    private double _gardenIn = 0.8;
-    private double _recyclerSeenFor;
-    private double _nextEmp = 1;
-    private double _typeIn = -1;
-    private int _crackStep;
-    private int _whoisStep;
-    private double _collegeSeenFor;
-    private double _crackIn;
-    private int _crackSeen;
-    private double _interactHeldFor = -1;
-    private double _nextInteract;
-    private double _nextMap = 1;
-    private int _settingsStep;
-    private double _settingsIn = 0.5;
-    private bool _mapOpen;
+    private bool _joinDecided;
+    private bool _willJoin;
+    private BotPositionJudge _judge = null!;
+    private BotZoneJudge _zoneJudge = null!;
+    private readonly BotErrorJudge _errorJudge = new BotErrorJudge();
+    private readonly Dictionary<string, double> _cannotCloseAt = new Dictionary<string, double>();
+    private readonly Dictionary<string, double> _reportedAt = new Dictionary<string, double>();
+    private double _clock;
+    private bool _outOfWorld = true;
+    private bool _introduced;
 
-    // How the bot talks: the same call the chat box makes.
-    public Action<string>? Say { get; set; }
+    // Drops the connection as a lost one does, back to the main menu, where BotKeeper
+    // logs in again. Set by ClientGame.
+    public Action? CutConnection { get; set; }
 
-    public override void _Process(double delta)
+    // Names the bot in the judge's findings and pictures.
+    public string Profile { get; set; } = "";
+
+    // Who it is (BotPersonas): what it likes to do, and at what pace.
+    public string PersonaName { get; set; } = BotPersonas.Default;
+
+    // Only these activities, chains or asides (--bot-only, comma-separated), again and
+    // again, or "" for all of them.
+    public string Only { get; set; } = "";
+
+    public override void _Ready()
     {
-        // A private message: the chat opened on the conversation; type into it.
-        if (_typeIn >= 0)
+        // Logged, so a run's choices can be drawn again (the world will differ).
+        int seed = System.Environment.TickCount;
+        _random = new Random(seed);
+        GD.Print("Bot: seed " + seed);
+        _body = new BotBody(this, _random);
+        _persona = BotPersonas.Get(PersonaName);
+        _body.Pace = _persona.Pace;
+        _judge = new BotPositionJudge(Profile);
+        _zoneJudge = new BotZoneJudge(Profile);
+        _errorJudge.Start(Profile);
+        _body.WalkFailed = step => _judge.WalkFailed(_body, Doing(), step);
+        _body.Report = (kind, detail) =>
         {
-            _typeIn -= delta;
+            // The same thing seen again within five minutes is the same finding.
+            double at;
 
-            if (_typeIn < 0)
+            if (_reportedAt.TryGetValue(kind + detail, out at) && _clock - at < CannotCloseRepeat)
             {
-                Type("hi");
+                return;
             }
-        }
 
-        if (LookAtSettings(delta))
-        {
-            return;
-        }
-
-        AcceptInvites(delta);
-
-        // Reading a college panel, it stands still: walking off would close it.
-        if (College(delta) || Recycle(delta) || Garden(delta))
-        {
-            return;
-        }
-
-        Shop(delta);
-        Workbench(delta);
-        UseTerminals(delta);
-
-        // Online, the body stands still and the keys belong to the terminal.
-        if (GetTree().GetFirstNodeInGroup(TerminalScreen.GoOfflineGroup) != null)
-        {
-            return;
-        }
-
-        UsePhone(delta);
-        GlanceAtMap(delta);
-        FireEmp(delta);
-        Recruit(delta);
-        Talk(delta);
-        Wander(delta);
+            _reportedAt[kind + detail] = _clock;
+            Finding(kind, detail);
+        };
+        _closer.Begin(_body);
     }
 
     public override void _ExitTree()
     {
-        ReleaseKeys();
+        _body?.Stop();
+        _body?.Navigation.Clear();
+        _errorJudge.Stop();
     }
 
-    private void AcceptInvites(double delta)
+    public override void _Process(double delta)
     {
-        Button? join = GetTree().GetFirstNodeInGroup(InvitePrompt.JoinGroup) as Button;
+        _body.Tick(delta);
+        _clock += delta;
 
-        if (join == null || !join.IsVisibleInTree())
+        // Not in the world: loading, or the menus, which are BotKeeper's.
+        if (_body.Me == null)
         {
-            _joinSeenFor = 0;
+            _outOfWorld = true;
             return;
         }
 
-        _joinSeenFor += delta;
-
-        if (_joinSeenFor >= ReadDelay)
+        // Back in after a login: what the engine holds now, for a leak over many logins.
+        if (_outOfWorld)
         {
-            _joinSeenFor = 0;
-            GD.Print("Bot: clicking Join");
-            Click(join.GetGlobalRect().GetCenter());
+            _outOfWorld = false;
+            GD.Print("Bot: in the world; objects " + Performance.GetMonitor(Performance.Monitor.ObjectCount)
+                + ", nodes " + Performance.GetMonitor(Performance.Monitor.ObjectNodeCount)
+                + ", orphan nodes " + Performance.GetMonitor(Performance.Monitor.ObjectOrphanNodeCount)
+                + ", resources " + Performance.GetMonitor(Performance.Monitor.ObjectResourceCount)
+                + ", managed MB " + (GC.GetTotalMemory(false) / 1048576));
         }
+
+        if (!_introduced)
+        {
+            _introduced = true;
+            Announce("I am " + ("aeiou".Contains(_persona.Name[0]) ? "an " : "a ") + _persona.Name + " bot: " + _persona.About);
+        }
+
+        AcceptInvites(delta);
+        _body.Navigation.Tick(_body);
+        string doing = Doing();
+        BotStep? step = _aside != null ? _aside.Step : _activity?.Step;
+        _judge.Tick(_body, delta, doing, step);
+        _zoneJudge.Tick(_body, delta, doing, step != null && step.MovesZone);
+        _errorJudge.Tick(_body, delta, doing, step);
+
+        // Judged stuck (a wedge a walk never notices): out of it before anything else.
+        if (_judge.IsStuck && !_escaping)
+        {
+            Escape();
+            return;
+        }
+
+        if (_closing)
+        {
+            TickClosing(delta);
+            return;
+        }
+
+        if (_aside == null)
+        {
+            TickAsideTimers(delta);
+        }
+
+        if (_aside != null)
+        {
+            TickAside(delta);
+            return;
+        }
+
+        if (_activity == null)
+        {
+            _pickIn -= delta;
+
+            if (_pickIn <= 0)
+            {
+                Pick();
+            }
+
+            return;
+        }
+
+        _choiceFor += delta;
+
+        if (_cutAt >= 0 && _choiceFor >= _cutAt)
+        {
+            Cut();
+            return;
+        }
+
+        if (_cancelAt >= 0 && _choiceFor >= _cancelAt)
+        {
+            CancelChoice();
+            return;
+        }
+
+        TickActivity(delta);
     }
 
-    // Two steps: click the body, then, once the target frame has shown, click Invite, or
-    // Give when already in a party with them, and then the first thing to give.
-    private void Recruit(double delta)
+    // ---------------------------------------------------------------- choosing
+
+    private void Pick()
     {
-        if (_giveClickIn >= 0)
+        if (_failedWalks >= 2)
         {
-            _giveClickIn -= delta;
-
-            if (_giveClickIn < 0)
-            {
-                Button? giveOne = GetTree().GetFirstNodeInGroup(GivePanel.GiveGroup) as Button;
-
-                if (giveOne != null && giveOne.IsVisibleInTree())
-                {
-                    GD.Print("Bot: clicking Give 1");
-                    Click(giveOne.GetGlobalRect().GetCenter());
-                }
-
-                Press("ui_cancel");
-            }
-
+            _failedWalks = 0;
+            Escape();
             return;
         }
 
-        if (_inviteClickIn >= 0)
+        List<BotActivity> activities = new List<BotActivity>();
+        List<BotActivity> asides = new List<BotActivity>();
+        List<BotChain> chains = new List<BotChain>();
+        List<BotActivity> all = new List<BotActivity>(BotCatalog.All.Activities);
+        all.AddRange(_persona.Own);
+
+        foreach (BotActivity activity in all)
         {
-            _inviteClickIn -= delta;
-
-            if (_inviteClickIn >= 0)
-            {
-                return;
-            }
-
-            Button? invite = GetTree().GetFirstNodeInGroup(TargetFrame.InviteGroup) as Button;
-
-            Button? give = GetTree().GetFirstNodeInGroup(TargetFrame.GiveGroup) as Button;
-            Button? friend = GetTree().GetFirstNodeInGroup(TargetFrame.FriendGroup) as Button;
-            Button? message = GetTree().GetFirstNodeInGroup(TargetFrame.MessageGroup) as Button;
-
-            if (!_befriended && friend != null && friend.IsVisibleInTree())
-            {
-                _befriended = true;
-                GD.Print("Bot: clicking Add friend");
-                Click(friend.GetGlobalRect().GetCenter());
-            }
-            else if (!_messaged && message != null && message.IsVisibleInTree())
-            {
-                _messaged = true;
-                GD.Print("Bot: clicking Message");
-                Click(message.GetGlobalRect().GetCenter());
-                _typeIn = ReadDelay;
-            }
-            else if (invite != null && invite.IsVisibleInTree())
-            {
-                GD.Print("Bot: clicking Invite");
-                Click(invite.GetGlobalRect().GetCenter());
-            }
-            else if (give != null && give.IsVisibleInTree())
-            {
-                GD.Print("Bot: clicking Give");
-                Click(give.GetGlobalRect().GetCenter());
-                _giveClickIn = ReadDelay;
-            }
-            else
-            {
-                GD.Print("Bot: no Invite button (nobody selected, or already in a party)");
-            }
-
-            return;
-        }
-
-        _nextRecruit -= delta;
-
-        if (_nextRecruit > 0)
-        {
-            return;
-        }
-
-        _nextRecruit = 4 + (_random.NextDouble() * 4);
-        Player? self = GetTree().GetFirstNodeInGroup(Player.LocalGroup) as Player;
-        Camera3D? camera = GetViewport().GetCamera3D();
-
-        if (self == null || camera == null)
-        {
-            return;
-        }
-
-        foreach (Node node in self.GetParent().GetChildren())
-        {
-            Player? other = node as Player;
-
-            if (other == null || other == self || other.GlobalPosition.DistanceTo(self.GlobalPosition) > RecruitRange)
+            if (Weight(activity.Weight, activity.Name) <= 0 || !Allowed(activity.Name) || !activity.CanStart(_body))
             {
                 continue;
             }
 
-            Vector3 chest = other.GlobalPosition + new Vector3(0f, 1f, 0f);
-
-            if (!camera.IsPositionBehind(chest))
+            if (activity.Timing == BotTiming.Aside)
             {
-                GD.Print("Bot: clicking on " + other.DisplayName);
-                Click(camera.UnprojectPosition(chest));
-                _inviteClickIn = ReadDelay;
-                return;
+                asides.Add(activity);
             }
-        }
-    }
-
-    private void UseTerminals(double delta)
-    {
-        // Held for a moment, like a key press, so the game sees it down then up.
-        if (_interactHeldFor >= 0)
-        {
-            _interactHeldFor += delta;
-
-            if (_interactHeldFor >= 0.1)
+            else if (activity.NeedsMet(_body) && Reachable(activity))
             {
-                _interactHeldFor = -1;
-                Input.ActionRelease("interact");
+                activities.Add(activity);
             }
         }
 
-        _nextInteract -= delta;
-
-        Button? goOffline = GetTree().GetFirstNodeInGroup(TerminalScreen.GoOfflineGroup) as Button;
-
-        if (goOffline != null)
+        foreach (BotChain chain in BotCatalog.All.Chains)
         {
-            _onlineFor += delta;
-            TakeJob();
-
-            if (CrackCode(delta) || LookAtWhois())
+            if (Weight(chain.Weight, chain.Name) > 0 && Allowed(chain.Name) && chain.CanStart(_body))
             {
+                chains.Add(chain);
+            }
+        }
+
+        // Not the same activity twice running, when there is a choice.
+        if (activities.Count > 1)
+        {
+            activities.RemoveAll(a => a.Name == _lastPicked);
+        }
+
+        double activityShare = activities.Count > 0 ? _persona.ActivityShare : 0;
+        double chainShare = chains.Count > 0 ? _persona.ChainShare : 0;
+        double asideShare = asides.Count > 0 ? _persona.AsideShare : 0;
+        double total = activityShare + chainShare + asideShare;
+
+        if (total <= 0)
+        {
+            // Only one thing, and it cannot start here: back to town, where most things can.
+            if (Only.Length > 0 && BotCatalog.BackToTown.CanStart(_body))
+            {
+                TakeActivity(BotCatalog.BackToTown);
                 return;
             }
 
-            if (_onlineFor >= OnlineSeconds && goOffline.IsVisibleInTree())
-            {
-                _onlineFor = 0;
-                _crackStep = 0;
-                GD.Print("Bot: clicking Go Offline");
-                Click(goOffline.GetGlobalRect().GetCenter());
-            }
-
+            _pickIn = PickAgain;
             return;
         }
 
-        _onlineFor = 0;
-        Label? prompt = GetTree().GetFirstNodeInGroup(Hud.PromptGroup) as Label;
+        double roll = _random.NextDouble() * total;
 
-        bool usable = prompt != null && prompt.Visible
-            && (prompt.Text.Contains("Go Online") || prompt.Text.Contains("Talk to") || prompt.Text.Contains("workbench") || prompt.Text.Contains("Repair") || prompt.Text.Contains("Open the") || prompt.Text.Contains("robo taxi") || prompt.Text.Contains("Fix the") || prompt.Text.Contains("recycler") || (prompt.Text.Contains("house plant") && !_planted) || prompt.Text.Contains("Inspect"));
-
-        // Reading the map, it does not stop to use things.
-        if (prompt != null && usable && _nextInteract <= 0 && !_mapOpen)
+        if (roll < activityShare)
         {
-            GD.Print("Bot: pressing F at \"" + prompt.Text + "\"");
-            ReleaseKeys();
-            Input.ActionPress("interact");
-            _interactHeldFor = 0;
-            _nextInteract = 2;
+            TakeActivity(Weighted(activities, a => Weight(a.Weight, a.Name)));
+        }
+        else if (roll < activityShare + chainShare)
+        {
+            TakeChain(Weighted(chains, c => Weight(c.Weight, c.Name)));
+        }
+        else
+        {
+            StartAside(Weighted(asides, a => Weight(a.Weight, a.Name)));
         }
     }
 
-    // True while it is still cracking. Steps: open the app, start a code, then guess
-    // each time a new answer is on the screen, until the code is cracked or locked.
-    private bool CrackCode(double delta)
+    // Its own weight times the persona's liking; one named in --bot-only is picked even
+    // when only chains start it (weight 0).
+    private double Weight(int weight, string name)
     {
-        Button? app = GetTree().GetFirstNodeInGroup(TerminalScreen.AppGroupPrefix + TerminalApps.CodeCracker) as Button;
-        TerminalScreen? screen = GetTree().GetFirstNodeInGroup(TerminalScreen.GoOfflineGroup)?.Owner as TerminalScreen;
-
-        // Town repairs goes first; it opens its app in the first moments online.
-        if (app == null || screen == null || _crackStep < 0 || _onlineFor < ReadDelay * 3)
+        if (Only.Length > 0 && Allowed(name))
         {
-            return false;
+            return Math.Max(1, weight);
         }
 
-        _crackIn -= delta;
+        return weight * _persona.Factor(name);
+    }
 
-        if (_crackIn > 0)
+    private T Weighted<T>(List<T> choices, Func<T, double> weight)
+    {
+        double total = 0;
+
+        foreach (T choice in choices)
         {
-            return true;
+            total += weight(choice);
         }
 
-        _crackIn = ReadDelay;
+        double roll = _random.NextDouble() * total;
 
-        switch (_crackStep)
+        foreach (T choice in choices)
         {
-            case 0:
-                GD.Print("Bot: opening the code cracker");
-                Click(app.GetGlobalRect().GetCenter());
-                _crackStep = 1;
-                return true;
-            case 1:
-                Button? start = GetTree().GetFirstNodeInGroup(TerminalScreen.CrackStartGroup) as Button;
+            roll -= weight(choice);
 
-                if (start != null && start.IsVisibleInTree())
-                {
-                    Click(start.GetGlobalRect().GetCenter());
-                    _crackSeen = -1;
-                    _crackStep = 2;
-                }
+            if (roll < 0)
+            {
+                return choice;
+            }
+        }
 
-                return true;
+        return choices[choices.Count - 1];
+    }
+
+    // Somewhere the router can take it from here (or here already).
+    private bool Reachable(BotActivity activity)
+    {
+        return activity.Zone.Length == 0 || activity.Zone == _body.ZoneId || BotRouter.Route(_body.ZoneId, activity.Zone) != null;
+    }
+
+    private void TakeActivity(BotActivity activity)
+    {
+        _lastPicked = activity.Name;
+        RollInterrupt(activity.Name, activity.UsualSeconds);
+        Announce("wandering: " + activity.Name);
+        StartActivity(activity);
+    }
+
+    private void TakeChain(BotChain chain)
+    {
+        _lastPicked = chain.Name;
+        _chain = chain;
+        chain.Begin(_body, _random);
+        RollInterrupt(chain.Name, chain.UsualSeconds);
+        GD.Print("Bot: " + chain.Kind.ToString().ToLowerInvariant() + " chain \"" + chain.Name + "\"");
+        Announce((chain.Kind == ChainKind.Goal ? "goal: " : "chain: ") + chain.Name);
+
+        // Its own business: out of any party first.
+        BotActivity? first = chain.Solo && BotCatalog.LeaveParty.CanStart(_body) ? BotCatalog.LeaveParty : chain.Next(_body, null, BotEnd.Finished);
+        StartInChain(first);
+    }
+
+    // Whether, and when, to walk away from this choice or lose the connection in it; the
+    // log names the moment, so a replay can put it in the same place.
+    private void RollInterrupt(string name, double usualSeconds)
+    {
+        _choice = name;
+        _choiceFor = 0;
+        _cancelAt = -1;
+        _cutAt = -1;
+
+        if (CutConnection != null && _random.NextDouble() < _persona.CutChance)
+        {
+            _cutAt = 1 + (_random.NextDouble() * 20 * _persona.Pace);
+        }
+        else if (_random.NextDouble() < _persona.CancelChance)
+        {
+            _cancelAt = 3 + (_random.NextDouble() * Math.Max(1, (usualSeconds * _persona.Pace) - 3));
+        }
+
+        GD.Print("Bot: taking \"" + name + "\""
+            + (_cutAt >= 0 ? " (will lose the connection after " + (int)_cutAt + " s)" : "")
+            + (_cancelAt >= 0 ? " (will cancel it after " + (int)_cancelAt + " s)" : ""));
+    }
+
+    // ---------------------------------------------------------------- running
+
+    private void StartInChain(BotActivity? next)
+    {
+        // Links that cannot start here: skipped in a random chain, a finding in a related
+        // one, where the author set up what each needs.
+        while (next != null && _chain != null && !next.CanStart(_body))
+        {
+            GD.Print("Bot: \"" + next.Name + "\" cannot start here; next in \"" + _chain.Name + "\"");
+
+            if (_chain.Kind == ChainKind.Related)
+            {
+                Finding("chain-step-cannot-start", "\"" + next.Name + "\" in \"" + _chain.Name + "\" cannot start in " + _body.ZoneId);
+            }
+
+            next = _chain.Next(_body, next, BotEnd.Failed);
+        }
+
+        if (next == null)
+        {
+            EndChain();
+            return;
+        }
+
+        if (_chain != null && _chain.Kind == ChainKind.Goal)
+        {
+            Announce(_chain.Name + " -> " + next.Name);
+        }
+
+        StartActivity(next);
+    }
+
+    private void StartActivity(BotActivity activity)
+    {
+        // Somewhere else: the router first, then the activity.
+        if (activity.Zone.Length > 0 && activity.Zone != _body.ZoneId)
+        {
+            _after = activity;
+            activity = new TravelActivity(activity.Zone);
+        }
+
+        _activity = activity;
+        _needsMetAtStart = activity.NeedsMet(_body);
+        _judgeOfActivity = activity.NewJudge();
+        _judgeOfActivity?.Before(_body);
+        GD.Print("Bot: starting \"" + activity.Name + "\"" + (_after != null ? " for \"" + _after.Name + "\"" : ""));
+        activity.Begin(_body);
+    }
+
+    private void TickActivity(double delta)
+    {
+        BotActivity activity = _activity!;
+        string? wrong = _judgeOfActivity?.Watch(_body, delta);
+
+        if (wrong != null)
+        {
+            activity.Cancel(_body, "judged");
+            EndActivity(BotEnd.Failed, "judged: " + wrong, wrong);
+            return;
+        }
+
+        StepResult result = activity.Tick(_body, delta);
+
+        switch (result)
+        {
+            case StepResult.Running:
+                return;
+            case StepResult.Done:
+                EndActivity(BotEnd.Finished, "done", null);
+                return;
             default:
-                string[]? guesses = screen.CrackGuesses;
-
-                if (guesses == null || guesses.Length == _crackSeen)
-                {
-                    return true;
-                }
-
-                if (screen.CrackStatus != 0)
-                {
-                    GD.Print("Bot: code " + (screen.CrackStatus == 1 ? "cracked" : "locked out") + " in " + guesses.Length + " guesses");
-                    _crackStep = -1;
-                    return false;
-                }
-
-                _crackSeen = guesses.Length;
-                Type(NextGuess(guesses, screen.CrackExact, screen.CrackPartial));
-                return true;
+                EndActivity(BotEnd.Failed, activity.Why, null);
+                return;
         }
     }
 
-    // Once, after a code: open Whois and look at its own page for a few seconds.
-    private bool LookAtWhois()
+    // The activity is over: its judge's verdict, its promises, then what comes next.
+    private void EndActivity(BotEnd end, string why, string? judged)
     {
-        Button? app = GetTree().GetFirstNodeInGroup(TerminalScreen.AppGroupPrefix + TerminalApps.Whois) as Button;
+        BotActivity done = _activity!;
+        Judge(done, _judgeOfActivity, end, judged, _needsMetAtStart);
+        GD.Print("Bot: " + (end == BotEnd.Finished ? "finished" : "gave up on") + " \"" + done.Name + "\": " + why);
+        _failedWalks = end == BotEnd.Failed && done.FailedWalking ? _failedWalks + 1 : end == BotEnd.Finished ? 0 : _failedWalks;
+        _activity = null;
+        _judgeOfActivity = null;
+        _body.Stop();
 
-        if (app == null || _crackStep != -1 || _whoisStep > 2)
+        // A travel for an activity: on to it; if the travel failed, so did the activity.
+        if (_after != null)
         {
-            return false;
+            BotActivity target = _after;
+            _after = null;
+
+            if (end == BotEnd.Finished)
+            {
+                StartActivity(target);
+                return;
+            }
+
+            done = target;
         }
 
-        _crackIn -= GetProcessDeltaTime();
-
-        if (_crackIn > 0)
+        if (_escaping)
         {
-            return true;
+            _escaping = false;
+
+            if (_escapedFrom != null)
+            {
+                done = _escapedFrom;
+                end = BotEnd.Failed;
+                _escapedFrom = null;
+            }
         }
 
-        _crackIn = ReadDelay;
-
-        switch (_whoisStep)
+        if (_chain != null)
         {
-            case 0:
-                GD.Print("Bot: opening Whois");
-                Click(app.GetGlobalRect().GetCenter());
-                break;
-            case 1:
-                Button? mine = GetTree().GetFirstNodeInGroup(TerminalScreen.WhoisMineGroup) as Button;
+            // Tidied between links, then the next.
+            _pendingInChain = _chain.Next(_body, done, end);
 
-                if (mine != null)
-                {
-                    GD.Print("Bot: clicking My page");
-                    Click(mine.GetGlobalRect().GetCenter());
-                }
+            if (_pendingInChain == null)
+            {
+                EndChain();
+                return;
+            }
+        }
+        else
+        {
+            _choice = "";
+        }
 
-                _crackIn = 15;
-                break;
+        StartClosing();
+    }
+
+    // needsMet: whether its needs held when it started. Started without them (a buy in
+    // a random chain with too little money), a refusal is the right answer, not a broken
+    // promise.
+    private void Judge(BotActivity activity, BotActivityJudge? judge, BotEnd end, string? judged, bool needsMet = true)
+    {
+        string? verdict = judged ?? judge?.After(_body, end);
+
+        if (verdict != null)
+        {
+            Finding("activity-failed", activity.Name + ": " + verdict);
+        }
+
+        if (end != BotEnd.Finished || !needsMet)
+        {
+            return;
+        }
+
+        foreach (BotFact promise in activity.Gives)
+        {
+            // Money promised is more money; the amount is the goal's business.
+            if (promise.Kind != FactKind.MoneyAtLeast && !promise.IsTrue(_body))
+            {
+                Finding("promise-broken", activity.Name + " finished, but not " + promise);
+            }
+        }
+    }
+
+    private void EndChain()
+    {
+        BotChain? chain = _chain;
+        _chain = null;
+        _pendingInChain = null;
+        _choice = "";
+        _cancelAt = -1;
+        _cutAt = -1;
+
+        if (chain != null)
+        {
+            GD.Print("Bot: chain \"" + chain.Name + "\" over" + (chain.Why.Length > 0 ? " (" + chain.Why + ")" : "") + ": " + chain.Describe());
+            Announce(chain.Why.Length > 0 ? "giving up " + chain.Name + ": " + chain.Why : "done: " + chain.Name);
+        }
+
+        StartClosing();
+    }
+
+    private void StartClosing()
+    {
+        _closing = true;
+        _closingFor = 0;
+        _closer.Begin(_body);
+    }
+
+    private void TickClosing(double delta)
+    {
+        _closingFor += delta;
+
+        if (_closer.Tick(_body, delta) == StepResult.Running && _closingFor <= _closer.Limit)
+        {
+            return;
+        }
+
+        _closing = false;
+
+        if (_closingFor > _closer.Limit)
+        {
+            CouldNotClose();
+        }
+
+        if (_pendingInChain != null)
+        {
+            BotActivity next = _pendingInChain;
+            _pendingInChain = null;
+            StartInChain(next);
+            return;
+        }
+
+        // A moment between one thing and the next, longer at a slower pace.
+        _pickIn = (0.5 + _random.NextDouble()) * _persona.Pace;
+    }
+
+    // ---------------------------------------------------------------- asides
+
+    private void TickAsideTimers(double delta)
+    {
+        List<BotActivity> all = new List<BotActivity>(BotCatalog.All.Activities);
+        all.AddRange(_persona.Own);
+        bool busy = _activity != null;
+
+        foreach (BotActivity aside in all)
+        {
+            if (aside.Timing != BotTiming.Aside || _persona.Factor(aside.Name) <= 0 || !Allowed(aside.Name))
+            {
+                continue;
+            }
+
+            double left;
+
+            if (!_asideIn.TryGetValue(aside, out left))
+            {
+                left = NextAsideIn(aside, busy);
+            }
+
+            left -= delta;
+
+            if (left > 0)
+            {
+                _asideIn[aside] = left;
+                continue;
+            }
+
+            _asideIn[aside] = NextAsideIn(aside, busy);
+
+            if (aside.CanStart(_body) && (_activity == null || _activity.AllowsAsides))
+            {
+                StartAside(aside);
+                return;
+            }
+        }
+    }
+
+    // Seconds to the next firing: random, around the aside's own mean, scaled by the
+    // persona and by being busy.
+    private double NextAsideIn(BotActivity aside, double busy)
+    {
+        double mean = aside.AsideEvery / Math.Max(0.01, _persona.AsideRate) * busy;
+        return -Math.Log(1 - _random.NextDouble()) * mean;
+    }
+
+    private double NextAsideIn(BotActivity aside, bool busy)
+    {
+        return NextAsideIn(aside, busy ? AsideBusyFactor : 1);
+    }
+
+    private void StartAside(BotActivity aside)
+    {
+        _aside = aside;
+        _judgeOfAside = aside.NewJudge();
+        _judgeOfAside?.Before(_body);
+        GD.Print("Bot: aside \"" + aside.Name + "\"" + (_activity != null ? " during \"" + _activity.Name + "\"" : ""));
+        _body.Stop();
+        aside.Begin(_body);
+    }
+
+    private void TickAside(double delta)
+    {
+        BotActivity aside = _aside!;
+        string? wrong = _judgeOfAside?.Watch(_body, delta);
+        StepResult result = wrong != null ? StepResult.Failed : aside.Tick(_body, delta);
+
+        if (result == StepResult.Running)
+        {
+            return;
+        }
+
+        BotEnd end = result == StepResult.Done ? BotEnd.Finished : BotEnd.Failed;
+        Judge(aside, _judgeOfAside, end, wrong);
+        GD.Print("Bot: aside \"" + aside.Name + "\" " + (end == BotEnd.Finished ? "done" : "failed: " + (wrong ?? aside.Why)));
+        _aside = null;
+        _judgeOfAside = null;
+        _body.Stop();
+
+        // Taken when free: a moment, then the next pick. Mid-activity, it carries on.
+        if (_activity == null && !_closing)
+        {
+            _pickIn = (0.5 + _random.NextDouble()) * _persona.Pace;
+        }
+    }
+
+    // ---------------------------------------------------------------- interrupts
+
+    // Walks away mid-step, leaving everything as it is: the state a distracted player
+    // leaves. The chain goes too.
+    private void CancelChoice()
+    {
+        GD.Print("Bot: cancelling \"" + _choice + "\" after " + (int)_choiceFor + " s, during \"" + (_activity?.Name ?? "") + "\" at \""
+            + (_activity?.Step?.Name ?? "") + "\"");
+        Announce("cancelling " + _choice + " (mid " + (_activity?.Name ?? "nothing") + ")");
+        StopEverything("cancelled");
+        _pickIn = 0;
+    }
+
+    // The connection goes mid-step, with whatever is open left open; BotKeeper logs in
+    // again.
+    private void Cut()
+    {
+        GD.Print("Bot: cutting the connection after " + (int)_choiceFor + " s of \"" + _choice + "\", during \"" + (_activity?.Name ?? "") + "\" at \""
+            + (_activity?.Step?.Name ?? "") + "\"");
+        StopEverything("connection cut");
+        StartClosing();
+        CutConnection?.Invoke();
+    }
+
+    private void StopEverything(string reason)
+    {
+        if (_aside != null)
+        {
+            _aside.Cancel(_body, reason);
+            Judge(_aside, _judgeOfAside, BotEnd.Cancelled, null);
+            _aside = null;
+            _judgeOfAside = null;
+        }
+
+        if (_activity != null)
+        {
+            _activity.Cancel(_body, reason);
+            Judge(_activity, _judgeOfActivity, BotEnd.Cancelled, null);
+            _activity = null;
+            _judgeOfActivity = null;
+        }
+
+        _after = null;
+        _chain = null;
+        _pendingInChain = null;
+        _choice = "";
+        _cancelAt = -1;
+        _cutAt = -1;
+        _closing = false;
+        _escaping = false;
+        _escapedFrom = null;
+        _body.Stop();
+    }
+
+    // Out of a trap, before anything else; a chain carries on after it.
+    private void Escape()
+    {
+        GD.Print("Bot: stuck; escaping");
+
+        if (_aside != null)
+        {
+            _aside.Cancel(_body, "stuck");
+            _aside = null;
+            _judgeOfAside = null;
+        }
+
+        _escapedFrom = _after ?? _activity;
+
+        if (_activity != null)
+        {
+            _activity.Cancel(_body, "stuck");
+            GD.Print("Bot: gave up on \"" + _activity.Name + "\": judged stuck");
+        }
+
+        _after = null;
+        _closing = false;
+        _judge.Forget();
+        _escaping = true;
+        _activity = BotCatalog.Escape;
+        _judgeOfActivity = null;
+        _activity.Begin(_body);
+    }
+
+    // ---------------------------------------------------------------- the rest
+
+    private string Doing()
+    {
+        return _persona.Name + ": " + (_chain != null ? _chain.Name + " > " : "")
+            + (_aside != null ? _aside.Name + " (aside), during " : "")
+            + (_activity?.Name ?? (_closing ? "closing up" : "choosing"));
+    }
+
+    private void Finding(string kind, string detail)
+    {
+        Player? me = _body.Me;
+
+        if (me == null)
+        {
+            return;
+        }
+
+        List<string> open = new List<string>();
+
+        foreach (Control panel in _body.OpenPanels())
+        {
+            open.Add(panel.GetType().Name);
+        }
+
+        GD.Print("Bot: finding " + kind + ": " + detail);
+        BotFindings.Write(me, Profile, kind, detail, new Dictionary<string, object?>
+        {
+            { "zone", _body.ZoneId },
+            { "body_age", Math.Round(_body.BodyAge, 1) },
+            { "activity", Doing() },
+            { "chain", _chain?.Describe() },
+            { "step", _activity?.Step?.Name },
+            { "online", _body.IsOnline },
+            { "open", open },
+        });
+    }
+
+    // Said in public chat, so whoever watches sees what each bot is after.
+    private void Announce(string line)
+    {
+        _body.Chat("[bot] " + line);
+    }
+
+    private bool Allowed(string name)
+    {
+        return Only.Length == 0 || Array.IndexOf(Only.Split(','), name) >= 0;
+    }
+
+    // Ten seconds of Esc, Close, Back and Go Offline, and something is still open: a
+    // screen with no way out is a player stuck in it.
+    private void CouldNotClose()
+    {
+        List<string> open = new List<string>();
+
+        foreach (Control panel in _body.OpenPanels())
+        {
+            open.Add(panel.GetType().Name);
+        }
+
+        if (_body.IsOnline)
+        {
+            open.Add("TerminalScreen (online)");
+        }
+
+        string what = string.Join(", ", open);
+        GD.Print("Bot: could not close " + what);
+
+        if (open.Count == 0 || (_cannotCloseAt.ContainsKey(what) && _clock - _cannotCloseAt[what] < CannotCloseRepeat))
+        {
+            return;
+        }
+
+        _cannotCloseAt[what] = _clock;
+        Finding("cannot-close", "still open after " + (int)_closer.Limit + " s of closing: " + what);
+    }
+
+    private void AcceptInvites(double delta)
+    {
+        Button? join = _body.Usable(InvitePrompt.JoinGroup);
+
+        if (join == null)
+        {
+            _joinSeenFor = 0;
+            _joinDecided = false;
+            return;
+        }
+
+        if (!_joinDecided)
+        {
+            // On its own business (a solo chain), never; otherwise now and then.
+            _joinDecided = true;
+            _willJoin = (_chain == null || !_chain.Solo) && _random.NextDouble() < _persona.JoinChance;
+        }
+
+        _joinSeenFor += delta;
+
+        if (_joinSeenFor >= JoinAfter)
+        {
+            _joinSeenFor = 0;
+            Button? no = _body.Usable(InvitePrompt.NoGroup);
+            Button? answer = _willJoin || no == null ? join : no;
+            GD.Print("Bot: clicking " + answer.Text);
+            _body.Click(answer);
+        }
+    }
+
+    // A real press and release at a screen point, through the same input queue a mouse
+    // feeds, so the GUI and the picker both see it. The pointer moves there first, as a
+    // hand does: a control learns it is under the pointer from the motion.
+    public static void Click(Vector2 at)
+    {
+        Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at });
+        InputEventMouseButton press = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = at, GlobalPosition = at };
+        InputEventMouseButton release = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = at, GlobalPosition = at };
+        Input.ParseInputEvent(press);
+        Input.ParseInputEvent(release);
+    }
+
+    // Key by key into whatever has the focus, then Enter.
+    public static void Type(string text)
+    {
+        // By code point, as a keyboard sends them: an emoji is two chars but one key.
+        foreach (System.Text.Rune rune in text.EnumerateRunes())
+        {
+            Key key = rune.IsBmp ? KeyFor((char)rune.Value) : Key.None;
+            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = rune.Value, Pressed = true });
+            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = rune.Value, Pressed = false });
+        }
+
+        Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, PhysicalKeycode = Key.Enter, Pressed = true });
+        Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, PhysicalKeycode = Key.Enter, Pressed = false });
+    }
+
+    private static Key KeyFor(char c)
+    {
+        if (char.IsDigit(c))
+        {
+            return Key.Key0 + (c - '0');
+        }
+
+        if (char.IsLetter(c))
+        {
+            return Key.A + (char.ToUpperInvariant(c) - 'A');
+        }
+
+        switch (c)
+        {
+            case ' ':
+                return Key.Space;
+            case '/':
+                return Key.Slash;
+            case '.':
+                return Key.Period;
+            case ',':
+                return Key.Comma;
+            case '?':
+                return Key.Question;
+            case '!':
+                return Key.Exclam;
+            case '-':
+                return Key.Minus;
             default:
-                _onlineFor = 0;
-                break;
+                return Key.Unknown;
         }
-
-        _whoisStep++;
-        return _whoisStep <= 2;
     }
 
     // The first code, in order, that would have given every answer seen so far.
@@ -464,494 +982,5 @@ public partial class BotDriver : Node
         }
 
         return "0000";
-    }
-
-    // Key by key into whatever has the focus, then Enter.
-    public static void Type(string text)
-    {
-        foreach (char c in text)
-        {
-            Key key = char.IsDigit(c) ? Key.Key0 + (c - '0') : Key.A + (char.ToUpperInvariant(c) - 'A');
-            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = c, Pressed = true });
-            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = c, Pressed = false });
-        }
-
-        Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, PhysicalKeycode = Key.Enter, Pressed = true });
-        Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, PhysicalKeycode = Key.Enter, Pressed = false });
-    }
-
-    // Online: open Town repairs, and take the job if it is offered.
-    private void TakeJob()
-    {
-        Button? take = GetTree().GetFirstNodeInGroup(TerminalScreen.TakeJobGroup) as Button;
-
-        if (take != null && take.IsVisibleInTree())
-        {
-            if (_onlineFor > ReadDelay * 3)
-            {
-                GD.Print("Bot: clicking Take the job");
-                Click(take.GetGlobalRect().GetCenter());
-                _onlineFor = ReadDelay;
-            }
-
-            return;
-        }
-
-        if (_onlineFor > ReadDelay && _onlineFor < ReadDelay * 2)
-        {
-            foreach (Node node in GetTree().Root.FindChildren("*", "Button", true, false))
-            {
-                Button? app = node as Button;
-
-                if (app != null && app.Text == "Town repairs" && app.IsVisibleInTree())
-                {
-                    GD.Print("Bot: opening Town repairs");
-                    Click(app.GetGlobalRect().GetCenter());
-                    _onlineFor = ReadDelay * 2;
-                    return;
-                }
-            }
-        }
-    }
-
-    // With a shop open: after a moment, buy the first offer once, then close the shop.
-    private void Shop(double delta)
-    {
-        Button? buy = GetTree().GetFirstNodeInGroup(ShopPanel.BuyGroup) as Button;
-
-        if (buy == null || !buy.IsVisibleInTree())
-        {
-            _shopSeenFor = 0;
-            _boughtHere = false;
-            return;
-        }
-
-        _shopSeenFor += delta;
-
-        if (_shopSeenFor < ReadDelay)
-        {
-            return;
-        }
-
-        if (!_boughtHere)
-        {
-            _boughtHere = true;
-            GD.Print("Bot: clicking Buy");
-            Click(buy.GetGlobalRect().GetCenter());
-        }
-        else if (_shopSeenFor > ReadDelay * 4)
-        {
-            GD.Print("Bot: closing the shop");
-            Press("ui_cancel");
-        }
-    }
-
-    // Open the inventory, equip the phone if it is loose, close the inventory, then go
-    // online on the phone now and then. The terminal step clicks Go Offline later.
-    private void UsePhone(double delta)
-    {
-        _nextPhoneStep -= delta;
-
-        if (_nextPhoneStep > 0)
-        {
-            return;
-        }
-
-        _nextPhoneStep = 1.5;
-
-        switch (_phoneStep)
-        {
-            case 0:
-                Press("inventory");
-                _phoneStep = 1;
-                break;
-            case 1:
-                // An engineer tries their repair pack once; the workbench step does the work.
-                Button? pack = GetTree().GetFirstNodeInGroup(InventoryPanel.RepairPackGroup) as Button;
-
-                if (!_packOpened && pack != null && pack.IsVisibleInTree())
-                {
-                    _packOpened = true;
-                    GD.Print("Bot: clicking Open repair pack");
-                    Click(pack.GetGlobalRect().GetCenter());
-                    _phoneStep = 3;
-                    _nextPhoneStep = 8;
-                    break;
-                }
-
-                Button? equip = GetTree().GetFirstNodeInGroup(InventoryPanel.EquipGroup) as Button;
-
-                if (equip != null && equip.IsVisibleInTree())
-                {
-                    GD.Print("Bot: clicking Equip");
-                    Click(equip.GetGlobalRect().GetCenter());
-                }
-
-                _phoneStep = 2;
-                break;
-            case 2:
-                Button? drop = GetTree().GetFirstNodeInGroup(InventoryPanel.DropGroup) as Button;
-
-                if (!_dropped && drop != null && drop.IsVisibleInTree())
-                {
-                    _dropped = true;
-                    GD.Print("Bot: clicking Drop");
-                    Click(drop.GetGlobalRect().GetCenter());
-                }
-
-                Press("inventory");
-                _phoneStep = 3;
-                break;
-            default:
-                GD.Print("Bot: pressing P");
-                Press("phone");
-                _nextPhoneStep = 20;
-                break;
-        }
-    }
-
-    // At the college: finish the Class, enroll in the first open career, take a rank when
-    // it is offered. One click per read.
-    private bool College(double delta)
-    {
-        Button? button = FirstUsable(CollegePanel.ClassGroup) ?? FirstUsable(CollegePanel.EnrollGroup) ?? FirstUsable(CollegePanel.RankUpGroup);
-
-        if (button == null)
-        {
-            _collegeSeenFor = 0;
-            return false;
-        }
-
-        ReleaseKeys();
-
-        _collegeSeenFor += delta;
-
-        if (_collegeSeenFor >= ReadDelay * 2)
-        {
-            GD.Print("Bot: clicking " + button.Text);
-            Click(button.GetGlobalRect().GetCenter());
-            _collegeSeenFor = -ReadDelay * 2;
-        }
-
-        return true;
-    }
-
-    // At the potting table: drag three pieces onto the soil, one after another, then
-    // Complete, a name, Finish, and leave once the plant is made. Each drag is a press on
-    // the piece in the list, a move over the soil and a release there.
-    private static readonly Vector2[] GardenSpots = { new Vector2(0f, 0f), new Vector2(0.45f, 0.2f), new Vector2(-0.35f, -0.3f) };
-
-    private bool Garden(double delta)
-    {
-        Gardening.GardenScreen? screen = null;
-
-        foreach (Node node in GetTree().GetNodesInGroup(Gardening.GardenScreen.CompleteGroup))
-        {
-            screen = ((Node)node).FindParent("GardenScreen") as Gardening.GardenScreen;
-        }
-
-        if (screen == null)
-        {
-            _gardenStep = 0;
-            return false;
-        }
-
-        ReleaseKeys();
-        _gardenIn -= delta;
-
-        if (_gardenIn > 0)
-        {
-            return true;
-        }
-
-        _gardenIn = ReadDelay;
-        int piece = _gardenStep / 3;
-        int stage = _gardenStep % 3;
-
-        if (piece < GardenSpots.Length)
-        {
-            Vector2 spot = screen.ScreenPointOnSoil(GardenSpots[piece].X, GardenSpots[piece].Y);
-
-            switch (stage)
-            {
-                case 0:
-                    Godot.Collections.Array<Node> pieces = GetTree().GetNodesInGroup(Gardening.GardenScreen.PieceGroup);
-                    Button button = (Button)pieces[(piece * 4) % pieces.Count];
-                    GD.Print("Bot: taking " + button.TooltipText);
-                    Vector2 at = button.GetGlobalRect().GetCenter();
-                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = at, GlobalPosition = at });
-                    break;
-                case 1:
-                    Input.ParseInputEvent(new InputEventMouseMotion { Position = spot, GlobalPosition = spot, Relative = Vector2.One });
-                    break;
-                default:
-                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = spot, GlobalPosition = spot, ButtonMask = MouseButtonMask.Left });
-                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = spot, GlobalPosition = spot });
-                    break;
-            }
-
-            _gardenStep++;
-            return true;
-        }
-
-        switch (_gardenStep - (GardenSpots.Length * 3))
-        {
-            case 0:
-                Button? complete = FirstUsable(Gardening.GardenScreen.CompleteGroup);
-
-                if (complete != null)
-                {
-                    GD.Print("Bot: clicking Complete");
-                    Click(complete.GetGlobalRect().GetCenter());
-                }
-
-                break;
-            case 1:
-                Type("fern");
-                break;
-            default:
-                if (screen.IsDone)
-                {
-                    _planted = true;
-                    GD.Print("Bot: leaving the potting table");
-                    Press("ui_cancel");
-                }
-
-                return true;
-        }
-
-        _gardenStep++;
-        return true;
-    }
-
-    // At the recycler: put one thing in, once, then go on.
-    private bool Recycle(double delta)
-    {
-        Button? button = _recycled ? null : FirstUsable(RecyclerPanel.RecycleGroup);
-
-        if (button == null)
-        {
-            _recyclerSeenFor = 0;
-            return false;
-        }
-
-        ReleaseKeys();
-        _recyclerSeenFor += delta;
-
-        if (_recyclerSeenFor >= ReadDelay * 2)
-        {
-            _recycled = true;
-            GD.Print("Bot: clicking " + button.Text);
-            Click(button.GetGlobalRect().GetCenter());
-        }
-
-        return true;
-    }
-
-    private Button? FirstUsable(string group)
-    {
-        foreach (Node node in GetTree().GetNodesInGroup(group))
-        {
-            Button? button = node as Button;
-
-            if (button != null && !button.Disabled && button.IsVisibleInTree())
-            {
-                return button;
-            }
-        }
-
-        return null;
-    }
-
-    // Esc, Settings, a look, Back, Esc; then the friends list open and shut. True while
-    // it is still at it.
-    private bool LookAtSettings(double delta)
-    {
-        if (_settingsStep > 5)
-        {
-            return false;
-        }
-
-        _settingsIn -= delta;
-
-        if (_settingsIn > 0)
-        {
-            return true;
-        }
-
-        switch (_settingsStep)
-        {
-            case 0:
-                Press("ui_cancel");
-                _settingsIn = ReadDelay;
-                break;
-            case 1:
-                Button? settings = GetTree().GetFirstNodeInGroup(InGameMenu.SettingsGroup) as Button;
-
-                if (settings != null)
-                {
-                    Click(settings.GetGlobalRect().GetCenter());
-                }
-
-                _settingsIn = 3;
-                break;
-            case 2:
-                Button? back = GetTree().GetFirstNodeInGroup(SettingsPanel.BackGroup) as Button;
-
-                if (back != null)
-                {
-                    Click(back.GetGlobalRect().GetCenter());
-                }
-
-                _settingsIn = ReadDelay;
-                break;
-            case 3:
-                Press("ui_cancel");
-                _settingsIn = ReadDelay;
-                break;
-            case 4:
-                Press("social");
-                _settingsIn = 2;
-                break;
-            default:
-                Press("social");
-                break;
-        }
-
-        _settingsStep++;
-        return true;
-    }
-
-    // Presses R now and then: with an emitter equipped, drones in range come down.
-    private void FireEmp(double delta)
-    {
-        _nextEmp -= delta;
-
-        if (_nextEmp <= 0)
-        {
-            _nextEmp = 5;
-            Press("emp");
-        }
-    }
-
-    // Open for a few seconds, then shut, before the phone takes the keys.
-    private void GlanceAtMap(double delta)
-    {
-        _nextMap -= delta;
-
-        if (_nextMap > 0)
-        {
-            return;
-        }
-
-        Press("map");
-        _mapOpen = !_mapOpen;
-        _nextMap = _mapOpen ? 2.5 : 25;
-    }
-
-    // At a workbench: take the battery out, then put one in, then close.
-    private void Workbench(double delta)
-    {
-        Button? remove = GetTree().GetFirstNodeInGroup(WorkbenchPanel.RemoveGroup) as Button;
-        Button? insert = GetTree().GetFirstNodeInGroup(WorkbenchPanel.InsertGroup) as Button;
-        Button? button = remove ?? insert;
-
-        if (button == null || !button.IsVisibleInTree())
-        {
-            _benchSeenFor = 0;
-            return;
-        }
-
-        _benchSeenFor += delta;
-
-        if (_benchSeenFor < ReadDelay)
-        {
-            return;
-        }
-
-        _benchSeenFor = 0;
-
-        if (_benchClicks < 2)
-        {
-            _benchClicks++;
-            GD.Print("Bot: clicking " + button.Text);
-            Click(button.GetGlobalRect().GetCenter());
-        }
-        else
-        {
-            _benchClicks = 0;
-            Press("ui_cancel");
-        }
-    }
-
-    // A key press as an input event, for what the game takes from events (menus, the
-    // inventory, the phone) rather than from polled actions.
-    private static void Press(string action)
-    {
-        Input.ParseInputEvent(new InputEventAction { Action = action, Pressed = true });
-        Input.ParseInputEvent(new InputEventAction { Action = action, Pressed = false });
-    }
-
-    private void Talk(double delta)
-    {
-        _nextLine -= delta;
-
-        if (_nextLine <= 0 && Say != null)
-        {
-            _nextLine = 15 + (_random.NextDouble() * 15);
-            Say(Lines[_random.Next(Lines.Length)]);
-        }
-    }
-
-    private void Wander(double delta)
-    {
-        _spellLeft -= delta;
-
-        if (_spellLeft > 0)
-        {
-            return;
-        }
-
-        _spellLeft = MinSpell + (_random.NextDouble() * (MaxSpell - MinSpell));
-        ReleaseKeys();
-
-        int choice = _random.Next(10);
-
-        switch (choice)
-        {
-            case 0:
-                // Stand still for a spell.
-                break;
-            case 1:
-            case 2:
-                Input.ActionPress("move_forward");
-                Input.ActionPress(_random.Next(2) == 0 ? "turn_left" : "turn_right");
-                break;
-            case 3:
-                Input.ActionPress("move_forward");
-                Input.ActionPress("jump");
-                break;
-            default:
-                Input.ActionPress("move_forward");
-                break;
-        }
-    }
-
-    // A real press and release at a screen point, through the same input queue a mouse
-    // feeds, so the GUI and the picker both see it.
-    public static void Click(Vector2 at)
-    {
-        InputEventMouseButton press = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = at, GlobalPosition = at };
-        InputEventMouseButton release = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = at, GlobalPosition = at };
-        Input.ParseInputEvent(press);
-        Input.ParseInputEvent(release);
-    }
-
-    private static void ReleaseKeys()
-    {
-        Input.ActionRelease("move_forward");
-        Input.ActionRelease("turn_left");
-        Input.ActionRelease("turn_right");
-        Input.ActionRelease("jump");
     }
 }

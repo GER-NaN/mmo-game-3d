@@ -9,10 +9,11 @@ using MmoGame3d.Rules.Items;
 using MmoGame3d.Zones;
 
 /// <summary>
-/// Drones over the town, and the EMP Emitter that brings them down. A pair spawns
-/// together whenever the town has none, circling a spot somewhere over the streets. An
-/// EMP pulse knocks out every drone within range of the player who fires it; a downed
-/// drone falls, lies a few seconds, and is gone.
+/// Drones over a zone, and the EMP Emitter that brings them down. Over the town
+/// (Patrols) a pair spawns together whenever it has none, circling a spot somewhere over
+/// the streets; elsewhere drones come only as a swarm a world event sends. An EMP pulse
+/// knocks out every drone within range of the player who fires it; a downed drone falls,
+/// lies a few seconds, and is gone.
 /// </summary>
 public class ServerDrones
 {
@@ -32,6 +33,10 @@ public class ServerDrones
     private const int ZapDamage = 10;
     private const float KeepFromSpawn = 15f;
     private const int SpotReward = 3;
+    private const float SwarmSpread = 12f;
+
+    // Room kept between a drone's circle and anything solid, beyond the drone's own size.
+    private const float FlightClearance = 0.8f;
 
     private readonly Zone _zone;
     private readonly VisibilityGate _gate;
@@ -44,6 +49,7 @@ public class ServerDrones
     private double _clock;
     private double _sinceZap;
     private int _spawned;
+    private readonly bool _patrols;
 
     // What happens here, for the terminal's status board; set by ServerGame.
     public Action<string>? Post { get; set; }
@@ -55,12 +61,39 @@ public class ServerDrones
     // Raised for a player a drone hurt: (who, how much).
     public event Action<Session, int>? Hurt;
 
-    public ServerDrones(Zone zone, VisibilityGate gate, Network session, Func<IEnumerable<Session>> sessions)
+    public ServerDrones(Zone zone, VisibilityGate gate, Network session, Func<IEnumerable<Session>> sessions, bool patrols)
     {
         _zone = zone;
         _gate = gate;
         _session = session;
         _sessions = sessions;
+        _patrols = patrols;
+    }
+
+    public string ZoneId
+    {
+        get { return _zone.ZoneId; }
+    }
+
+    // Drones still flying: a downed one lying on the ground is not.
+    public int Flying
+    {
+        get
+        {
+            int flying = 0;
+
+            foreach (Node node in _zone.GetNode("Drones").GetChildren())
+            {
+                Drone? drone = node as Drone;
+
+                if (drone != null && !drone.Down && !drone.IsQueuedForDeletion())
+                {
+                    flying++;
+                }
+            }
+
+            return flying;
+        }
     }
 
     public void Tick(double delta)
@@ -96,29 +129,32 @@ public class ServerDrones
             }
         }
 
-        if (_sinceCheck < SpawnCheckSeconds || drones.GetChildCount() > 0)
+        if (!_patrols || _sinceCheck < SpawnCheckSeconds || drones.GetChildCount() > 0)
         {
             return;
         }
 
         _sinceCheck = 0;
-        Vector3 center = Vector3.Zero;
 
-        // Not over the spawn: a player who fainted wakes there.
-        for (int tries = 0; tries < 20; tries++)
+        // Not over the spawn, where a player who fainted wakes, and only where the whole
+        // circle is open air, so they never fly through a building, a lamp or a tree. No
+        // spot found: none this time, try at the next check.
+        for (int tries = 0; tries < 40; tries++)
         {
-            center = new Vector3(
+            Vector3 center = new Vector3(
                 (float)((_random.NextDouble() * 2) - 1) * SpawnArea,
                 0f,
                 (float)((_random.NextDouble() * 2) - 1) * SpawnArea);
 
-            if (center.DistanceTo(_zone.SpawnPoint) >= KeepFromSpawn)
+            if (center.DistanceTo(_zone.SpawnPoint) >= KeepFromSpawn
+                && SpaceQueries.IsOpenAir(_zone, center + new Vector3(0f, Drone.Height, 0f), Drone.CircleRadius + FlightClearance, 1.5f))
             {
-                break;
+                SpawnPair(center);
+                return;
             }
         }
 
-        SpawnPair(center);
+        GD.Print("No open air for drones this time");
     }
 
     // Two drones circling a spot. Also used by dev test scenarios, which want them at once.
@@ -140,6 +176,42 @@ public class ServerDrones
 
         GD.Print("Two drones are up over town, around " + center);
         Post?.Invoke("Two drones are up over Old Town.");
+    }
+
+    // A swarm: count drones, each circling its own spot scattered round the centre, set
+    // on the ground there. None is spawned again when it goes down.
+    public void SpawnSwarm(Vector3 center, int count)
+    {
+        Node3D drones = _zone.GetNode<Node3D>("Drones");
+
+        for (int i = 0; i < count; i++)
+        {
+            float angle = (float)(_random.NextDouble() * Mathf.Tau);
+            float distance = (float)(_random.NextDouble() * SwarmSpread);
+            Vector3 at = center + new Vector3(Mathf.Cos(angle) * distance, 0f, Mathf.Sin(angle) * distance);
+            float? ground = SpaceQueries.GroundUnder(_zone, at, 50f, 100f);
+            at.Y = ground ?? center.Y;
+
+            Drone drone = DroneScene.Instantiate<Drone>();
+            _spawned++;
+            drone.Name = "Drone" + _spawned;
+            drone.Center = at;
+            drone.Phase = (float)(_random.NextDouble() * Mathf.Tau);
+            drone.NetPosition = at + new Vector3(0f, Drone.Height, 0f);
+            _gate.Watch(drone.Synchronizer, _zone.ZoneId);
+            drones.AddChild(drone, true);
+        }
+
+        GD.Print(count + " drones swarm over " + _zone.ZoneId + ", around " + center);
+    }
+
+    // The swarm leaves: every drone, flying or down, is gone.
+    public void Clear()
+    {
+        foreach (Node node in _zone.GetNode("Drones").GetChildren())
+        {
+            node.QueueFree();
+        }
     }
 
     // A drone reported on Old Town's cameras: paid once a drone a player, while it flies,

@@ -1,6 +1,7 @@
 # diag-query
 
-Searches the server's diagnostics file until a real viewer is set up. It filters,
+Searches the server's diagnostics file, for when Grafana is not running or a question
+is easier to answer from a script. It filters,
 groups and counts records, and prints a trace as a tree. The file format is in
 `docs/engineering/diagnostics.md`.
 

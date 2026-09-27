@@ -24,9 +24,6 @@ public class ServerRides
     // Party members this close to whoever calls the taxi ride along.
     private const float PartyDistance = 10f;
 
-    // Instances are laid out past the zones loaded at start, each far from the rest.
-    private const int FirstInstanceSlot = 50;
-
     private static readonly PackedScene CarScene = GD.Load<PackedScene>("res://game/taxis/RoboTaxi.tscn");
 
     private readonly World _world;
@@ -51,6 +48,16 @@ public class ServerRides
     // False while the AI's rootkit is in the taxis; set by ServerGame.
     public Func<bool> TaxisClean { get; set; } = () => true;
 
+    // Dev scenarios: a ride these players call is cut short, so a test sees its end. Long
+    // enough for .NET to collect the town's scripts meanwhile, as a real ride does.
+    private const float ShortRideSeconds = 30f;
+    private readonly HashSet<long> _shortRides = new HashSet<long>();
+
+    public void UseShortRides(Session session)
+    {
+        _shortRides.Add(session.PeerId);
+    }
+
     public void Call(Session caller, TaxiStand stand)
     {
         if (!TaxisClean())
@@ -62,7 +69,7 @@ public class ServerRides
         Zone town = _world.GetZone(ZoneIds.Town)!;
         int number = _nextRide++;
         string cabinId = ZoneIds.Instance(ZoneIds.Taxi, number);
-        Zone cabin = _world.LoadZone(cabinId, new Vector3((FirstInstanceSlot + number) * World.ZoneSpacing, 0f, 0f));
+        Zone cabin = _world.LoadZone(cabinId);
 
         TaxiState state = cabin.GetNode<TaxiState>("TaxiState");
         _gate.Watch(state.Synchronizer, cabinId);
@@ -72,7 +79,8 @@ public class ServerRides
         _gate.Watch(car.Synchronizer, ZoneIds.Town);
         town.GetNode<Node3D>("Vehicles").AddChild(car, true);
 
-        Ride ride = new Ride(cabinId, cabin, car, state, car.RouteLength);
+        float length = _shortRides.Contains(caller.PeerId) ? Mathf.Min(car.RouteLength, ShortRideSeconds * RoboTaxi.Speed) : car.RouteLength;
+        Ride ride = new Ride(cabinId, cabin, car, state, length);
         state.SecondsLeft = ride.Length / RoboTaxi.Speed;
         _rides.Add(ride);
 

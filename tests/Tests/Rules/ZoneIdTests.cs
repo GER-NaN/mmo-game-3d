@@ -11,6 +11,8 @@ public class ZoneIdTests
 
         Assert.Equal("taxi-3", ride);
         Assert.Equal(ZoneIds.Taxi, ZoneIds.SceneOf(ride));
+        Assert.True(ZoneIds.IsInstance(ride));
+        Assert.False(ZoneIds.IsInstance(ZoneIds.Town));
     }
 
     [Fact]

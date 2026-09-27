@@ -7,6 +7,7 @@ using Godot;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Accounts;
 using MmoGame3d.Data.Maps;
+using MmoGame3d.Data.Events;
 using MmoGame3d.Data.Gardening;
 using MmoGame3d.Data.Players;
 using MmoGame3d.Data.Progress;
@@ -81,6 +82,8 @@ public partial class ServerGame : Node
     private WhoisStore _whoisStore = null!;
     private ServerWhois _whois = null!;
     private ServerDrones _drones = null!;
+    private ServerDrones _swarmDrones = null!;
+    private ServerWorldEvents _events = null!;
     private ServerGarden _garden = null!;
     private ServerAchievements _achievements = null!;
     private ServerDefense? _defense;
@@ -109,7 +112,7 @@ public partial class ServerGame : Node
 
         for (int i = 0; i < ZoneIds.All.Length; i++)
         {
-            Zone zone = _world.LoadZone(ZoneIds.All[i], new Vector3(i * World.ZoneSpacing, 0f, 0f));
+            Zone zone = _world.LoadZone(ZoneIds.All[i]);
 
             foreach (Node node in zone.GetNode("Doors").GetChildren())
             {
@@ -224,11 +227,23 @@ public partial class ServerGame : Node
         _college.Post = _terminals.Post;
         _whois = new ServerWhois(networks.Social, network, _worker, _whoisStore, _terminals, () => _sessions.Values);
         _whois.HasJob = _town.HasJob;
-        _drones = new ServerDrones(_world.GetZone(ZoneIds.Town)!, _gate, network, () => _sessions.Values);
-        network.EmpRequested += peer => WithSession(peer, session => _drones.Fire(session));
-        _drones.Hurt += HurtPlayer;
-        _drones.Post = _terminals.Post;
-        _drones.BagChanged = SendInventory;
+        _drones = new ServerDrones(_world.GetZone(ZoneIds.Town)!, _gate, network, () => _sessions.Values, true);
+        _swarmDrones = new ServerDrones(_world.GetZone(ZoneIds.Meadows)!, _gate, network, () => _sessions.Values, false);
+
+        // Town's drones fire for a zone without any: the pulse is seen, nothing falls.
+        network.EmpRequested += peer => WithSession(peer, session => (DronesIn(session.ZoneId) ?? _drones).Fire(session));
+
+        foreach (ServerDrones drones in new[] { _drones, _swarmDrones })
+        {
+            drones.Hurt += HurtPlayer;
+            drones.Post = _terminals.Post;
+            drones.BagChanged = SendInventory;
+        }
+
+        _events = new ServerWorldEvents(new WorldEventStore(database), _worker, networks.Terminal, world, () => _sessions.Values, DronesIn, _groundItems);
+        _events.Post = _terminals.Post;
+        _events.TimeOf = at => TimeSpan.FromSeconds(_clock.SecondsOfDay(at)).ToString(@"hh\:mm", System.Globalization.CultureInfo.InvariantCulture);
+        _events.Load();
         _garden = new ServerGarden(networks.Garden, network, intents, _worker, new PlantStore(database), _progress, _gate, _world.GetZone(ZoneIds.Outskirts)!, SendInventory);
         _garden.Post = _terminals.Post;
         _interactions.Garden = _garden;
@@ -242,6 +257,7 @@ public partial class ServerGame : Node
         subway.Achieved = _achievements.Grant;
         _hacking.Achieved = _achievements.Grant;
         _drones.Achieved = _achievements.Grant;
+        _swarmDrones.Achieved = _achievements.Grant;
         _garden.Achieved = _achievements.Grant;
         _rides.Achieved = _achievements.Grant;
         _social.Achieved = _achievements.Grant;
@@ -289,12 +305,13 @@ public partial class ServerGame : Node
         defense.Achieved = _achievements.Grant;
         defense.SendBoard = _hacking.SendBoard;
         _defense = defense;
-        _scenarios = new ServerScenarios(options.DevScenarios, world) { Town = _town, Defense = defense, Drones = _drones };
+        _scenarios = new ServerScenarios(options.DevScenarios, world) { Town = _town, Defense = defense, Drones = _drones, Rides = _rides, Events = _events };
         network.ScenarioRequested += _scenarios.Ask;
         networks.Terminal.DefenseStartRequested += peer => WithSession(peer, session => defense.Start(session));
         networks.Terminal.DefenseFinishRequested += (peer, presses) => WithSession(peer, session => defense.Finish(session, presses));
         networks.Terminal.CrackGuessRequested += (peer, guess) => WithSession(peer, session => _hacking.Guess(session, guess));
         _terminals.Opened += _town.SendTown;
+        _terminals.Opened += _events.Send;
 
         // Things standing in the zones sync their state (a terminal in use) only to the
         // players in that zone, like everything else.
@@ -401,7 +418,10 @@ public partial class ServerGame : Node
         _progress.Tick(delta);
         lap = _profile.Lap("progress", lap);
         _drones.Tick(delta);
+        _swarmDrones.Tick(delta);
         lap = _profile.Lap("drones", lap);
+        _events.Tick(delta);
+        lap = _profile.Lap("world events", lap);
         RegenerateHealth(delta);
         _packetLog?.Drain();
         lap = _profile.Lap("health, packets", lap);
@@ -534,9 +554,9 @@ public partial class ServerGame : Node
             path = ProjectSettings.GlobalizePath("user://diagnostics/server-" + _options.Port + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".jsonl");
         }
 
-        _diagnostics = new ServerDiagnostics(path);
+        _diagnostics = new ServerDiagnostics(path, _options.Viewer);
         networks.SetLog(_diagnostics);
-        GD.Print("Diagnostics go to " + _diagnostics.FilePath);
+        GD.Print("Diagnostics go to " + _diagnostics.FilePath + (_options.Viewer != null ? " and " + _options.Viewer : ""));
     }
 
     private void OnPeerConnected(long peer)
@@ -567,6 +587,7 @@ public partial class ServerGame : Node
             _progress.Forget(session);
             _hacking.Forget(session);
             _drones.Forget(session);
+            _swarmDrones.Forget(session);
             _defense?.Forget(session);
             _chat.Announce(session.Record!.DisplayName + " left.");
         }
@@ -780,16 +801,6 @@ public partial class ServerGame : Node
             }
         }
 
-        // A zone removed since the player was saved would lock them out; they start over.
-        if (_world.GetZone(record.Zone) == null)
-        {
-            Zone start = _world.GetZone(ZoneIds.Start)!;
-            record.Zone = ZoneIds.Start;
-            record.PositionX = start.SpawnPoint.X;
-            record.PositionY = start.SpawnPoint.Y;
-            record.PositionZ = start.SpawnPoint.Z;
-        }
-
         session.Record = record;
         session.Dollars = record.Dollars;
         session.Contacts = record.Contacts;
@@ -814,6 +825,29 @@ public partial class ServerGame : Node
 
         session.Instances = record.Instances;
         _scenarios.Apply(session, record);
+
+        // A ride's cabin is made for one ride and gone after it, and its number comes round
+        // again after a restart: a player saved in one comes back at the drop-off, not in a
+        // stranger's ride.
+        if (ZoneIds.IsInstance(record.Zone))
+        {
+            Zone town = _world.GetZone(ZoneIds.Town)!;
+            Vector3 dropOff = town.Arrival("TaxiDropOff")!.Position;
+            record.Zone = ZoneIds.Town;
+            record.PositionX = dropOff.X;
+            record.PositionY = dropOff.Y;
+            record.PositionZ = dropOff.Z;
+        }
+
+        // A zone removed since the player was saved would lock them out; they start over.
+        if (_world.GetZone(record.Zone) == null)
+        {
+            Zone start = _world.GetZone(ZoneIds.Start)!;
+            record.Zone = ZoneIds.Start;
+            record.PositionX = start.SpawnPoint.X;
+            record.PositionY = start.SpawnPoint.Y;
+            record.PositionZ = start.SpawnPoint.Z;
+        }
 
         session.State = SessionState.Accepted;
         _network.SendLoginAccepted(peer, record.Zone, record.DisplayName);
@@ -874,6 +908,19 @@ public partial class ServerGame : Node
     // Something hurt a player. At 0 they faint and helpful strangers carry them back to
     // the town's spawn (world.md 8), with their HP back; nothing is lost yet, since what
     // fainting costs is still open.
+    private ServerDrones? DronesIn(string? zoneId)
+    {
+        foreach (ServerDrones drones in new[] { _drones, _swarmDrones })
+        {
+            if (drones.ZoneId == zoneId)
+            {
+                return drones;
+            }
+        }
+
+        return null;
+    }
+
     private void HurtPlayer(Session session, int amount)
     {
         session.Health = Rules.Players.Health.Hurt(session.Health, amount);
@@ -940,6 +987,9 @@ public partial class ServerGame : Node
 
         if (session == null || session.State != SessionState.InWorld || session.Record == null || session.Body == null)
         {
+            // A touch is only noticed on the way in: one dropped here leaves the player
+            // standing in the doorway until they step out and in again.
+            GD.Print("Door " + door.Name + " ignored " + player.DisplayName + ": " + (session == null ? "no session" : "session " + session.State + (session.Body == null ? ", no body" : "")));
             return;
         }
 
@@ -1014,10 +1064,14 @@ public partial class ServerGame : Node
         session.Body?.QueueFree();
         session.Body = null;
 
+        // On the marker, as it was placed; on sculpted ground (SnapArrivalsToGround) on the
+        // ground found under it, since a body below a height map falls through.
+        Vector3 spot = arrival.Position + new Vector3(offset.X, 0f, offset.Z);
+        float? ground = target.SnapArrivalsToGround ? SpaceQueries.GroundUnder(target, spot) : null;
         session.Record.Zone = target.ZoneId;
-        session.Record.PositionX = arrival.Position.X + offset.X;
-        session.Record.PositionY = arrival.Position.Y;
-        session.Record.PositionZ = arrival.Position.Z + offset.Z;
+        session.Record.PositionX = spot.X;
+        session.Record.PositionY = ground ?? spot.Y;
+        session.Record.PositionZ = spot.Z;
         session.Record.Yaw = arrival.Rotation.Y;
         session.State = SessionState.Accepted;
     }

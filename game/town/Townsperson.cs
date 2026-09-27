@@ -42,9 +42,30 @@ public partial class Townsperson : Interactable
     [Export]
     public bool Walking { get; set; } = true;
 
+    // While someone talks to them they stand and face that spot.
+    [Export]
+    public bool Listening { get; set; }
+
+    [Export]
+    public Vector3 ListeningTo { get; set; }
+
+    // How long they stand when talked to. A placeholder.
+    private const double TalkSeconds = 6;
+
+    private double _listenLeft;
+
     public override string Prompt
     {
         get { return "Talk to " + PersonName; }
+    }
+
+    // On the server, when a player talks to them.
+    public void Listen(Vector3 speaker)
+    {
+        _stroll?.Stop(TalkSeconds);
+        _listenLeft = TalkSeconds;
+        Listening = true;
+        ListeningTo = speaker;
     }
 
     private Path3D Route
@@ -75,6 +96,8 @@ public partial class Townsperson : Interactable
 
         if (_stroll != null)
         {
+            _listenLeft -= delta;
+            Listening = _listenLeft > 0;
             _stroll.Advance(delta);
             Along = _stroll.Along;
             Walking = _stroll.Walking;
@@ -87,6 +110,16 @@ public partial class Townsperson : Interactable
         }
 
         Transform = route.Transform * route.Curve.SampleBakedWithRotation(_shown, false, false);
+
+        if (Listening)
+        {
+            Vector3 toward = new Vector3(ListeningTo.X, GlobalPosition.Y, ListeningTo.Z);
+
+            if (toward.DistanceSquaredTo(GlobalPosition) > 0.01f)
+            {
+                LookAt(toward, Vector3.Up);
+            }
+        }
     }
 
     // On a client: on at the same pace, leaning towards the server's number. The gap is

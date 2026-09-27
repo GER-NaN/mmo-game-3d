@@ -1,9 +1,30 @@
 # Server diagnostics
 
 The server writes its logs and traces through OpenTelemetry, the open standard most
-viewers read (SigNoz, Grafana, Jaeger, Seq, the Datadog Agent). Today they go to a
-JSON lines file. A viewer is a second exporter in `src/Diagnostics/Telemetry.cs`,
-and nothing that writes records changes.
+viewers read. They go to a JSON lines file, and by OTLP to Grafana running in Docker
+(chosen 2026-09-26: free, local, one container with one compose file).
+
+## Reading them in Grafana
+
+1. Start the viewer once; it restarts with Docker:
+   `docker compose -f docker/docker-compose.yml up -d`
+2. Open http://localhost:3000, then **Explore**. No login is needed (anonymous access
+   is on in this image; admin / admin exists for settings).
+3. **Loki** holds the logs: `{service_name="mmo-server"}`, then filter on any
+   attribute (`| scope_name="Net.Rpc"`, `| player_name="Diag"`, `| rpc_method="Login"`).
+4. **Tempo** holds the traces: search `{resource.service.name="mmo-server"}`, or open
+   a trace id from a log line. A trace takes a few seconds to show in search.
+
+The image is `grafana/otel-lgtm` (Loki, Tempo, Prometheus and Grafana in one), meant
+for development, which is what it is for here. Its data is in the Docker volume
+`mmo-game-3d_lgtm-data`. The server sends to `http://localhost:4318` by default;
+`--viewer url` sends elsewhere and `--viewer off` sends nowhere. With no viewer running
+the server plays on: the viewer's batches fail on their own thread and are dropped.
+
+Known gap: an RPC argument that is itself an array (a character list, an inventory)
+shows in Grafana as `System.String[]`, since OTLP carries only flat lists of simple
+values. The file has the full values. The fix, for later: build `rpc.args` into a
+readable form on the server before it is recorded, not the exporter's.
 
 ## What is recorded
 
@@ -114,11 +135,12 @@ file.
 - **A log line:** `GD.Print` goes to the file under `Engine` (and the console). Note a
   print costs about 2.5 ms of the main thread on Windows (performance.md), so keep them
   to events, not per frame.
-- **A viewer:** records go through OpenTelemetry in `src/Diagnostics/Telemetry.cs`,
-  with our JSON lines exporters behind a `BoundedProcessor` (drop and count, never
-  block). A viewer is a second exporter there: for OTLP (SigNoz, Grafana, Jaeger, the
-  Datadog Agent), add the `OpenTelemetry.Exporter.OpenTelemetryProtocol` package and an
-  OTLP exporter wrapped the same way. Nothing that writes records changes.
+- **Another destination:** records go through OpenTelemetry in
+  `src/Diagnostics/Telemetry.cs`, with our JSON lines exporters behind a
+  `BoundedProcessor` (drop and count, never block), and the OTLP exporter beside them
+  on its own batch processor (it drops without a count: the SDK hands the service name
+  only to a processor it holds itself, so it cannot sit behind the cap). Anything that
+  takes OTLP (the Datadog Agent, a collector) needs only a different `--viewer`.
 
 ## The native packet log, in detail
 

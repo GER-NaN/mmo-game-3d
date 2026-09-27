@@ -12,7 +12,7 @@ public static class SpaceQueries
     // A player-sized capsule, lifted a little so the floor it stands on does not count.
     private static readonly Vector3 Lift = new Vector3(0f, 1.05f, 0f);
 
-    // feet is a global position: physics works in the one space all zones share.
+    // feet is a global position, in the zone's own physics space.
     public static bool IsFree(Zone zone, Vector3 feet)
     {
         PhysicsShapeQueryParameters3D query = new PhysicsShapeQueryParameters3D
@@ -23,6 +23,57 @@ public static class SpaceQueries
         };
 
         return zone.GetWorld3D().DirectSpaceState.IntersectShape(query, 1).Count == 0;
+    }
+
+    // Nothing of the world on the straight line between two global points, nor in a
+    // small ball at the far end: room to put something down there, in sight.
+    public static bool IsClearTo(Zone zone, Vector3 from, Vector3 to, float radius)
+    {
+        PhysicsDirectSpaceState3D space = zone.GetWorld3D().DirectSpaceState;
+
+        if (space.IntersectRay(PhysicsRayQueryParameters3D.Create(from, to, PhysicsLayers.World)).Count > 0)
+        {
+            return false;
+        }
+
+        PhysicsShapeQueryParameters3D query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new SphereShape3D { Radius = radius },
+            CollisionMask = PhysicsLayers.World,
+            Transform = new Transform3D(Basis.Identity, to),
+        };
+
+        return space.IntersectShape(query, 1).Count == 0;
+    }
+
+    // Nothing of the world in a flat disc of this radius and height around a zone-local
+    // centre: room for something flying there.
+    public static bool IsOpenAir(Zone zone, Vector3 centre, float radius, float height)
+    {
+        PhysicsShapeQueryParameters3D query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new CylinderShape3D { Radius = radius, Height = height },
+            CollisionMask = PhysicsLayers.World,
+            Transform = new Transform3D(Basis.Identity, zone.ToGlobal(centre)),
+        };
+
+        return zone.GetWorld3D().DirectSpaceState.IntersectShape(query, 1).Count == 0;
+    }
+
+    // The ground's height under a zone-local spot: from a little above it (a marker set
+    // by hand may sit under sculpted ground) down past it. Null when nothing is there.
+    public static float? GroundUnder(Zone zone, Vector3 spot, float above = 5f, float below = 50f)
+    {
+        Vector3 at = zone.ToGlobal(spot);
+        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(at + (Vector3.Up * above), at + (Vector3.Down * below), PhysicsLayers.World);
+        Godot.Collections.Dictionary hit = zone.GetWorld3D().DirectSpaceState.IntersectRay(query);
+
+        if (hit.Count == 0)
+        {
+            return null;
+        }
+
+        return zone.ToLocal((Vector3)hit["position"]).Y;
     }
 
     // The wanted spot, or the nearest free spot on rings around it; both zone-local. A

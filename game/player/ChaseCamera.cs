@@ -20,6 +20,11 @@ public partial class ChaseCamera : Camera3D
     private const float MaxPitch = -0.05f;
     private const float DragRadiansPerPixel = 0.006f;
 
+    // A controller, per second at full tilt: radians of camera tilt, and how fast the
+    // triggers zoom (e-fold per second). Placeholders until felt.
+    private const float PadTiltRate = 1.5f;
+    private const float PadZoomRate = 1.2f;
+
     // Per second: how fast the camera catches up with the heading, and how fast a look
     // round returns behind once walking.
     private const float FollowRate = 8f;
@@ -81,18 +86,30 @@ public partial class ChaseCamera : Camera3D
 
         if (@event is InputEventMouseButton button)
         {
+            // A wheel over a menu or panel is the panel's, even one that does not scroll
+            // and so lets the wheel through.
+            bool overPanel = GetViewport().GuiGetHoveredControl() != null;
+
             switch (button.ButtonIndex)
             {
                 case MouseButton.Right:
                     _dragging = button.Pressed;
                     break;
                 case MouseButton.WheelUp:
-                    Distance = _distance / ZoomStep;
-                    Zoomed?.Invoke(_distance);
+                    if (!overPanel)
+                    {
+                        Distance = _distance / ZoomStep;
+                        Zoomed?.Invoke(_distance);
+                    }
+
                     break;
                 case MouseButton.WheelDown:
-                    Distance = _distance * ZoomStep;
-                    Zoomed?.Invoke(_distance);
+                    if (!overPanel)
+                    {
+                        Distance = _distance * ZoomStep;
+                        Zoomed?.Invoke(_distance);
+                    }
+
                     break;
             }
         }
@@ -101,6 +118,26 @@ public partial class ChaseCamera : Camera3D
             float turn = DragRadiansPerPixel * Sensitivity;
             _lookYaw -= motion.Relative.X * turn;
             _pitch = Mathf.Clamp(_pitch - (motion.Relative.Y * turn), MinPitch, MaxPitch);
+        }
+    }
+
+    // A controller's right stick up and down tilts, as a drag does; its triggers zoom.
+    // The stick's left and right turn the player (Player.ReadInput), not the camera.
+    private void ReadPad(float step)
+    {
+        if (GetTree().GetNodeCountInGroup(ScreenGroup) > 0)
+        {
+            return;
+        }
+
+        float tilt = Input.GetAxis("look_down", "look_up");
+        _pitch = Mathf.Clamp(_pitch + (tilt * PadTiltRate * Sensitivity * step), MinPitch, MaxPitch);
+        float zoom = Input.GetAxis("zoom_out", "zoom_in");
+
+        if (zoom != 0f)
+        {
+            Distance = _distance * Mathf.Exp(-zoom * PadZoomRate * step);
+            Zoomed?.Invoke(_distance);
         }
     }
 
@@ -115,6 +152,7 @@ public partial class ChaseCamera : Camera3D
         }
 
         float step = (float)delta;
+        ReadPad(step);
 
         if (player.IsWalking && !_dragging)
         {

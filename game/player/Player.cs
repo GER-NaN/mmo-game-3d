@@ -50,11 +50,18 @@ public partial class Player : CharacterBody3D
     // The owner sends a changing walk at most this often. A stop goes out at once.
     private const double InputSendInterval = 0.05;
 
+    // A walk is unreliable: an unchanged one is sent again this often, or one lost packet
+    // leaves the server's body standing while the client walks and snaps back.
+    private const double WalkResendInterval = 0.25;
+
     // Speeds, in world units a second, where the look changes from standing to walking
-    // to running, and the vertical speed that counts as in the air.
+    // to running.
     private const float WalkFrom = 0.3f;
     private const float RunFrom = 3f;
-    private const float AirborneFrom = 1.2f;
+
+    // Off the floor this long counts as in the air, so a bump or a stair edge does not
+    // flash the jump pose.
+    private const float AirborneAfter = 0.1f;
 
     // Owner only.
     private Vector2 _sentDirection;
@@ -74,7 +81,6 @@ public partial class Player : CharacterBody3D
     // Client only: how the body is seen to move, smoothed, for the animation.
     private CharacterModel? _model;
     private float _seenSpeed;
-    private float _seenRise;
     private float _sinceStep;
 
     // Server only.
@@ -85,7 +91,16 @@ public partial class Player : CharacterBody3D
 
     // Server only: walked on the ground and jumped since the skills last looked.
     private float _walkedMetres;
+
+    // Server: how long the body has been asked to walk and gone nowhere, for one log line
+    // that says what holds it (a client that walks on alone is snapped back again and
+    // again, and its log cannot see why).
+    private float _heldFor;
+    private const float HeldReportAfter = 1f;
     private int _jumps;
+
+    // Whoever runs the physics: the server, and the owner predicting.
+    private float _offFloorFor;
 
     private Vector3 _netPosition;
     private float _netYaw;
@@ -104,6 +119,11 @@ public partial class Player : CharacterBody3D
     // The career and rank, public by design ("Mechanical Engineer · Senior"); "" for none.
     [Export]
     public string CareerTitle { get; set; } = "";
+
+    // Off the floor, from the server's physics. A vertical speed cannot tell: walking up
+    // a hill rises as fast as a jump.
+    [Export]
+    public bool IsAirborne { get; set; }
 
     // At a terminal, in the terminal world. The server holds an online body still; others
     // see it under the name.
@@ -319,6 +339,7 @@ public partial class Player : CharacterBody3D
 
         Velocity = velocity;
         MoveAndSlide();
+        _offFloorFor = IsOnFloor() ? 0f : _offFloorFor + delta;
     }
 
     // Owner only: move now from the keys, send them on, and settle onto the server's
@@ -430,11 +451,12 @@ public partial class Player : CharacterBody3D
         Vector3 moved = Position - before;
         float blend = 1f - Mathf.Exp(-10f * delta);
         _seenSpeed = Mathf.Lerp(_seenSpeed, new Vector2(moved.X, moved.Z).Length() / delta, blend);
-        _seenRise = Mathf.Lerp(_seenRise, moved.Y / delta, blend);
+        bool airborne = IsOwnedHere ? _offFloorFor > AirborneAfter : IsAirborne;
 
         Gesture? gesture = GestureId.Length > 0 ? Gestures.Find(GestureId) : null;
 
         _model.ShowPhone(OnPhone);
+        _model.ShowTool(gesture != null && !IsOnline && _seenSpeed <= WalkFrom ? gesture.Tool : "");
 
         if (IsOnline)
         {
@@ -444,7 +466,7 @@ public partial class Player : CharacterBody3D
         {
             _model.Play(gesture.Animation);
         }
-        else if (Mathf.Abs(_seenRise) > AirborneFrom)
+        else if (airborne)
         {
             _model.Play(CharacterModel.Airborne);
         }
@@ -461,7 +483,7 @@ public partial class Player : CharacterBody3D
             _model.Play(CharacterModel.Idle);
         }
 
-        if (!IsOnline && Mathf.Abs(_seenRise) <= AirborneFrom)
+        if (!IsOnline && !airborne)
         {
             Step(new Vector2(moved.X, moved.Z).Length());
         }
@@ -512,10 +534,11 @@ public partial class Player : CharacterBody3D
     }
 
     // Reads the keys (or the input source), turns the heading, and sends the walk on.
-    // While a text field or a menu has focus, the keys belong to it, not to walking.
+    // While a text field or a menu has focus, or a screen covers the view (the terminal,
+    // the potting table), the keys belong to it, not to walking or turning.
     private void ReadInput(double delta, out Vector2 walk, out bool jump)
     {
-        bool keysFree = InputSource == null && GetViewport().GuiGetFocusOwner() == null;
+        bool keysFree = InputSource == null && GetViewport().GuiGetFocusOwner() == null && GetTree().GetNodeCountInGroup(ChaseCamera.ScreenGroup) == 0;
         float turn = keysFree ? Input.GetAxis("turn_right", "turn_left") : 0f;
         float forward = keysFree ? Input.GetAxis("move_back", "move_forward") : 0f;
         float strafe = keysFree ? Input.GetAxis("strafe_left", "strafe_right") : 0f;
@@ -557,7 +580,8 @@ public partial class Player : CharacterBody3D
             _sentHeading = Heading;
             _sinceSend = 0;
         }
-        else if ((walk != _sentDirection || !Mathf.IsEqualApprox(Heading, _sentHeading)) && _sinceSend >= InputSendInterval)
+        else if (walk != Vector2.Zero && _sinceSend >= WalkResendInterval
+            || (walk != _sentDirection || !Mathf.IsEqualApprox(Heading, _sentHeading)) && _sinceSend >= InputSendInterval)
         {
             network.SendWalk(walk, Heading);
             _sentDirection = walk;
@@ -644,6 +668,8 @@ public partial class Player : CharacterBody3D
             _jumps++;
         }
 
+        JudgeHeld(_moveDirection, before, delta);
+
         // Only walking on the ground counts: a fall or a respawn is not travel.
         if (walk != Vector2.Zero && IsOnFloor())
         {
@@ -659,9 +685,32 @@ public partial class Player : CharacterBody3D
         PublishPose();
     }
 
+    private void JudgeHeld(Vector2 asked, Vector3 before, float delta)
+    {
+        bool held = asked != Vector2.Zero && new Vector2(Position.X - before.X, Position.Z - before.Z).Length() < 0.2f * delta;
+        _heldFor = held ? _heldFor + delta : 0f;
+
+        if (_heldFor < HeldReportAfter || _heldFor - delta >= HeldReportAfter)
+        {
+            return;
+        }
+
+        string against = "nothing";
+
+        if (GetSlideCollisionCount() > 0)
+        {
+            Node? collider = GetSlideCollision(0).GetCollider() as Node;
+            against = collider == null ? "something" : collider.GetPath().ToString();
+        }
+
+        GD.Print(DisplayName + " is asked to walk and has not moved for " + HeldReportAfter + " s: online " + IsOnline + ", gesture \"" + GestureId + "\", on the floor "
+            + IsOnFloor() + ", against " + against + ", at (" + Position.X.ToString("0.0") + ", " + Position.Y.ToString("0.0") + ", " + Position.Z.ToString("0.0") + ")");
+    }
+
     private void PublishPose()
     {
         NetPosition = Position;
         NetYaw = Rotation.Y;
+        IsAirborne = _offFloorFor > AirborneAfter;
     }
 }

@@ -39,6 +39,27 @@ ones used most:
 | `--scenario name` | client | run one dev scenario test |
 | `--screenshot x.png` (+ `--overview`, `--garden`, `--creator`, `--show-characters`, `--screenshot-after 4`) | client | save a picture and quit: how looks were checked without clicking |
 
+## Controller
+
+An Xbox-layout controller works in the world, beside the keys. The bindings are in
+`project.godot` (Project Settings > Input Map in the editor); rebinding keys in the
+game's settings leaves them alone. The layout is a placeholder until played.
+
+| Control | Action |
+| --- | --- |
+| Left stick | walk forward and back, strafe |
+| Right stick | left and right turn; up and down tilt the camera |
+| LT / RT | zoom out / in |
+| A | jump |
+| X | use (interact) |
+| Y | phone |
+| RB | EMP |
+| D-pad | up map, down bag, left social, right skills (Back is the map too) |
+| B, Start | close what is open, else the game menu |
+
+Menus and panels still need the mouse: Godot's `ui_accept` has no controller button
+here, and the panels do not take focus. Chat needs the keyboard.
+
 ## Players and profiles
 
 A client's identity is a license key in `profiles/<name>/license.txt` under Godot's user
@@ -65,8 +86,8 @@ Godot's user data folder is `%APPDATA%\Godot\app_userdata\mmo-game-3d`:
   at start.
 
   ```
-  docker exec game-db psql -U mmo -d postgres -c "drop database mmo3d with (force);"
-  docker exec game-db psql -U mmo -d postgres -c "create database mmo3d;"
+  docker exec mmo3d-db psql -U mmo -d postgres -c "drop database mmo3d with (force);"
+  docker exec mmo3d-db psql -U mmo -d postgres -c "create database mmo3d;"
   ```
 
   The dev database holds test data: scenario players ("Test cracker", ...), load bots

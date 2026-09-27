@@ -12,6 +12,11 @@ public partial class SkillsPanel : PanelContainer
 {
     private static readonly Color Dim = new Color(1f, 1f, 1f, 0.55f);
 
+    // Click a skill's name to read what it is and how to earn it, below the list; one at
+    // a time, so the panel stays short.
+    private SkillId _selected = SkillId.Agility;
+    private Label? _detail;
+
     public void ShowProgress(int[] skills, long[] xp, int career, long careerXp, int rank, bool classTaken, int level)
     {
         GetNode<Label>("%Level").Text = "Level " + level;
@@ -37,13 +42,25 @@ public partial class SkillsPanel : PanelContainer
 
             HBoxContainer row = new HBoxContainer();
             row.AddThemeConstantOverride("separation", 10);
-            row.AddChild(new Label { Text = SkillCatalog.Name(skill), CustomMinimumSize = new Vector2(150, 0) });
+            Button name = new Button
+            {
+                Text = SkillCatalog.Name(skill),
+                Flat = true,
+                Alignment = HorizontalAlignment.Left,
+                FocusMode = FocusModeEnum.None,
+                CustomMinimumSize = new Vector2(150, 0),
+            };
+            name.Pressed += () => Select(skill);
+            row.AddChild(name);
             row.AddChild(new Label { Text = skillLevel.ToString(CultureInfo.InvariantCulture), CustomMinimumSize = new Vector2(30, 0) });
             row.AddChild(Bar(xp[i] - from, to - from));
-            row.TooltipText = SkillCatalog.HowEarned(skill) + "  " + xp[i] + " xp";
+            row.TooltipText = xp[i] + " xp";
             list.AddChild(row);
-            list.AddChild(new Label { Text = SkillCatalog.HowEarned(skill), Modulate = Dim });
         }
+
+        _detail = Wrapped("", Dim);
+        list.AddChild(_detail);
+        Select(_selected);
 
         Label careerLine = GetNode<Label>("%Career");
         Control careerBar = GetNode<Control>("%CareerBar");
@@ -132,5 +149,20 @@ public partial class SkillsPanel : PanelContainer
             CustomMinimumSize = new Vector2(120, 10),
             SizeFlagsVertical = SizeFlags.ShrinkCenter,
         };
+    }
+
+    private void Select(SkillId skill)
+    {
+        _selected = skill;
+
+        if (_detail != null)
+        {
+            _detail.Text = SkillCatalog.Name(skill) + ": " + SkillCatalog.About(skill) + "\nEarn it: " + SkillCatalog.HowEarned(skill);
+        }
+    }
+
+    private static Label Wrapped(string text, Color color)
+    {
+        return new Label { Text = text, Modulate = color, AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(360, 0) };
     }
 }

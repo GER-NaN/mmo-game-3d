@@ -34,6 +34,12 @@ public class Stroll
         get { return _pauseLeft <= 0; }
     }
 
+    // Someone talks to them: they stand for at least this long, then go on.
+    public void Stop(double seconds)
+    {
+        _pauseLeft = Math.Max(_pauseLeft, seconds);
+    }
+
     public void Advance(double seconds)
     {
         if (_pauseLeft > 0)

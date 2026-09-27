@@ -54,9 +54,9 @@ public sealed class ServerDiagnostics : IRpcLog, IDisposable
     private long _bytesOut;
     private long _packetsDropped;
 
-    public ServerDiagnostics(string filePath)
+    public ServerDiagnostics(string filePath, string? viewer)
     {
-        _telemetry = new Telemetry(Service, GameVersion.Protocol.ToString(), filePath);
+        _telemetry = new Telemetry(Service, GameVersion.Protocol.ToString(), filePath, Telemetry.DefaultQueueSize, viewer);
         _packets = _telemetry.Logger("Net.Packets");
         _rpcs = _telemetry.Logger("Net.Rpc");
         _health = _telemetry.Logger("Diagnostics");

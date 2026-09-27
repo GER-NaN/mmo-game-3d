@@ -1,0 +1,57 @@
+[gd_scene load_steps=9 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Material_body"]
+albedo_color = Color(0.85, 0.86, 0.88, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_dark"]
+albedo_color = Color(0.12, 0.12, 0.14, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_led"]
+shading_mode = 0
+albedo_color = Color(1, 0.15, 0.1, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_body"]
+material = SubResource("Material_body")
+size = Vector3(0.22, 0.2, 0.42)
+
+[sub_resource type="CylinderMesh" id="Mesh_lens"]
+material = SubResource("Material_dark")
+top_radius = 0.07
+bottom_radius = 0.07
+height = 0.06
+
+[sub_resource type="BoxMesh" id="Mesh_arm"]
+material = SubResource("Material_dark")
+size = Vector3(0.06, 0.06, 0.35)
+
+[sub_resource type="SphereMesh" id="Mesh_led"]
+material = SubResource("Material_led")
+radius = 0.025
+height = 0.05
+
+[sub_resource type="BoxShape3D" id="Shape_body"]
+size = Vector3(0.25, 0.25, 0.45)
+
+[node name="SecurityCamera" type="StaticBody3D"]
+collision_layer = 0
+collision_mask = 0
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Model"]
+mesh = SubResource("Mesh_body")
+
+[node name="Lens" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -0.23)
+mesh = SubResource("Mesh_lens")
+
+[node name="Arm" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.35)
+mesh = SubResource("Mesh_arm")
+
+[node name="Led" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, 0.07, -0.21)
+mesh = SubResource("Mesh_led")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("Shape_body")

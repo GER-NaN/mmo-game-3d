@@ -114,6 +114,36 @@ public partial class ClientGame : Node
 
     // What the server last said this player carries.
     private List<ItemStack> _stacks = new List<ItemStack>();
+
+    // For bots (game/dev), which may look things up but act only through input: what
+    // this client knows of its player.
+    public int Dollars
+    {
+        get { return _dollars; }
+    }
+
+    // The career (Rules.Skills.CareerId), or -1 with none yet.
+    public int Career
+    {
+        get { return _career; }
+    }
+
+    public IReadOnlyList<ItemStack> Stacks
+    {
+        get { return _stacks; }
+    }
+
+    public IReadOnlyList<ItemInstance> Instances
+    {
+        get { return _instances; }
+    }
+
+    public byte[]? MapCells(string zoneId)
+    {
+        byte[]? cells;
+        return _maps.TryGetValue(zoneId, out cells) ? cells : null;
+    }
+
     private CharacterSelect? _select;
     private CharacterCreator? _creator;
 
@@ -150,7 +180,10 @@ public partial class ClientGame : Node
 
         if (DisplayServer.GetName() != "headless")
         {
-            _settings.Apply();
+            if (!options.Windowed)
+            {
+                _settings.Apply();
+            }
         }
         else
         {
@@ -161,6 +194,12 @@ public partial class ClientGame : Node
 
         _ui = new CanvasLayer { Name = "Ui" };
         AddChild(_ui);
+
+        // For the whole run, not only in the world: it brings a bot back from the menus.
+        if (options.Bot)
+        {
+            AddChild(new Dev.BotKeeper { Name = "BotKeeper", Profile = options.Profile });
+        }
         _settings.ApplyVolumes();
 
         // A headless client (a bot, a test) has nobody to hear it.
@@ -237,6 +276,11 @@ public partial class ClientGame : Node
         {
             GD.Print("Agent Defense: run with seed " + seed + ", " + lengthMs + " ms");
             _terminal?.PlayDefense(seed, lengthMs);
+        };
+        _terminalNetwork.EventsReceived += (points, current, past) =>
+        {
+            GD.Print("World events: " + current.Length + " running, " + past.Length + " past, " + points + " points");
+            _terminal?.ShowEvents(points, current, past);
         };
         _terminalNetwork.StatusReceived += lines =>
         {
@@ -362,6 +406,11 @@ public partial class ClientGame : Node
                 ambience = night ? "amb.night" : "amb.town";
                 break;
             case ZoneIds.Outskirts:
+                ambience = night ? "amb.night" : "amb.outskirts";
+                break;
+            case ZoneIds.Meadows:
+                // Open country like the outskirts, until it has sounds of its own.
+                music = "music.outskirts";
                 ambience = night ? "amb.night" : "amb.outskirts";
                 break;
         }
@@ -588,6 +637,13 @@ public partial class ClientGame : Node
     {
         GD.Print("Connected as peer " + Multiplayer.GetUniqueId() + "; saying hello");
 
+        // ENet's throttle drops unreliable packets while the round trip wavers, as it does
+        // in a login's burst: at 0 of 32 every walk was dropped for seconds, and the body
+        // snapped back again and again. Our unreliable packets are small; never throttle
+        // them. ENet passes this to the server's end of the link too.
+        ENetPacketPeer? server = (Multiplayer.MultiplayerPeer as ENetMultiplayerPeer)?.GetPeer(1);
+        server?.ThrottleConfigure(5000, 2, 0);
+
         // Before the hello, so it is set when the player is loaded.
         if (_options.Scenario != null)
         {
@@ -615,7 +671,10 @@ public partial class ClientGame : Node
     {
         GD.Print("Characters: " + string.Join(", ", names) + (message.Length > 0 ? " (" + message + ")" : ""));
 
-        if (_options.AutoConnect && !_options.ShowCharacters)
+        // A bot switching characters chooses on the screen, as a player does.
+        Dev.BotKeeper? keeper = GetNodeOrNull<Dev.BotKeeper>("BotKeeper");
+
+        if (_options.AutoConnect && !_options.ShowCharacters && (keeper == null || !keeper.Switching))
         {
             if (ids.Length == 0 && !_autoCreated)
             {
@@ -772,7 +831,7 @@ public partial class ClientGame : Node
         _world = WorldScene.Instantiate<World>();
         _world.Name = "World";
         _main.AddChild(_world);
-        _world.LoadZone(zoneId, Vector3.Zero);
+        _world.LoadZone(zoneId);
         _zoneId = zoneId;
         _displayName = displayName;
 
@@ -838,7 +897,7 @@ public partial class ClientGame : Node
 
         if (_options.Bot)
         {
-            _bot = new BotDriver { Name = "Bot", Say = _network.SendChat };
+            _bot = new BotDriver { Name = "Bot", Profile = _options.Profile, PersonaName = _options.Persona, Only = _options.BotOnly, CutConnection = OnServerDisconnected };
             AddChild(_bot);
         }
 
@@ -1105,7 +1164,7 @@ public partial class ClientGame : Node
             }
 
             _world.UnloadZone(_zoneId);
-            _world.LoadZone(zoneId, Vector3.Zero);
+            _world.LoadZone(zoneId);
             _zoneId = zoneId;
             _hud?.ShowIdentity(_displayName, ZoneIds.DisplayName(zoneId));
             _network.SendWorldReady();

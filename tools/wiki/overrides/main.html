@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block styles %}
+  {{ super() }}
+  <style>
+    /* With tabs, the left bar shows only the open tab's pages; Home has none. On the
+       home page it lists every tab instead. */
+    @media screen and (min-width: 76.25em) {
+      .md-nav--lifted > .md-nav__list:has(> .md-nav__item--active:first-child) > .md-nav__item {
+        display: block;
+      }
+    }
+  </style>
+{% endblock %}

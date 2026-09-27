@@ -33,6 +33,8 @@ public class ServerScenarios
     public ServerTown? Town { get; set; }
     public ServerDefense? Defense { get; set; }
     public ServerDrones? Drones { get; set; }
+    public ServerRides? Rides { get; set; }
+    public ServerWorldEvents? Events { get; set; }
 
     public void Ask(long peer, string name)
     {
@@ -87,6 +89,37 @@ public class ServerScenarios
                 StandBy(record, ZoneIds.Town, "../Doors/ToCollege", new Vector3(0f, 0f, 3f));
                 record.Yaw = 0f;
                 break;
+            case "meadows":
+                // West of the door at the east end of Main Street, facing it (+x).
+                StandBy(record, ZoneIds.Town, "../Doors/ToMeadows", new Vector3(-3f, 0f, 0f));
+                record.Yaw = -Mathf.Pi / 2f;
+                break;
+            case "registrar":
+                StandBy(record, ZoneIds.College, "Registrar", new Vector3(0f, 0f, 1.3f));
+                break;
+            case "taxi-ride":
+                // The whole ride, there and back, cut to a few seconds.
+                StandBy(record, ZoneIds.Town, "TaxiStand", new Vector3(0f, 0f, 1.3f));
+                Town?.DevCleanTaxis();
+                Rides?.UseShortRides(session);
+                break;
+            case "taxi-relog":
+                // Saved during a ride whose cabin is long gone (or is someone else's now).
+                record.Zone = ZoneIds.Instance(ZoneIds.Taxi, 999);
+                record.PositionX = 0f;
+                record.PositionY = 0f;
+                record.PositionZ = 0f;
+                break;
+            case "hills":
+                StandAtFootOfHill(record);
+                break;
+            case "swarm":
+                // At the swarm's spot with an EMP worn, and a swarm of two on its way.
+                StandAtSwarm(record);
+                WearEmp(session);
+                EquipPhone(session);
+                Events?.StartSoon("drone-swarm-meadows", 2);
+                break;
             case "lights":
                 StandBy(record, ZoneIds.Town, "JunctionBox", new Vector3(0f, 0f, 1.3f));
                 Town?.DevLightsJob(record.PlayerId);
@@ -102,6 +135,38 @@ public class ServerScenarios
                 break;
             case "shop":
                 StandBy(record, ZoneIds.Shop, "Shopkeeper", new Vector3(0f, 0f, 1.3f));
+                break;
+            case "too-dear":
+                // Nothing in the pocket: every offer is out of reach.
+                StandBy(record, ZoneIds.Shop, "Shopkeeper", new Vector3(0f, 0f, 1.3f));
+                session.Dollars = 0;
+                break;
+            case "phone-dead":
+                EquipPhone(session, 0f);
+                break;
+            case "drop-wall":
+                // Up against the front of a north-side building, facing it (-z), with
+                // something to drop.
+                record.Zone = ZoneIds.Town;
+                record.PositionX = -26f;
+                record.PositionY = 0f;
+                record.PositionZ = -7f;
+                record.Yaw = 0f;
+                session.Inventory!.Add(ItemType.RamStick, ItemTier.Standard, 1);
+                break;
+            case "door-exit":
+                // Inside the shop where players arrive, facing its door out (+z).
+                StandBy(record, ZoneIds.Shop, "../Arrivals/FromTown", Vector3.Zero);
+                record.Yaw = Mathf.Pi;
+                break;
+            case "gap":
+                // Behind the north side's buildings, at the back of the 1 m gap between two
+                // of them, facing into it (+z) a little askew, as the wedger bot got in.
+                record.Zone = ZoneIds.Town;
+                record.PositionX = -20.2f;
+                record.PositionY = 0f;
+                record.PositionZ = -20f;
+                record.Yaw = Mathf.Pi - 0.3f;
                 break;
             case "garden":
                 StandBy(record, ZoneIds.Greenhouse, "PottingTable", new Vector3(0f, 0f, 1.5f));
@@ -156,7 +221,7 @@ public class ServerScenarios
         record.PositionZ = _random.RandfRange(-4f, 4f);
     }
 
-    private static void EquipPhone(Session session)
+    private static void EquipPhone(Session session, float charge = 1f)
     {
         Belongings mine = new Belongings(session.Inventory!, session.Instances);
 
@@ -173,12 +238,60 @@ public class ServerScenarios
 
                 if (battery != null)
                 {
-                    battery.Charge = 1f;
+                    battery.Charge = charge;
                 }
 
                 return;
             }
         }
+    }
+
+    // Facing east at the foot of the first rise along the meadows' middle steep enough
+    // that a walk up it climbs faster than a jump starts: the old animation took that for
+    // a jump. Found, not set, so sculpting the meadows does not break the test.
+    private void StandAtFootOfHill(PlayerRecord record)
+    {
+        const float Look = 5f;
+        const float Steep = 0.35f;
+        Zone zone = _world.GetZone(ZoneIds.Meadows)!;
+        Vector3 at = new Vector3(-1450f, 0f, 0f);
+
+        for (float x = -1450f; x < 1400f; x += Look)
+        {
+            float? here = SpaceQueries.GroundUnder(zone, new Vector3(x, 0f, 0f), 300f, 600f);
+            float? ahead = SpaceQueries.GroundUnder(zone, new Vector3(x + Look, 0f, 0f), 300f, 600f);
+            float? further = SpaceQueries.GroundUnder(zone, new Vector3(x + (Look * 2f), 0f, 0f), 300f, 600f);
+
+            if (here != null && ahead != null && further != null && ahead - here > Steep * Look && further - ahead > Steep * Look)
+            {
+                at = new Vector3(x, here.Value, 0f);
+                break;
+            }
+        }
+
+        record.Zone = ZoneIds.Meadows;
+        record.PositionX = at.X;
+        record.PositionY = at.Y;
+        record.PositionZ = at.Z;
+        record.Yaw = -Mathf.Pi / 2f;
+    }
+
+    private void StandAtSwarm(PlayerRecord record)
+    {
+        Zone zone = _world.GetZone(ZoneIds.Meadows)!;
+        Vector3 at = zone.GetNode<Node3D>(ServerWorldEvents.SpotsNode + "/DroneSwarm").Position;
+        at.Y = SpaceQueries.GroundUnder(zone, at, 300f, 600f) ?? at.Y;
+        record.Zone = ZoneIds.Meadows;
+        record.PositionX = at.X;
+        record.PositionY = at.Y;
+        record.PositionZ = at.Z;
+    }
+
+    private static void WearEmp(Session session)
+    {
+        ItemInstance emp = new ItemInstance(Guid.NewGuid(), ItemType.EmpEmitter, ItemTier.Standard);
+        session.Instances.Add(emp);
+        new Belongings(session.Inventory!, session.Instances).Equip(emp.Id);
     }
 
     private void StandBy(PlayerRecord record, string zoneId, string thing, Vector3 offset)

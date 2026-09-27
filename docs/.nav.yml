@@ -1,0 +1,70 @@
+# The wiki's tabs and sidebar (tools/wiki). A title here is only the sidebar's; each
+# page keeps its own heading. A new doc appears by itself, at the end of its section.
+nav:
+  - Home: README.md
+  - Design:
+      - The world: world.md
+      - Backlog: backlog.md
+      - Planning:
+          - First playable: planning/first-playable.md
+          - MMO expectations: planning/status.md
+          - Shipping: planning/shipping.md
+          - glob: "planning/*"
+            ignore_no_matches: true
+      - Features:
+          - Player skills: features/player-skills.md
+          - A second zone: features/second-zone.md
+          - A usable phone: features/usable-phone.md
+          - Social page: features/social-page-concept.md
+          - glob: "features/*"
+            ignore_no_matches: true
+      - Fiction:
+          - First evening: fiction/first-evening.md
+          - glob: "fiction/*"
+            ignore_no_matches: true
+  - codex
+  - Engineering:
+      - Setup: engineering/setup.md
+      - Running the game: engineering/running.md
+      - Making changes: engineering/making-changes.md
+      - Testing: engineering/testing.md
+      - The Godot editor: engineering/editor.md
+      - Diagnostics: engineering/diagnostics.md
+      - Performance: engineering/performance.md
+      - Load test: engineering/load-test.md
+      - Sound: engineering/sound.md
+      - Bot testing: engineering/bot-testing.md
+      - Bot testing findings: engineering/bot-testing-findings.md
+      - Example, tree chopping: engineering/example-tree-chopping.md
+      - glob: "engineering/*"
+        ignore_no_matches: true
+  - Archive:
+      - Sources:
+          - Decisions: sources/decisions.md
+          - Brainstorm (2026-09-06): sources/initial-brainstorming-2026-09-06.md
+          - World building: sources/WorldBuilding.md
+          - Game concept: sources/Rogue-AI-MMO-Game-Ideas.md
+          - Game and infrastructure: sources/game-and-infrastructure-overview.md
+          - Data centres and travel: sources/data-centers-and-travel.md
+          - Global events and servers: sources/global-events-and-servers.md
+          - A loop, proposed: sources/loop-proposal.md
+          - The loop against the design: sources/loop-vs-design.md
+          - Transcripts:
+              - Art and engine (2026-09-18): sources/transcripts/Transcript-2026-09-18-Art-and-Engine-Conversation.md
+              - Data centres and travel (2026-09-20): sources/transcripts/Transcript-2026-09-20-Data-Centers-and-Travel.md
+              - Servers and events (2026-09-20): sources/transcripts/Transcript-2026-09-20-Servers-and-Global-Events.md
+              - Message delivery (2026-09-21): sources/transcripts/Transcript-2026-09-21-Message-Delivery.md
+              - glob: "sources/transcripts/*"
+                ignore_no_matches: true
+          - glob: "sources/*"
+            ignore: "sources/transcripts"
+            ignore_no_matches: true
+      - Outdated:
+          - TODO (mmo-game): outdated/TODO-mmo-game.md
+          - Sound and content spike: outdated/sound-and-content-spike.md
+          - Engineering: outdated/engineering
+          - Features: outdated/features
+          - glob: "outdated/*"
+            ignore_no_matches: true
+  - glob: "*"
+    ignore_no_matches: true

@@ -1,28 +1,28 @@
 namespace MmoGame3d.Ui;
 
 using System;
+using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Drones;
 using MmoGame3d.Town;
 
 /// <summary>
 /// Old Town's cameras, live: a picture of the town the client already has loaded, seen
-/// from one of four cameras high on the corners. Clicking a drone in the picture reports
-/// it (the server checks and pays). Only in Old Town: elsewhere the town is not loaded,
-/// so there is no feed.
+/// from one of the security cameras placed in it (CameraMount), low ones on building
+/// corners and high ones on roofs and lamp posts. A broken camera shows no signal until
+/// someone fixes it. Clicking a drone in the picture reports it (the server checks and
+/// pays). Only in Old Town: elsewhere the town is not loaded, so there is no feed.
 /// </summary>
 public partial class CctvView : SubViewportContainer
 {
-    // Placeholders: where the cameras hang, round the town's middle, and how near a click
-    // must land to a drone on the picture, in pixels.
-    private const float CameraHeight = 16f;
-    private const float CameraOut = 38f;
+    // Placeholders: how near a click must land to a drone on the picture, in pixels, and
+    // how long each camera shows before the next.
     private const float ClickReach = 40f;
     private const double CycleSeconds = 10;
 
-    private static readonly Vector2[] Corners = { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(1, 1), new Vector2(-1, 1) };
-
+    private readonly List<CameraMount> _cameras = new List<CameraMount>();
     private Camera3D _camera = null!;
+    private Control _noSignal = null!;
     private Node3D? _town;
     private int _shown;
     private double _sinceCycle;
@@ -33,15 +33,25 @@ public partial class CctvView : SubViewportContainer
     // The drone's node name, when a click lands on one.
     public event Action<string>? DroneReported;
 
-    // Which camera, 1 to 4, for the caption.
+    // Which camera, from 1, for the caption.
     public int CameraNumber
     {
         get { return _shown + 1; }
     }
 
+    public int CameraCount
+    {
+        get { return _cameras.Count; }
+    }
+
+    public bool ShownWorks
+    {
+        get { return _cameras.Count > 0 && _cameras[_shown].Working; }
+    }
+
     public bool HasFeed
     {
-        get { return _town != null; }
+        get { return _town != null && _cameras.Count > 0; }
     }
 
     public override void _Ready()
@@ -57,34 +67,59 @@ public partial class CctvView : SubViewportContainer
             return;
         }
 
-        // No world of its own: it sees the one the client plays in.
+        foreach (Node node in GetTree().GetNodesInGroup(CameraMount.Group))
+        {
+            CameraMount? mount = node as CameraMount;
+
+            if (mount != null && _town.IsAncestorOf(mount))
+            {
+                _cameras.Add(mount);
+            }
+        }
+
+        _cameras.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+
+        // No world of its own: it sees the one the client plays in. The no-signal card is
+        // drawn inside the picture.
         SubViewport viewport = new SubViewport { OwnWorld3D = false };
         AddChild(viewport);
-        _camera = new Camera3D { Fov = 55f, Current = true };
+        // The near plane past the camera's own body, which the view point sits inside.
+        _camera = new Camera3D { Fov = 55f, Current = true, Near = 0.4f };
         viewport.AddChild(_camera);
+        _noSignal = new ColorRect { Color = new Color(0.05f, 0.05f, 0.06f), Visible = false };
+        _noSignal.SetAnchorsPreset(LayoutPreset.FullRect);
+        Label label = new Label { Text = "NO SIGNAL", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        label.SetAnchorsPreset(LayoutPreset.FullRect);
+        _noSignal.AddChild(label);
+        viewport.AddChild(_noSignal);
         Show(0);
     }
 
     public void Show(int camera)
     {
-        if (_town == null)
+        if (!HasFeed)
         {
             return;
         }
 
-        _shown = ((camera % Corners.Length) + Corners.Length) % Corners.Length;
+        _shown = ((camera % _cameras.Count) + _cameras.Count) % _cameras.Count;
         _sinceCycle = 0;
-        Vector3 middle = _town.GlobalPosition + new Vector3(0f, 2f, 0f);
-        Vector2 corner = Corners[_shown];
-        _camera.GlobalPosition = _town.GlobalPosition + new Vector3(corner.X * CameraOut, CameraHeight, corner.Y * CameraOut);
-        _camera.LookAt(middle);
+        CameraMount mount = _cameras[_shown];
+        _camera.GlobalPosition = mount.GlobalPosition;
+        _camera.LookAt(_town!.ToGlobal(mount.Target));
     }
 
     public override void _Process(double delta)
     {
-        _sinceCycle += delta;
+        if (!HasFeed)
+        {
+            return;
+        }
 
-        if (_town != null && _sinceCycle >= CycleSeconds)
+        _sinceCycle += delta;
+        _noSignal.Visible = !ShownWorks;
+
+        if (_sinceCycle >= CycleSeconds)
         {
             Show(_shown + 1);
         }
@@ -94,7 +129,7 @@ public partial class CctvView : SubViewportContainer
     // drone is in the picture, or null if none is.
     public Vector2? ScreenPointOfADrone()
     {
-        if (_town == null)
+        if (_town == null || !ShownWorks)
         {
             return null;
         }
@@ -123,7 +158,7 @@ public partial class CctvView : SubViewportContainer
     {
         InputEventMouseButton? button = @event as InputEventMouseButton;
 
-        if (_town == null || button == null || !button.Pressed || button.ButtonIndex != MouseButton.Left)
+        if (_town == null || !ShownWorks || button == null || !button.Pressed || button.ButtonIndex != MouseButton.Left)
         {
             return;
         }

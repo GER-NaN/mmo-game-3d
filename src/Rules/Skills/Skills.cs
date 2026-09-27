@@ -49,23 +49,45 @@ public static class SkillCatalog
         }
     }
 
-    // How the skill is earned, for the player.
+    // What the skill is, for the player. Placeholder wording.
+    public static string About(SkillId skill)
+    {
+        switch (skill)
+        {
+            case SkillId.Agility:
+                return "How well you get about on foot.";
+            case SkillId.Hacking:
+                return "Getting into the AI's systems and throwing it out of the town's.";
+            case SkillId.Workbench:
+                return "Fitting and servicing your own equipment.";
+            case SkillId.FieldRepair:
+                return "Mending the small things round town that break: benches, hydrants, traffic lights, dumpster lids.";
+            case SkillId.ElectricalRepair:
+                return "Keeping the town's wiring working: the street lights, fed from a junction box (the lamps are not fixed one by one), and the security cameras on building corners.";
+            case SkillId.Gardening:
+                return "Growing things: house plants from the potting table.";
+            default:
+                return "";
+        }
+    }
+
+    // How the skill is earned, for the player: what to do and where.
     public static string HowEarned(SkillId skill)
     {
         switch (skill)
         {
             case SkillId.Agility:
-                return "Walking and jumping.";
+                return "Walk and jump anywhere.";
             case SkillId.Hacking:
-                return "Cracking codes at public terminals.";
+                return "Crack codes and play Agent Defense on a public terminal; clean the rootkit out of the robo taxis when Town repairs has that job.";
             case SkillId.Workbench:
-                return "Work at a workbench.";
+                return "Change a phone's battery and do other work at a workbench (the shop has one), or with the engineer's repair pack.";
             case SkillId.FieldRepair:
-                return "Fixing broken things around town.";
+                return "Look for sparks: walk up to the broken bench, hydrant, traffic light or dumpster lid and fix it.";
             case SkillId.ElectricalRepair:
-                return "Repairing junction boxes.";
+                return "Fix a sparking security camera on a building corner. When the AI takes out the street lights, take the job in Town repairs on a terminal, carry a RAM stick, and repair the junction box on Main Street.";
             case SkillId.Gardening:
-                return "Making house plants in the greenhouse.";
+                return "Make a house plant at the potting table in the greenhouse, off the outskirts.";
             default:
                 return "";
         }
@@ -100,6 +122,7 @@ public static class SkillAwards
     public const long WorkbenchPerJob = 10;
     public const long FieldRepairPerFix = 15;
     public const long ElectricalRepairPerBox = 40;
+    public const long ElectricalRepairPerCamera = 20;
 
     // Career experience for work done from the engineer's repair pack.
     public const long RepairPackPerJob = 10;

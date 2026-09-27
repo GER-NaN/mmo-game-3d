@@ -55,6 +55,10 @@ public partial class TerminalScreen : Control
 
     // Bots find Agent Defense's start button by this group.
     public const string DefenseStartGroup = "terminal_defense_start";
+
+    // Bots and scenarios read the Notifications rows, as shown, by this group.
+    public const string EventRowGroup = "terminal_event_row";
+    public const string EventRowPastMeta = "past";
     public event Action? CrackStartPressed;
 
     // Whois: search text, open a page by player id, your own page, props, your own
@@ -70,6 +74,8 @@ public partial class TerminalScreen : Control
     // Bots find Whois's parts by these groups.
     public const string WhoisMineGroup = "whois_mine";
     public const string WhoisPropsGroup = "whois_props";
+    public const string WhoisPlanGroup = "whois_plan";
+    public const string WhoisShowSkillsGroup = "whois_show_skills";
 
     // What Whois shows: the last results, or a page (null for none).
     private string[] _whoisIds = Array.Empty<string>();
@@ -116,6 +122,9 @@ public partial class TerminalScreen : Control
     private int _crackLeft;
     private int _crackStatus;
     private string[] _status = new string[0];
+    private int _eventPoints;
+    private string[] _eventsNow = new string[0];
+    private string[] _eventsPast = new string[0];
     private string[] _crackBoard = new string[0];
     private string[] _defenseBoard = new string[0];
     private AgentDefenseView? _defense;
@@ -260,6 +269,18 @@ public partial class TerminalScreen : Control
         _defense?.Play(seed, lengthMs);
     }
 
+    public void ShowEvents(int points, string[] current, string[] past)
+    {
+        _eventPoints = points;
+        _eventsNow = current;
+        _eventsPast = past;
+
+        if (_openApp == TerminalApps.Notifications)
+        {
+            ShowApp(new TerminalApp(TerminalApps.Notifications, "Notifications", ""));
+        }
+    }
+
     public void ShowStatus(string[] lines)
     {
         _status = lines;
@@ -378,6 +399,9 @@ public partial class TerminalScreen : Control
                 break;
             case TerminalApps.Whois:
                 ShowWhois(content);
+                break;
+            case TerminalApps.Notifications:
+                ShowNotifications(content);
                 break;
             case TerminalApps.StatusBoard:
                 AddLine(content, "What is happening in the world, newest first.", Dim, 15);
@@ -547,6 +571,8 @@ public partial class TerminalScreen : Control
             LineEdit planEdit = new LineEdit { Text = plan, PlaceholderText = "e.g. \"Fixing the street lights. Need RAM sticks.\" Enter saves.", MaxLength = WhoisSettings.MaxPlanLength };
             CheckBox showSkills = new CheckBox { Text = "Show Skills", ButtonPressed = (bool)page["showSkills"], FocusMode = FocusModeEnum.None };
             CheckBox showLocation = new CheckBox { Text = "Show Location", ButtonPressed = (bool)page["showLocation"], FocusMode = FocusModeEnum.None };
+            planEdit.AddToGroup(WhoisPlanGroup);
+            showSkills.AddToGroup(WhoisShowSkillsGroup);
             planEdit.TextSubmitted += value => WhoisEditSubmitted?.Invoke(value, showSkills.ButtonPressed, showLocation.ButtonPressed);
             showSkills.Toggled += on => WhoisEditSubmitted?.Invoke(planEdit.Text, on, showLocation.ButtonPressed);
             showLocation.Toggled += on => WhoisEditSubmitted?.Invoke(planEdit.Text, showSkills.ButtonPressed, on);
@@ -761,7 +787,7 @@ public partial class TerminalScreen : Control
         content.AddChild(bottom);
     }
 
-    // Old Town's cameras: a live picture, four cameras, click a drone to report it.
+    // Old Town's cameras: a live picture from each security camera, click a drone to report it.
     private void ShowCameras(VBoxContainer content)
     {
         AddLine(content, "Watch for drones over Old Town. Click one to report it: the town pays for each drone reported.", Dim, 15);
@@ -780,7 +806,7 @@ public partial class TerminalScreen : Control
         switches.AddThemeConstantOverride("separation", 6);
         Label caption = new Label { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < view.CameraCount; i++)
         {
             int camera = i;
             Button button = new Button { Text = "Cam " + (i + 1), FocusMode = FocusModeEnum.None };
@@ -793,8 +819,33 @@ public partial class TerminalScreen : Control
 
         // The caption follows the camera shown, which moves on by itself.
         Timer tick = new Timer { WaitTime = 0.5, Autostart = true };
-        tick.Timeout += () => caption.Text = "  REC   CAM " + view.CameraNumber + "   OLD TOWN";
+        tick.Timeout += () => caption.Text = view.ShownWorks ? "  REC   CAM " + view.CameraNumber + "   OLD TOWN" : "  CAM " + view.CameraNumber + " IS DOWN   FIX IT IN TOWN";
         switches.AddChild(tick);
+    }
+
+    private void ShowNotifications(VBoxContainer content)
+    {
+        AddLine(content, "World event points: " + _eventPoints, Text, 17);
+        AddLine(content, "Current", Dim, 15);
+
+        if (_eventsNow.Length == 0)
+        {
+            AddLine(content, "Nothing going on.", Text, 16);
+        }
+
+        foreach (string row in _eventsNow)
+        {
+            AddLine(content, row, Text, 16).AddToGroup(EventRowGroup);
+        }
+
+        AddLine(content, "Past", Dim, 15);
+
+        foreach (string row in _eventsPast)
+        {
+            Label label = AddLine(content, row, Dim, 16);
+            label.AddToGroup(EventRowGroup);
+            label.SetMeta(EventRowPastMeta, true);
+        }
     }
 
     private void ShowOnline(VBoxContainer content)
