@@ -58,7 +58,8 @@ greenhouse.
 
 ## A zone
 
-1. `game/zones/<id>/<id>.tscn`, root named `<id>` with `Zone.cs`: set `Surface`
+1. `game/zones/<id>/<id>.tscn`, root with `Zone.cs` (its name does not matter; it is
+   renamed `Zone` at load): set `Surface`
    (footsteps), `MapSize` (0 for no map), `ItemAreaSize` / `ItemStock` (ground items).
 2. Children the code expects: `Interactables`, `Doors`, `Arrivals` (Marker3D per way
    in), `Spawn`, `Players` with a `PlayerSpawner`, `Items` with an `ItemSpawner` (copy
