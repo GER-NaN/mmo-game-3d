@@ -15,6 +15,9 @@ using MmoGame3d.Rules.Time;
 ///   --diagnostics path  where the server writes its logs and traces (JSON lines);
 ///                       "off" for none. Default: a new file per run under
 ///                       user://diagnostics
+///   --viewer url        where the server also sends them by OTLP/HTTP, for Grafana
+///                       (docker/docker-compose.yml); "off" for none. Default
+///                       http://localhost:4318
 ///   --log-packets       also log every packet in and out, replication included. Needs
 ///                       the native build (scripts/native-build.ps1); about 6 MB of
 ///                       log a second at 100 players
@@ -51,6 +54,7 @@ using MmoGame3d.Rules.Time;
 public class LaunchOptions
 {
     public const int DefaultPort = 7070;
+    public const string DefaultViewer = "http://localhost:4318";
 
     public bool IsServer { get; private set; }
     public int Port { get; private set; } = DefaultPort;
@@ -59,6 +63,7 @@ public class LaunchOptions
     public string TimeZone { get; private set; } = WorldClock.DefaultTimeZone;
     public double TimeOffsetHours { get; private set; }
     public string? DiagnosticsPath { get; private set; }
+    public string? Viewer { get; private set; } = DefaultViewer;
     public bool LogPackets { get; private set; }
     public string Profile { get; private set; } = "default";
     public string? DisplayName { get; private set; }
@@ -127,6 +132,10 @@ public class LaunchOptions
                     break;
                 case "--diagnostics":
                     options.DiagnosticsPath = next;
+                    i++;
+                    break;
+                case "--viewer":
+                    options.Viewer = next == "off" ? null : next;
                     i++;
                     break;
                 case "--log-packets":

@@ -534,9 +534,9 @@ public partial class ServerGame : Node
             path = ProjectSettings.GlobalizePath("user://diagnostics/server-" + _options.Port + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".jsonl");
         }
 
-        _diagnostics = new ServerDiagnostics(path);
+        _diagnostics = new ServerDiagnostics(path, _options.Viewer);
         networks.SetLog(_diagnostics);
-        GD.Print("Diagnostics go to " + _diagnostics.FilePath);
+        GD.Print("Diagnostics go to " + _diagnostics.FilePath + (_options.Viewer != null ? " and " + _options.Viewer : ""));
     }
 
     private void OnPeerConnected(long peer)

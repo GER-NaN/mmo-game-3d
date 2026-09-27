@@ -3,6 +3,7 @@ namespace MmoGame3d.Diagnostics;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -14,8 +15,11 @@ using OpenTelemetry.Trace;
 /// the game thread. When a queue is full, new records are dropped and counted rather
 /// than making the game thread wait: the tick matters more than a complete log.
 ///
-/// Today the batches go to a JSON lines file. A viewer (SigNoz, Grafana and others)
-/// is another exporter added here; nothing that writes records changes.
+/// The batches go to a JSON lines file, and to a viewer by OTLP when one is given
+/// (Grafana, see docs/engineering/diagnostics.md). The file is the complete record: it
+/// alone counts its drops. The viewer's processor cannot sit behind the cap, since the
+/// SDK only hands the service name to a processor it holds itself; it drops silently
+/// when its queue is full, and never blocks either.
 /// </summary>
 public sealed class Telemetry : IDisposable
 {
@@ -35,7 +39,8 @@ public sealed class Telemetry : IDisposable
     private readonly TracerProvider _tracerProvider;
     private readonly ILoggerFactory _loggerFactory;
 
-    public Telemetry(string service, string version, string filePath, int queueSize = DefaultQueueSize)
+    // viewer: the OTLP/HTTP base address (http://localhost:4318), or null for none.
+    public Telemetry(string service, string version, string filePath, int queueSize = DefaultQueueSize, string? viewer = null)
     {
         int batchSize = queueSize / 8;
 
@@ -49,12 +54,24 @@ public sealed class Telemetry : IDisposable
 
         ResourceBuilder resource = ResourceBuilder.CreateDefault().AddService(service, serviceVersion: version);
 
-        _tracerProvider = Sdk.CreateTracerProviderBuilder()
+        TracerProviderBuilder tracing = Sdk.CreateTracerProviderBuilder()
             .SetResourceBuilder(resource)
             .AddSource(SourcePrefix + ".*")
             .SetSampler(new AlwaysOnSampler())
-            .AddProcessor(_spans)
-            .Build()!;
+            .AddProcessor(_spans);
+
+        if (viewer != null)
+        {
+            tracing.AddOtlpExporter(options =>
+            {
+                ToViewer(options, viewer, "/v1/traces");
+                options.BatchExportProcessorOptions.MaxQueueSize = queueSize;
+                options.BatchExportProcessorOptions.MaxExportBatchSize = batchSize;
+                options.BatchExportProcessorOptions.ScheduledDelayMilliseconds = ExportDelayMilliseconds;
+            });
+        }
+
+        _tracerProvider = tracing.Build()!;
 
         _loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -65,6 +82,17 @@ public sealed class Telemetry : IDisposable
                 options.IncludeFormattedMessage = true;
                 options.IncludeScopes = true;
                 options.AddProcessor(_logs);
+
+                if (viewer != null)
+                {
+                    options.AddOtlpExporter((exporter, processor) =>
+                    {
+                        ToViewer(exporter, viewer, "/v1/logs");
+                        processor.BatchExportProcessorOptions.MaxQueueSize = queueSize;
+                        processor.BatchExportProcessorOptions.MaxExportBatchSize = batchSize;
+                        processor.BatchExportProcessorOptions.ScheduledDelayMilliseconds = ExportDelayMilliseconds;
+                    });
+                }
             });
         });
     }
@@ -87,6 +115,14 @@ public sealed class Telemetry : IDisposable
     public ILogger Logger(string category)
     {
         return _loggerFactory.CreateLogger(category);
+    }
+
+    // A base address set in code gets no signal path added, unlike one from the
+    // environment, so the path is spelled out.
+    private static void ToViewer(OtlpExporterOptions options, string viewer, string path)
+    {
+        options.Protocol = OtlpExportProtocol.HttpProtobuf;
+        options.Endpoint = new Uri(viewer.TrimEnd('/') + path);
     }
 
     // Flushes what is queued: disposing the providers exports the last batches.

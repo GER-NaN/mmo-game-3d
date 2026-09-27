@@ -1,0 +1,20 @@
+# The diagnostics viewer: Grafana with Loki (logs), Tempo (traces) and Prometheus in
+# one container, taking OTLP from the server. For development, as the image says.
+# Start: docker compose -f docker/docker-compose.yml up -d
+# Open:  http://localhost:3000 (admin / admin)
+name: mmo-game-3d
+
+services:
+  lgtm:
+    image: grafana/otel-lgtm:0.34.0
+    container_name: game-lgtm
+    ports:
+      - "3000:3000"
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - lgtm-data:/data
+    restart: unless-stopped
+
+volumes:
+  lgtm-data:
