@@ -3,6 +3,7 @@ namespace MmoGame3d.Dev;
 using System;
 using System.Collections.Generic;
 using Godot;
+using MmoGame3d.Players;
 using MmoGame3d.Rules.Terminals;
 using MmoGame3d.Ui;
 
@@ -61,6 +62,11 @@ public partial class BotDriver : Node
     private double _goalFor;
     private double _dropAt = -1;
 
+    // Findings for screens that would not close, each at most every five minutes.
+    private const double CannotCloseRepeat = 300;
+    private readonly Dictionary<string, double> _cannotCloseAt = new Dictionary<string, double>();
+    private double _clockForCannotClose;
+
     // When the connection is cut in this activity (the persona's CutChance), or -1.
     private double _activityFor;
     private double _cutAt = -1;
@@ -102,6 +108,7 @@ public partial class BotDriver : Node
     public override void _Process(double delta)
     {
         _body.Tick(delta);
+        _clockForCannotClose += delta;
 
         // Not in the world: loading, or the menus, which are BotKeeper's.
         if (_body.Me == null)
@@ -156,6 +163,11 @@ public partial class BotDriver : Node
             if (_closer.Tick(_body, delta) != StepResult.Running || _closingFor > _closer.Limit)
             {
                 _closing = false;
+
+                if (_closingFor > _closer.Limit)
+                {
+                    CouldNotClose();
+                }
 
                 // A moment between one thing and the next, longer at a slower pace.
                 _pickIn = (0.5 + _random.NextDouble()) * _persona.Pace;
@@ -441,6 +453,41 @@ public partial class BotDriver : Node
         _closing = false;
         _body.Stop();
         _pickIn = 0;
+    }
+
+    // Ten seconds of Esc, Close, Back and Go Offline, and something is still open: a
+    // screen with no way out is a player stuck in it.
+    private void CouldNotClose()
+    {
+        List<string> open = new List<string>();
+
+        foreach (Control panel in _body.OpenPanels())
+        {
+            open.Add(panel.GetType().Name);
+        }
+
+        if (_body.IsOnline)
+        {
+            open.Add("TerminalScreen (online)");
+        }
+
+        string what = string.Join(", ", open);
+        GD.Print("Bot: could not close " + what);
+        Player? me = _body.Me;
+
+        if (me == null || open.Count == 0 || (_cannotCloseAt.ContainsKey(what) && _clockForCannotClose - _cannotCloseAt[what] < CannotCloseRepeat))
+        {
+            return;
+        }
+
+        _cannotCloseAt[what] = _clockForCannotClose;
+        BotFindings.Write(me, Profile, "cannot-close", "still open after " + (int)_closer.Limit + " s of closing: " + what, new Dictionary<string, object?>
+        {
+            { "zone", _body.ZoneId },
+            { "body_age", Math.Round(_body.BodyAge, 1) },
+            { "activity", _lastActivity },
+            { "open", open },
+        });
     }
 
     // The connection goes mid-step, with whatever is open left open; the goal goes too,

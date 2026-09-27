@@ -135,13 +135,15 @@ little off is never a finding:
 | | `walk-failed` | a walk given up after its tries at working round something |
 | `BotZoneJudge` | `zone-churn` | more than 8 zone changes in a minute |
 | | `zone-ping-pong` | back and forth between the same two zones 3 times running, each stay under 10 s |
+| `BotErrorJudge` | `client-error` | an error in the client's log (a C# exception, an engine error), with its stack; the same message at most every 5 minutes |
+| `BotDriver` | `cannot-close` | a panel or terminal still open after 10 s of Esc, Close, Back and Go Offline; the same screens at most every 5 minutes |
 
 The same kind for the same bot is written at most once a minute. Each finding is a
 folder, complete on its own, so it can be reviewed without anyone having watched:
 
 | File | What |
 | --- | --- |
-| `finding.json` | what the judge saw: where, on what, doing what (goal and activity), which step, heading where, where it was before or its zone changes |
+| `finding.json` | what the judge saw: where, on what, doing what (goal and activity), which step, heading where, where it was before or its zone changes; how long since it arrived in the zone (`body_age`), and ENet's view of the link to the server (`net`: round trip, loss, throttle) |
 | `picture.png` | the game view at that moment |
 | `client.log` | the bot's last 300 log lines |
 | `server.jsonl`, `server.txt` | every server record about that player in the minute either side, and a readable summary (added by the watcher) |
