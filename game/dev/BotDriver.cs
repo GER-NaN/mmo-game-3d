@@ -44,6 +44,7 @@ public partial class BotDriver : Node
     private BotActivity? _activity;
     private BotActivity? _after;
     private BotActivityJudge? _judgeOfActivity;
+    private bool _needsMetAtStart;
     private BotChain? _chain;
     private BotActivity? _pendingInChain;
     private BotActivity? _aside;
@@ -434,6 +435,7 @@ public partial class BotDriver : Node
         }
 
         _activity = activity;
+        _needsMetAtStart = activity.NeedsMet(_body);
         _judgeOfActivity = activity.NewJudge();
         _judgeOfActivity?.Before(_body);
         GD.Print("Bot: starting \"" + activity.Name + "\"" + (_after != null ? " for \"" + _after.Name + "\"" : ""));
@@ -471,7 +473,7 @@ public partial class BotDriver : Node
     private void EndActivity(BotEnd end, string why, string? judged)
     {
         BotActivity done = _activity!;
-        Judge(done, _judgeOfActivity, end, judged);
+        Judge(done, _judgeOfActivity, end, judged, _needsMetAtStart);
         GD.Print("Bot: " + (end == BotEnd.Finished ? "finished" : "gave up on") + " \"" + done.Name + "\": " + why);
         _failedWalks = end == BotEnd.Failed && done.FailedWalking ? _failedWalks + 1 : end == BotEnd.Finished ? 0 : _failedWalks;
         _activity = null;
@@ -524,7 +526,10 @@ public partial class BotDriver : Node
         StartClosing();
     }
 
-    private void Judge(BotActivity activity, BotActivityJudge? judge, BotEnd end, string? judged)
+    // needsMet: whether its needs held when it started. Started without them (a buy in
+    // a random chain with too little money), a refusal is the right answer, not a broken
+    // promise.
+    private void Judge(BotActivity activity, BotActivityJudge? judge, BotEnd end, string? judged, bool needsMet = true)
     {
         string? verdict = judged ?? judge?.After(_body, end);
 
@@ -533,7 +538,7 @@ public partial class BotDriver : Node
             Finding("activity-failed", activity.Name + ": " + verdict);
         }
 
-        if (end != BotEnd.Finished)
+        if (end != BotEnd.Finished || !needsMet)
         {
             return;
         }

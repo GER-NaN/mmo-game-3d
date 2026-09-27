@@ -60,6 +60,18 @@ public class JudgeTests
     }
 
     [Fact]
+    public void SittingInATaxiOnTheWayIsNotStuck()
+    {
+        // Soak2, 2026-09-27: a random chain's travel judged stuck in taxi-1, mid-ride.
+        TravelWatch watch = new TravelWatch("meadows");
+
+        for (int i = 0; i < 120; i++)
+        {
+            Assert.Null(watch.Look(0.5, "taxi-1", Vector3.Zero, riding: true));
+        }
+    }
+
+    [Fact]
     public void ABotWalkingOnTheSpotForHalfAMinuteIsStuck()
     {
         List<TrackSample> history = Looks(32, 2, t => new Vector3(4f, 0f, 4f), walking: true);

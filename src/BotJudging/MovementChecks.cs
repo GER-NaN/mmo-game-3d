@@ -117,7 +117,8 @@ public static class Stuck
 
 /// <summary>
 /// A traveller as its player sees it: not moving, and not in the zone it is going to, for
-/// a good while, is stuck. Moving, or a new zone, starts the clock again.
+/// a good while, is stuck. Moving, a new zone, or a ride (a taxi's cabin, where a rider
+/// sits still) starts the clock again.
 /// </summary>
 public sealed class TravelWatch
 {
@@ -136,9 +137,9 @@ public sealed class TravelWatch
     }
 
     // A look after delta seconds; the reason it is stuck, or null.
-    public string? Look(double delta, string zone, Vector3 at)
+    public string? Look(double delta, string zone, Vector3 at, bool riding = false)
     {
-        if (!_started || zone != _zone || Vector3.Distance(at, _from) > Moved)
+        if (!_started || riding || zone != _zone || Vector3.Distance(at, _from) > Moved)
         {
             _started = true;
             _zone = zone;

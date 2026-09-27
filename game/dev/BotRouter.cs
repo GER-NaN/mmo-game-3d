@@ -278,7 +278,7 @@ public sealed class TravelJudge : BotActivityJudge
         }
 
         Vector3 at = me.GlobalPosition;
-        return _watch.Look(delta, body.ZoneId, new System.Numerics.Vector3(at.X, at.Y, at.Z));
+        return _watch.Look(delta, body.ZoneId, new System.Numerics.Vector3(at.X, at.Y, at.Z), ZoneIds.IsInstance(body.ZoneId));
     }
 }
 
