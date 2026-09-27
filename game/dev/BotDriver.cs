@@ -71,6 +71,8 @@ public partial class BotDriver : Node
     private double _activityFor;
     private double _cutAt = -1;
 
+    private bool _outOfWorld = true;
+
     // Drops the connection as a lost one does, back to the main menu, where BotKeeper
     // logs in again. Set by ClientGame.
     public Action? CutConnection { get; set; }
@@ -114,7 +116,19 @@ public partial class BotDriver : Node
         // Not in the world: loading, or the menus, which are BotKeeper's.
         if (_body.Me == null)
         {
+            _outOfWorld = true;
             return;
+        }
+
+        // Back in after a login: what the engine holds now, for a leak over many logins.
+        if (_outOfWorld)
+        {
+            _outOfWorld = false;
+            GD.Print("Bot: in the world; objects " + Performance.GetMonitor(Performance.Monitor.ObjectCount)
+                + ", nodes " + Performance.GetMonitor(Performance.Monitor.ObjectNodeCount)
+                + ", orphan nodes " + Performance.GetMonitor(Performance.Monitor.ObjectOrphanNodeCount)
+                + ", resources " + Performance.GetMonitor(Performance.Monitor.ObjectResourceCount)
+                + ", managed MB " + (GC.GetTotalMemory(false) / 1048576));
         }
 
         if (!_introduced)

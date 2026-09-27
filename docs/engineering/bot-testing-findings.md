@@ -234,6 +234,20 @@ Defense Objectives) makes the phone panel taller than the window, and its Go Off
 button is below the bottom edge. Esc still goes offline. A player on a small window
 would not see the button.
 
+### A client grows about 20 MB with each new login
+
+**Found** 2026-09-27, run 14, Soak1 (the dropper; `tools/bot-watch/memory.ps1`).
+**Status:** watch.
+
+Over an hour every bot client grew from about 1.25 GB to about 2 GB, most of it in the
+first half hour and then slowly (caches filling). The dropper alone kept growing in a
+straight line, about 515 MB in the hour, and it logged in again 24 times: roughly
+20 MB a login. At each login it now logs Godot's counts: nodes (178), orphan nodes (6)
+and resources (164) stay flat, objects go up and down, and the managed heap is small.
+So it is not leaked nodes or resources but native memory (rendering, ENet, navigation);
+finding it needs a native memory profiler. A player who logs in again a few times a
+session would not notice.
+
 ### Panels open over the game menu
 
 **Found** 2026-09-27, run 12, Soak8 (the masher; the first `cannot-close`). **Status:**
