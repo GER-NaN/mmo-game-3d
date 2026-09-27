@@ -22,8 +22,8 @@ public sealed class BotNavigation
     private Rid _region;
     private Rid _map;
     private bool _ready;
-    private uint _bakedAt;
     private ulong _bakedMsec;
+    private Vector3 _probe;
 
     public void Tick(BotBody body)
     {
@@ -64,9 +64,12 @@ public sealed class BotNavigation
         _region = NavigationServer3D.RegionCreate();
         NavigationServer3D.RegionSetMap(_region, _map);
         NavigationServer3D.RegionSetTransform(_region, zone.GlobalTransform);
+        // Built now, not in the background: the map takes an unfinished region in as empty.
+        NavigationServer3D.RegionSetUseAsyncIterations(_region, false);
         NavigationServer3D.RegionSetNavigationMesh(_region, mesh);
-        _bakedAt = NavigationServer3D.MapGetIterationId(_map);
         _bakedMsec = Time.GetTicksMsec();
+        Vector3[] baked = mesh.GetVertices();
+        _probe = baked.Length > 0 ? zone.GlobalTransform * baked[0] : Vector3.Zero;
         _ready = mesh.GetPolygonCount() > 0;
         Aabb extent = new Aabb();
         Vector3[] vertices = mesh.GetVertices();
@@ -127,12 +130,15 @@ public sealed class BotNavigation
         get { return _ready; }
     }
 
-    // Baked, but the map takes the region in only on the next physics frame (it syncs
-    // then, MapForceUpdate or not): until then every path is empty, and a walk would go
-    // straight, through doors too. A second at most, should the map never sync.
+    // Baked, but not yet in the map: it takes the region in on a later physics frame
+    // (MapForceUpdate or not), and until then every path is empty, and a walk would go
+    // straight, through doors too. Known by asking the map for a point of the mesh.
+    // PendingAtMost, should it never come.
+    private const ulong PendingAtMost = 3000;
+
     public bool Pending
     {
-        get { return _ready && NavigationServer3D.MapGetIterationId(_map) == _bakedAt && Time.GetTicksMsec() - _bakedMsec < 1000; }
+        get { return _ready && NavigationServer3D.MapGetClosestPoint(_map, _probe).DistanceTo(_probe) > 1f && Time.GetTicksMsec() - _bakedMsec < PendingAtMost; }
     }
 
     // The nearest point of the mesh, for the log when a path fails.
