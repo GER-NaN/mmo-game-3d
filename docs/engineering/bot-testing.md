@@ -278,9 +278,12 @@ names. A random chain's log line gives its seed.
   its name in the default mix in `scripts/bots-up.ps1`.
 - **A dev scenario** for the feature too (`testing.md`): the scenario checks the
   feature in seconds; the bots play it for hours.
-- **Older parts** still run as they were until they move: the step-list activities in
-  `BotActivities.cs` (town ones now have the zone "town", so the router brings the bot)
-  and the hand-coded goals in `BotGoals.cs`, run as chains (`LegacyGoalChain`).
+- **Where things are:** activities in `game/dev/activities/` (by place and kind:
+  `PlaceActivities`, `TerminalActivities`, `ShopActivities`, `CollegeActivities`,
+  `BagActivities`, `SocialActivities`, `DroneActivities`, `PersonaActivities`, and the
+  models `GreenhouseActivity` and `EmoteActivity`); screens in `game/dev/screens/`;
+  steps that several activities share in `game/dev/steps/`; goals and chains in
+  `BotCatalog`.
 
 ## Next
 
