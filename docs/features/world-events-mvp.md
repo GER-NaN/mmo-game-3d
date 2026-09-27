@@ -1,7 +1,7 @@
 # World events (AI Swarm, Drone Swarm): MVP
 
 **Date:** 2026-09-27
-**Status:** Agreed
+**Status:** Built (2026-09-27; how it is built: docs/engineering/world-events.md)
 **Scope:** MVP (the fuller version is under "Beyond the MVP", not designed here)
 **Sources read:** docs/world.md sections 2, 4, 8, 12, 15, 16; docs/backlog.md; TODO.md;
 `game/server/ServerDrones.cs`, `ServerTerminals.cs`, `src/Rules/Terminals/TerminalApps.cs`,
