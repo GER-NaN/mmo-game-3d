@@ -237,6 +237,15 @@ Fixed as found; kept here so the same thing is recognised next time.
 - **Pushing on purpose read as stuck.** The escaper presses against the world's edge
   for 45 seconds and the wedger into gaps; both were called stuck. A step now says it
   presses, and the judges count from the step after (where the gap trap showed).
+- **Walking straight on arrival.** A stuck finding had a bot walk from the taxi
+  drop-off straight into the back of the college's building. A new log line (a walk
+  whose path is missing or ends short) then showed the first path in every zone
+  coming back empty: Godot's navigation map takes a new mesh only on the next physics
+  frame, whatever `MapForceUpdate` says, so each arrival started with a straight walk,
+  through doors too. Bots now wait for the map (a second at most). The shop still has
+  no path from its entrance to the shopkeeper; the straight walk there works.
+- **Walking into parked cars.** The blind wander walked into a car spell after spell;
+  a spell that got nowhere now turns away first.
 - **Bobbing read as thrashing.** Against the world's edge the escaper bobbed up and
   down; the check now counts moves across the ground only.
 
