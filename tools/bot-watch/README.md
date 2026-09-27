@@ -20,6 +20,18 @@ diagnostics are listed too. A flagged bot's picture goes to
 client (`game/dev/BotKeeper.cs`) saves its game view there, so nothing else on the
 screen is ever in it.
 
+## Memory
+
+```
+powershell -File toolsbot-watch\memory.ps1                  every 5 minutes, until the server stops
+powershell -File toolsbot-watch\memory.ps1 -EverySeconds 60
+```
+
+Adds a row per process to `%TEMP%\mmo-game-3d-bots\memory.csv` on each look: the time,
+the process id, who it is (`server`, or the bot's profile), and its working set and
+private memory in MB. A new process id for a profile is a bot that restarted. A number
+that only climbs over hours is a leak.
+
 ## Findings
 
 The judges in each bot (`BotPositionJudge`, `BotZoneJudge`) write a folder per finding
