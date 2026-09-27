@@ -147,6 +147,18 @@ Fixed as found; kept here so the same thing is recognised next time.
   door leads.
 - **Thrashing that was circling.** The first thrashing check (far travelled, little
   gained) flagged bots wandering in circles. It now counts sharp reversals instead.
+- **Frozen at a terminal after a dropped goal.** A goal dropped mid-run leaves its
+  state as it is, on purpose, so the bot stayed online at the kiosk and its next walk
+  went nowhere: the keys belong to the terminal. The judge caught it (stuck, with the
+  terminal in the picture). A person closes the terminal before walking away, and now
+  so does the walker; other panels stay open, so a dropped goal still leaves state
+  behind.
+- **Judges crying wolf.** Doors and party pulls moved a bot from one zone's
+  coordinates to another's inside the thrashing check's five seconds, which read as up
+  to 177 m of travel; zone ping-pong flagged every trip into a building and back. The
+  thrashing track now restarts on a zone change or a jump, and ping-pong counts only
+  quick bounces. `tools/bot-watch/triage.py` groups findings, so noise shows as one big
+  group rather than a long list.
 
 ## Tooling
 

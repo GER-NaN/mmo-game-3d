@@ -18,10 +18,13 @@ way people do, for as long as it runs.
 .\scripts\server-up.ps1                       the server (Postgres must be up)
 .\scripts\bots-up.ps1                         8 bots, soak1 to soak8, tiled over every screen
 .\scripts\bots-up.ps1 -Count 4 -Layout Full   4 bots, each window the size of its screen
+.\scripts\bots-up.ps1 -Personas gamer,curious  who each bot is, in turn (one of each by default)
 python tools/bot-watch/watch.py --every 120   a look every 2 minutes, until the server stops
+python tools/bot-watch/triage.py --since 02:00   the findings since then, grouped into issues
 ```
 
-Open `%TEMP%\mmo-game-3d-bots\judge\report.html` in a browser to review the findings.
+Open `%TEMP%\mmo-game-3d-bots\judge\report.html` in a browser to review the findings,
+or run `triage.py` first: a run's findings are usually a few issues many times over.
 
 To stop: `.\scripts\bots-stop.ps1`, then `.\scripts\server-stop.ps1` so the server
 saves. Wait about 10 seconds after stopping bots before starting them again: the server
@@ -85,9 +88,25 @@ Bots **say what they are doing** in public chat: `[bot] goal: fight drones`,
 `[bot] fight drones -> buy EMP Emitter`, `[bot] dropping fight drones (mid ...)`,
 `[bot] wandering: meet someone`.
 
+**Personas** (`BotPersonas.cs`, `--persona`): who a bot is. A persona weighs the
+activities and goals (a factor on each, 0 to leave one out), adds its own
+(`BotExtraActivities.cs`), and sets its pace, how often it drops a goal and how readily
+it joins a party. Several side by side play the game several ways at once:
+
+| Persona | What it does | Finds |
+| --- | --- | --- |
+| wanderer | a bit of everything | the ordinary |
+| curious | opens every panel and terminal app and clicks what it finds, types into fields (never Quit, Leave to main menu, Delete) | screens that break, buttons that do nothing or too much |
+| gamer | Agent Defense, the code cracker, the potting table, over and over | the mini games under repetition |
+| escaper | runs straight for a point past the zone's edge, jumping | ways out of the world |
+| wedger | walks straight into the gap between two buildings and keeps pushing | where players get wedged |
+| earner | picks up, recycles, reports drones, for all the money it can | the economy's loops |
+| slow | a wanderer at a third of the pace that finishes what it starts | timing that only fails slowly; easy to follow on screen |
+
 **Walking** (`BotNavigation`, `Walker`): when a bot arrives in a zone it bakes a
 navigation mesh from the zone's collision (Old Town in about 35 ms) and follows its
-paths round buildings. Doors are walked to by the spot in front of them first. Stuck (not
+paths round buildings. A bot still at a terminal (a goal dropped mid-run leaves it open) goes offline before it
+walks, as a person would. Doors are walked to by the spot in front of them first. Stuck (not
 moving) it backs off, turns and jumps; after two failed walks in a row it escapes,
 trying eight directions. Open land (the meadows) is walked straight.
 
@@ -107,11 +126,12 @@ little off is never a finding:
 | | `floating` | 0.8 m above the surface under it, not jumping, for 10 s |
 | | `too-high` | 1.2 m above the zone's arrival and spawn markers (not on terrain), for 10 s |
 | | `in-vehicle` | within a car's footprint, checked twice a second |
-| | `stuck` | within 2.5 m for 30 s while walking |
+| | `stuck` | within 2.5 m for 30 s while walking (standing still online or at a panel is not stuck, unless the step is a walk) |
+| | `out-of-bounds` | past the zone's map by 5 m, or 10 m below the zone |
 | | `thrashing` | four sharp reversals in 5 s with little gained |
 | | `walk-failed` | a walk given up after its tries at working round something |
-| `BotZoneJudge` | `zone-churn` | more than 8 zone changes in 5 minutes |
-| | `zone-ping-pong` | back and forth between the same two zones 3 times running |
+| `BotZoneJudge` | `zone-churn` | more than 8 zone changes in a minute |
+| | `zone-ping-pong` | back and forth between the same two zones 3 times running, each stay under 10 s |
 
 The same kind for the same bot is written at most once a minute. Each finding is a
 folder, complete on its own, so it can be reviewed without anyone having watched:
@@ -132,6 +152,9 @@ folder, complete on its own, so it can be reviewed without anyone having watched
 - **A goal:** a `BotGoal` in `BotGoals.All`: its `Next` looks at what the bot has and
   names the next activity, or null when the goal is met (with `GiveUp` set when it
   cannot be). Give it a budget and its usual length, for the random drop.
+- **A persona:** a case in `BotPersonas.Get`: its factors on activities and goals
+  (`Likes`), its own activities (`Own`), its pace and chances; then add its name to the
+  default mix in `scripts/bots-up.ps1`.
 - **A judge:** a class like `BotZoneJudge`, ticked from `BotDriver`, writing through
   `BotFindings.Write`. Keep the checks quick and the limits loose.
 - **What a new screen needs:** its buttons in a group (`AddToGroup`), so bots find them
@@ -145,14 +168,8 @@ Agreed on 2026-09-27, in this order:
 1. **The bots' screen.** Bot windows are small, and the UI has no scaling, so buttons
    fall off the edge. Bots will draw their UI at 1280 by 720 and scale it into their
    window. The real fix, a UI that fits any window, belongs to the HUD and menu redo.
-2. **The curious bot.** When any panel or app is open, it clicks visible, enabled
-   buttons at random (never Quit or Leave to main menu) and types into text fields
-   (its Whois Plan), then closes everything. Breadth with no code per feature.
-3. **Roles.** A bot is given a personality at launch: curious, gamer (plays mini games
-   all the time), escaper (tries to get out of bounds), wedger (tries to get stuck),
-   earner (collects and sells for all the money it can). `bots-up.ps1` starts a mix.
-4. **Scenarios as activities.** The dev scenarios and the bots share one step library,
+2. **Scenarios as activities.** The dev scenarios and the bots share one step library,
    so each scenario is also a bot activity (without its setup and checks), and a new
    feature is played by bots as soon as its scenario exists.
-5. **Headless bots**, for runs nobody watches. A headless client draws nothing, so its
+3. **Headless bots**, for runs nobody watches. A headless client draws nothing, so its
    findings come without pictures; visible windows stay the default while they matter.
