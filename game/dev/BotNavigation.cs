@@ -43,9 +43,11 @@ public sealed class BotNavigation
         ulong started = Time.GetTicksMsec();
         NavigationMesh mesh = new NavigationMesh
         {
-            AgentRadius = 0.45f,
-            AgentHeight = 1.8f,
-            AgentMaxClimb = 0.45f,
+            // Whole cells (0.25 m), which the bake rounds to anyway, with a warning and a
+            // backtrace each that crowded the findings' logs.
+            AgentRadius = 0.5f,
+            AgentHeight = 2f,
+            AgentMaxClimb = 0.25f,
             AgentMaxSlope = 40f,
             GeometryParsedGeometryType = NavigationMesh.ParsedGeometryType.StaticColliders,
             GeometryCollisionMask = PhysicsLayers.World,
