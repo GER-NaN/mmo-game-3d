@@ -407,6 +407,7 @@ public sealed class UseStep : BotStep
     private readonly bool _once;
     private double _nextTap;
     private double _sinceTap = -1;
+    private string _seen = "";
 
     // once: one tap, done a moment later, for a use whose result the bot cannot see.
     public UseStep(string prompt, Func<BotBody, bool> until, double limit = 8, bool movesZone = false, bool once = false)
@@ -427,6 +428,7 @@ public sealed class UseStep : BotStep
     {
         _nextTap = 0;
         _sinceTap = -1;
+        _seen = "";
     }
 
     public override StepResult Tick(BotBody body, double delta)
@@ -434,6 +436,18 @@ public sealed class UseStep : BotStep
         if (_until(body))
         {
             return StepResult.Done;
+        }
+
+        // What the prompt says instead, for the log when the use never comes: "In use
+        // by", another thing in reach, nothing.
+        if (body.Prompt != _seen)
+        {
+            _seen = body.Prompt;
+
+            if (!_seen.Contains(_prompt))
+            {
+                GD.Print("Bot: waiting to " + _prompt + "; the prompt says \"" + _seen + "\"");
+            }
         }
 
         if (_sinceTap >= 0)
