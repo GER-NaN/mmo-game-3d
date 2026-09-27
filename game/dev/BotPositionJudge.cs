@@ -222,7 +222,9 @@ public sealed class BotPositionJudge
 
         for (int i = 1; i < _track.Count; i++)
         {
-            Vector3 move = _track[i].At - _track[i - 1].At;
+            // Across the ground only: a jump, or a body bobbing against a wall, goes up
+            // and down without going anywhere.
+            Vector3 move = Flat(_track[i].At - _track[i - 1].At);
             travelled += move.Length();
 
             if (i < 2)
@@ -230,7 +232,7 @@ public sealed class BotPositionJudge
                 continue;
             }
 
-            Vector3 before = _track[i - 1].At - _track[i - 2].At;
+            Vector3 before = Flat(_track[i - 1].At - _track[i - 2].At);
 
             if (move.Length() > MinMove && before.Length() > MinMove && move.Normalized().Dot(before.Normalized()) < -0.5f)
             {
@@ -238,7 +240,7 @@ public sealed class BotPositionJudge
             }
         }
 
-        float net = _track[_track.Count - 1].At.DistanceTo(_track[0].At);
+        float net = Flat(_track[_track.Count - 1].At - _track[0].At).Length();
 
         if (reversals >= ThrashReversals && net < ThrashNet)
         {
@@ -510,6 +512,11 @@ public sealed class BotPositionJudge
             { "recent", recent },
             { "track", _thrashTrack },
         });
+    }
+
+    private static Vector3 Flat(Vector3 move)
+    {
+        return new Vector3(move.X, 0f, move.Z);
     }
 
     private static string HeldKeys()
