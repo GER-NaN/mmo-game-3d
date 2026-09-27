@@ -38,6 +38,7 @@ public partial class Main : Node
         {
             World world = WorldScene.Instantiate<World>();
             world.Name = "World";
+            world.OwnPhysicsPerZone = true;
             AddChild(world);
 
             ServerGame server = new ServerGame { Name = "ServerGame" };

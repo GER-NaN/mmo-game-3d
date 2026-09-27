@@ -109,7 +109,7 @@ public partial class ServerGame : Node
 
         for (int i = 0; i < ZoneIds.All.Length; i++)
         {
-            Zone zone = _world.LoadZone(ZoneIds.All[i], new Vector3(i * World.ZoneSpacing, 0f, 0f));
+            Zone zone = _world.LoadZone(ZoneIds.All[i]);
 
             foreach (Node node in zone.GetNode("Doors").GetChildren())
             {

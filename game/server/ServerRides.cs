@@ -24,9 +24,6 @@ public class ServerRides
     // Party members this close to whoever calls the taxi ride along.
     private const float PartyDistance = 10f;
 
-    // Instances are laid out past the zones loaded at start, each far from the rest.
-    private const int FirstInstanceSlot = 50;
-
     private static readonly PackedScene CarScene = GD.Load<PackedScene>("res://game/taxis/RoboTaxi.tscn");
 
     private readonly World _world;
@@ -62,7 +59,7 @@ public class ServerRides
         Zone town = _world.GetZone(ZoneIds.Town)!;
         int number = _nextRide++;
         string cabinId = ZoneIds.Instance(ZoneIds.Taxi, number);
-        Zone cabin = _world.LoadZone(cabinId, new Vector3((FirstInstanceSlot + number) * World.ZoneSpacing, 0f, 0f));
+        Zone cabin = _world.LoadZone(cabinId);
 
         TaxiState state = cabin.GetNode<TaxiState>("TaxiState");
         _gate.Watch(state.Synchronizer, cabinId);

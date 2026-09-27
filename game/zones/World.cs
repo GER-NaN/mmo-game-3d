@@ -5,31 +5,41 @@ using Godot;
 using MmoGame3d.Rules.World;
 
 /// <summary>
-/// Holds the loaded zones. The server loads every zone, each far from the others so
-/// their collision never meets; a client loads only the one its player is in, at the
-/// origin. A zone's node is named after its id, so a synced node has the same path on
-/// both sides, and synced positions are zone-local, so they mean the same on both.
+/// Holds the loaded zones. The server loads every zone; a client loads only the one its
+/// player is in. Each zone sits at the origin under a holder named after its id, with the
+/// zone node itself named "Zone", so a synced node has the same path on both sides
+/// (World/town/Zone/Players/1234).
+///
+/// On the server the holder is a SubViewport with its own World3D, which gives each zone
+/// its own physics space: zones are isolated maps and never collide, whatever their size
+/// or number. Godot finds a node's world through the nearest viewport, so a viewport is
+/// the only way to get a second world (godot-proposals#2638 asks for another). On a client
+/// the holder is a plain Node, so the zone renders in the main window.
 /// </summary>
 public partial class World : Node3D
 {
-    // How far apart the server lays zones out. Larger than any zone.
-    public const float ZoneSpacing = 1000f;
+    // Set by the server before it loads anything.
+    public bool OwnPhysicsPerZone { get; set; }
 
     private readonly Dictionary<string, Zone> _zones = new Dictionary<string, Zone>();
 
-    public Zone LoadZone(string zoneId, Vector3 offset)
+    public Zone LoadZone(string zoneId)
     {
         if (_zones.TryGetValue(zoneId, out Zone? loaded))
         {
             return loaded;
         }
 
-        // An instance (taxi-3) is made from its scene (taxi) under its own name.
+        // An instance (taxi-3) is made from its scene (taxi) under its own id.
         PackedScene scene = GD.Load<PackedScene>(ScenePath(ZoneIds.SceneOf(zoneId)));
         Zone zone = scene.Instantiate<Zone>();
-        zone.Name = zoneId;
-        zone.Position = offset;
-        AddChild(zone);
+        zone.Name = "Zone";
+        zone.ZoneId = zoneId;
+
+        Node holder = OwnPhysicsPerZone ? NewSpace() : new Node();
+        holder.Name = zoneId;
+        holder.AddChild(zone);
+        AddChild(holder);
         _zones[zoneId] = zone;
         return zone;
     }
@@ -42,8 +52,9 @@ public partial class World : Node3D
         if (_zones.TryGetValue(zoneId, out zone))
         {
             _zones.Remove(zoneId);
-            RemoveChild(zone);
-            zone.QueueFree();
+            Node holder = zone.GetParent();
+            RemoveChild(holder);
+            holder.QueueFree();
         }
     }
 
@@ -56,5 +67,17 @@ public partial class World : Node3D
     public static string ScenePath(string scene)
     {
         return "res://game/zones/" + scene + "/" + scene + ".tscn";
+    }
+
+    // Nothing is drawn on the server; the viewport is there for its world alone.
+    private static SubViewport NewSpace()
+    {
+        return new SubViewport
+        {
+            OwnWorld3D = true,
+            RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled,
+            Size = new Vector2I(2, 2),
+            GuiDisableInput = true,
+        };
     }
 }

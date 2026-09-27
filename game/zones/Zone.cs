@@ -30,10 +30,8 @@ public partial class Zone : Node3D
     [Export]
     public string Surface { get; set; } = "rock";
 
-    public string ZoneId
-    {
-        get { return Name; }
-    }
+    // Set by World when it loads the zone; the node itself is always named "Zone".
+    public string ZoneId { get; set; } = "";
 
     public Node3D Players
     {
@@ -45,9 +43,8 @@ public partial class Zone : Node3D
         get { return GetNode<Node3D>("Items"); }
     }
 
-    // Positions here are zone-local: the server lays its zones out far apart, while a
-    // client loads its one zone at the origin, so only zone-local numbers mean the same
-    // on both sides. Synced positions are zone-local for the same reason.
+    // Positions here are zone-local. Every zone sits at the origin of its own space, so
+    // today zone-local and global are the same; zone-local keeps it true if that changes.
     public Vector3 SpawnPoint
     {
         get { return GetNode<Node3D>("Spawn").Position; }

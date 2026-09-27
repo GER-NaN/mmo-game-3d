@@ -772,7 +772,7 @@ public partial class ClientGame : Node
         _world = WorldScene.Instantiate<World>();
         _world.Name = "World";
         _main.AddChild(_world);
-        _world.LoadZone(zoneId, Vector3.Zero);
+        _world.LoadZone(zoneId);
         _zoneId = zoneId;
         _displayName = displayName;
 
@@ -1105,7 +1105,7 @@ public partial class ClientGame : Node
             }
 
             _world.UnloadZone(_zoneId);
-            _world.LoadZone(zoneId, Vector3.Zero);
+            _world.LoadZone(zoneId);
             _zoneId = zoneId;
             _hud?.ShowIdentity(_displayName, ZoneIds.DisplayName(zoneId));
             _network.SendWorldReady();
