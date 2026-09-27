@@ -53,6 +53,33 @@ ready for them.
 
 ![Soak6 after its login](soak-shots/20260927-0039-soak6.png)
 
+Seen again in run 3: Soak3 and Soak7 were both saved in the same ride, `taxi-24`,
+and both logged back into it. After "You have arrived" Soak3 got no "Now in town" for a
+while.
+
+### Players wedge into the gaps between Old Town's buildings
+
+**Found** 2026-09-27, run 3, Soak1, Soak5, Soak8 and others. **Status:** open (map).
+
+Old Town's buildings stand with narrow gaps between them that a player can walk into
+and get wedged in; walking straight at a target only pushes deeper in, and the camera
+ends up inside the building. A person can usually back out; a bot could not until it
+learned to (EscapeStep: eight directions in turn). Hand-built maps should close such
+gaps or leave them wide enough to turn in.
+
+![Soak5 in a gap behind a dumpster](soak-shots/20260927-0049-soak5-wedged.png)
+
+![Soak1's camera inside a building](soak-shots/20260927-0049-soak1-wedged.png)
+
+### Robo taxis drive through players
+
+**Found** 2026-09-27, run 3, seen by the author. **Status:** open.
+
+A robo taxi's body is on no physics layer, so it never collides with a player: it
+drives through anyone in its way, and bots standing at the drop-off look as if they
+ride on its roof. The judge now reports a bot inside a vehicle's footprint
+(`in-vehicle`), so the next run shows how often, and where.
+
 ### The phone's Go Offline button falls off a short window
 
 **Found** 2026-09-27, run 1, all bots. **Status:** open.
