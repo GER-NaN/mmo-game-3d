@@ -852,7 +852,7 @@ public partial class ClientGame : Node
 
         if (_options.Bot)
         {
-            _bot = new BotDriver { Name = "Bot", Say = _network.SendChat };
+            _bot = new BotDriver { Name = "Bot" };
             AddChild(_bot);
         }
 
