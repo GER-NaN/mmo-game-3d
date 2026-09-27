@@ -152,7 +152,11 @@ the west crosses the trigger, and a player meaning to use the kiosk is in the co
 trigger, ends it. For bots it is worse: the kiosk stands inside the college door's
 carve in their navigation mesh, so from it they have no path, walk straight, and a
 walk west goes through the college door (zone churn, run 12, the earner's Agent
-Defense goal four times over).
+Defense goal four times over). Just east of it, the kiosk, a lamp post (x 20, z -6), a
+dumpster (x 22.5, z -7) and the building fronts make a pocket whose ways out are
+narrower than the bots' mesh allows: two bots walked in and were judged stuck (runs 9
+and 14); both got out with the escape step, and a person gets out too. Moving the kiosk
+is a chance to open that corner.
 
 ### One lost walk packet leaves the server's body standing
 
