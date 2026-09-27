@@ -12,8 +12,11 @@ validation:
 
 theme:
   name: material
+  # Small style changes of our own (overrides/main.html).
+  custom_dir: overrides
   features:
-    - navigation.sections
+    - navigation.tabs
+    - navigation.prune
     - navigation.indexes
     - navigation.top
     - navigation.footer
