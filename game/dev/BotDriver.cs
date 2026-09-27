@@ -326,8 +326,19 @@ public partial class BotDriver : Node
             {
                 _onlineFor = 0;
                 _terminalRest = MinTerminalRest + (_random.NextDouble() * (MaxTerminalRest - MinTerminalRest));
-                GD.Print("Bot: clicking Go Offline");
-                Click(goOffline.GetGlobalRect().GetCenter());
+
+                // In a small window a tall app pushes the phone's button off the screen;
+                // Esc goes offline as well.
+                if (GetViewport().GetVisibleRect().Encloses(goOffline.GetGlobalRect()))
+                {
+                    GD.Print("Bot: clicking Go Offline");
+                    Click(goOffline.GetGlobalRect().GetCenter());
+                }
+                else
+                {
+                    GD.Print("Bot: Go Offline is off the screen; pressing Esc");
+                    Press("ui_cancel");
+                }
             }
 
             return;
