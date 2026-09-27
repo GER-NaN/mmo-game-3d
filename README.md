@@ -1,7 +1,7 @@
 # mmo-game-3d
 
 A small client/server MMO set in a near-future town fighting a rogue AI, in 3D. The
-game's design is `docs/world.md` in the older `mmo-game` repo; this repo builds it.
+game's design is `docs/world.md`; this repo builds it.
 
 - Client and server: Godot 4.7 with C# (.NET 8). The server is the same project run
   headless; networking is Godot's built-in multiplayer, and the server is the authority.
@@ -34,7 +34,9 @@ game's design is `docs/world.md` in the older `mmo-game` repo; this repo builds 
 
 ## Docs
 
-Start with setup, then running; making-changes has the recipes.
+`docs/README.md` explains the whole docs folder. The design is `docs/world.md` (canon)
+and `docs/backlog.md` (not yet decided). For the code, start with setup, then running;
+making-changes has the recipes.
 
 - `docs/engineering/setup.md`: a machine from nothing (tools, Postgres and the two
   databases, art and sound, first run).
@@ -52,7 +54,8 @@ Start with setup, then running; making-changes has the recipes.
 
 ## Outside this repo
 
-- The design: `docs/world.md` (canonical) and `docs/features/` in the `mmo-game` repo.
+- The older `mmo-game` repo: the MonoGame and voxel version, and the git history of
+  the design docs, which were copied here on 2026-09-26 (from its commit `ac8ae05`).
 - The art library `C:\game-art` and the sound library `C:\game-sound`, on the author's
   machine (assets/README.md says what is copied from each).
 - The Postgres container `game-db`, shared with `mmo-game` (setup.md).

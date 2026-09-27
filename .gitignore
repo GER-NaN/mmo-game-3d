@@ -8,6 +8,8 @@ obj/
 
 # Private agent instructions
 CLAUDE.local.md
+# The old repo's private instructions, kept for reference
+CLAUDE.local.*.md
 
 # Test results
 TestResults/

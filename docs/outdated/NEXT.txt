@@ -1,0 +1,25 @@
+Codify message sizes using tests
+
+
+--------
+
+
+
+Implement Batch packets
+
+Sending side, once per broadcast:
+1. Serialize the whole update (players + items) into one buffer, same as today.
+2. Give that whole update an identifier — something that increases with each broadcast (a counter works fine; it doesn't need to be globally unique, just distinguishable from the previous update).
+3. Slice the buffer into fixed-size pieces, sized comfortably under a safe real-world MTU (not the same number as today's 2048 receive buffer — that number was never chosen for network safety, it was just picked). Each piece gets a small header saying "I belong to update X, I am piece i of n total."
+4. Send each piece as its own UDP datagram, same per-client loop you already have.
+
+Receiving side, per client:
+1. Keep a working area for "pieces collected so far for the update currently being assembled."
+2. When a piece arrives: if its update-id is newer than what's being assembled, throw away whatever partial pieces you were holding and start fresh for the new one. If it matches what's in progress, store the piece by its index. If it's for an older update than what's already in progress, just drop it — it's stale.
+3. Once all n pieces for the current update-id are present, concatenate them in order and hand the full buffer off to be deserialized exactly like today's single-packet message.
+
+The thing that makes this tractable rather than a full reliability protocol: your world-state broadcasts are already a "latest snapshot always wins" model, not a delta/history stream — nothing today tries to guarantee an old tick's update eventually arrives if missed. That means you get to make a genuinely simplifying choice: an update that doesn't fully arrive is just discarded, not retried. You don't need acknowledgments, retransmission, or ordering guarantees across updates — only "assemble this one fully, or give up on it and wait for the next tick's update to come in clean." That's a much smaller problem than what a general reliable-UDP layer (like the libraries we discussed) has to solve, precisely because you don't need reliability here, just eventual-consistency-per-tick, which you already have today at the single-packet level.
+
+One thing you'll still need to decide: what happens to a partial reassembly that never completes (a piece got lost, and no newer update has started yet) — it can't just sit there forever waiting for a piece that's never coming. Some kind of "give up after enough time/ticks have passed" cleanup is needed, or it'll leak memory over a long session.
+
+That's the shape of it. Want to talk through any of those open pieces (chunk size choice, the update-id scheme, the abandon/cleanup policy) before you start building, or do you have enough to go on?
