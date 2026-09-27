@@ -23,6 +23,11 @@ public partial class World : Node3D
 
     private readonly Dictionary<string, Zone> _zones = new Dictionary<string, Zone>();
 
+    // Every zone scene once loaded, kept for the whole run: a zone a client comes back to
+    // is made from the kept scene, not loaded again. Tried against "Handle is not
+    // initialized", which a client hit loading Old Town again (bot-testing-findings.md).
+    private readonly Dictionary<string, PackedScene> _scenes = new Dictionary<string, PackedScene>();
+
     public Zone LoadZone(string zoneId)
     {
         if (_zones.TryGetValue(zoneId, out Zone? loaded))
@@ -31,7 +36,14 @@ public partial class World : Node3D
         }
 
         // An instance (taxi-3) is made from its scene (taxi) under its own id.
-        PackedScene scene = GD.Load<PackedScene>(ScenePath(ZoneIds.SceneOf(zoneId)));
+        string sceneId = ZoneIds.SceneOf(zoneId);
+        PackedScene? scene;
+
+        if (!_scenes.TryGetValue(sceneId, out scene))
+        {
+            scene = GD.Load<PackedScene>(ScenePath(sceneId));
+            _scenes[sceneId] = scene;
+        }
         Zone zone = scene.Instantiate<Zone>();
         zone.Name = "Zone";
         zone.ZoneId = zoneId;
