@@ -38,6 +38,9 @@ public sealed class BotBody
     // Paths round buildings in the current zone.
     public BotNavigation Navigation { get; } = new BotNavigation();
 
+    // Its persona's pace: every pause and read is this many times as long.
+    public double Pace { get; set; } = 1;
+
     private SceneTree Tree
     {
         get { return _node.GetTree(); }
@@ -82,6 +85,43 @@ public sealed class BotBody
     public bool IsOnline
     {
         get { return Tree.GetFirstNodeInGroup(TerminalScreen.GoOfflineGroup) != null; }
+    }
+
+    // A screen over the whole view (a terminal, the potting table) takes the keys: the
+    // body cannot walk until it is closed.
+    public bool CannotWalk
+    {
+        get { return IsOnline || IsOpen<GardenScreen>(); }
+    }
+
+    // The terminal's screen while online, the phone's or a fixed terminal's.
+    public Control? OnlineScreen()
+    {
+        return Tree.GetFirstNodeInGroup(Ui.TerminalScreen.GoOfflineGroup)?.Owner as Control;
+    }
+
+    // The controls of this kind under a root that a person could click now: shown, not
+    // disabled, and wholly inside the window.
+    public List<T> OnScreen<T>(Node root)
+        where T : Control
+    {
+        List<T> found = new List<T>();
+        Rect2 window = _node.GetViewport().GetVisibleRect();
+
+        foreach (Node node in root.FindChildren("*", "", true, false))
+        {
+            T? control = node as T;
+            BaseButton? button = node as BaseButton;
+            LineEdit? field = node as LineEdit;
+
+            if (control != null && control.IsVisibleInTree() && window.Encloses(control.GetGlobalRect())
+                && (button == null || !button.Disabled) && (field == null || field.Editable))
+            {
+                found.Add(control);
+            }
+        }
+
+        return found;
     }
 
     public Button? Usable(string group)

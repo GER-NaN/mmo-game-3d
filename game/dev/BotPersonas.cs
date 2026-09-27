@@ -1,0 +1,138 @@
+namespace MmoGame3d.Dev;
+
+using System.Collections.Generic;
+
+/// <summary>
+/// Who a bot is (--persona): what it likes to do and at what pace. The activities and
+/// goals are the same for everyone; a persona weighs them (a factor on each one's own
+/// weight, 0 to leave it out), adds its own, sets how slowly it goes about things, how
+/// often it drops a goal and how readily it joins a party. Several personas side by
+/// side play the game several ways at once.
+/// </summary>
+public sealed class BotPersona
+{
+    public BotPersona(string name, string about)
+    {
+        Name = name;
+        About = about;
+    }
+
+    public string Name { get; }
+
+    // One line, said in chat when the bot arrives, and in the docs.
+    public string About { get; }
+
+    // Everything it waits (pauses, reading, lingering between activities) is this many
+    // times as long. 1 is the wanderer's pace.
+    public double Pace { get; set; } = 1;
+
+    public double DropChance { get; set; } = 0.25;
+
+    public double JoinChance { get; set; } = 0.35;
+
+    // Factors on activity and goal weights, by name; a name not here keeps factor 1.
+    public Dictionary<string, double> Likes { get; } = new Dictionary<string, double>();
+
+    // Activities only this persona does, with their own weights.
+    public List<BotActivity> Own { get; } = new List<BotActivity>();
+
+    public double Factor(string name)
+    {
+        double factor;
+        return Likes.TryGetValue(name, out factor) ? factor : 1;
+    }
+}
+
+/// <summary>Every persona there is. Add one here, and to scripts/bots-up.ps1's mix.</summary>
+public static class BotPersonas
+{
+    public const string Default = "wanderer";
+
+    public static BotPersona Get(string name)
+    {
+        switch (name)
+        {
+            case "curious":
+                return Curious();
+            case "gamer":
+                return Gamer();
+            case "escaper":
+                return Escaper();
+            case "wedger":
+                return Wedger();
+            case "earner":
+                return Earner();
+            case "slow":
+                return Slow();
+            default:
+                return new BotPersona(Default, "I walk around and do a bit of everything.");
+        }
+    }
+
+    // Opens everything and clicks around in it: breadth, with no code per screen.
+    private static BotPersona Curious()
+    {
+        BotPersona p = new BotPersona("curious", "I open everything and press what I find.");
+        p.Own.Add(BotExtraActivities.PokeAround);
+        p.Own.Add(BotExtraActivities.PokeAtTerminal);
+        p.Likes["walk around town"] = 0.3;
+        p.Likes["fight drones"] = 0.3;
+        return p;
+    }
+
+    // Plays the mini games, over and over.
+    private static BotPersona Gamer()
+    {
+        BotPersona p = new BotPersona("gamer", "I play the terminal games all day.");
+        p.Likes["play Agent Defense"] = 6;
+        p.Likes["use a public terminal"] = 4;
+        p.Likes["make a house plant"] = 4;
+        p.Likes["walk around town"] = 0.3;
+        p.Likes["meet someone"] = 0.3;
+        p.JoinChance = 0.1;
+        return p;
+    }
+
+    // Looks for the way out of the world.
+    private static BotPersona Escaper()
+    {
+        BotPersona p = new BotPersona("escaper", "I look for the edge of the world and try to get past it.");
+        p.Own.Add(BotExtraActivities.RunForTheEdge);
+        p.Likes["walk the meadows"] = 3;
+        p.Likes["go to the outskirts"] = 3;
+        p.JoinChance = 0;
+        return p;
+    }
+
+    // Squeezes into the gaps between buildings, to find where players get wedged.
+    private static BotPersona Wedger()
+    {
+        BotPersona p = new BotPersona("wedger", "I squeeze into gaps to see where I get stuck.");
+        p.Own.Add(BotExtraActivities.SqueezeIntoAGap);
+        p.Likes["walk around town"] = 0.5;
+        p.JoinChance = 0;
+        return p;
+    }
+
+    // Money, then more money.
+    private static BotPersona Earner()
+    {
+        BotPersona p = new BotPersona("earner", "I pick things up and sell them, as much as I can.");
+        p.Likes["earn some money"] = 8;
+        p.Likes["recycle something"] = 4;
+        p.Likes["fight drones"] = 2;
+        p.Likes["walk around town"] = 0.3;
+        p.DropChance = 0.1;
+        return p;
+    }
+
+    // A wanderer at a third of the pace that sticks with what it starts: slow players,
+    // and a bot easy to follow on screen.
+    private static BotPersona Slow()
+    {
+        BotPersona p = new BotPersona("slow", "I take my time and finish what I start.");
+        p.Pace = 3;
+        p.DropChance = 0.05;
+        return p;
+    }
+}

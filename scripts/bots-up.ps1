@@ -7,6 +7,9 @@
 #   .\scripts\bots-up.ps1 -Layout Full     each window the size of its screen, stacked:
 #                                          bigger game views and pictures, for runs
 #                                          nobody watches
+#   .\scripts\bots-up.ps1 -Personas gamer,gamer,curious
+#                                          who each bot is, in turn (game/dev/BotPersonas.cs);
+#                                          the default mix has one of each
 #
 # Each bot is a player of its own (profile soakN), kept between runs, and logs to
 # %TEMP%\mmo-game-3d-bots\soakN.log (replaced each run). Stop them with
@@ -15,6 +18,7 @@ param(
     [int]$Count = 8,
     [ValidateSet("Tiled", "Full")]
     [string]$Layout = "Tiled",
+    [string[]]$Personas = @("wanderer", "curious", "gamer", "escaper", "wedger", "earner", "slow", "wanderer"),
     [string]$Godot = "C:\Users\geral\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
 )
 
@@ -57,12 +61,13 @@ for ($i = 0; $i -lt $Count; $i++) {
     $x = $area.X - $desktop.X + ($slot % $columns) * ($width + 16) + 8
     $y = $area.Y - $desktop.Y + [Math]::Floor($slot / $columns) * ($height + 40) + 31
     $n = $i + 1
+    $persona = $Personas[$i % $Personas.Count]
     # Before "--": the engine's own (window, no sound). After: the game's.
     $gameArgs = @(
         "--path", "`"$root`"", "--audio-driver", "Dummy",
         "--log-file", "`"$(Join-Path $logs "soak$n.log")`"",
         "--resolution", "${width}x${height}", "--position", "$x,$y",
-        "--", "--profile", "soak$n", "--name", "Soak$n", "--bot", "--windowed"
+        "--", "--profile", "soak$n", "--name", "Soak$n", "--bot", "--persona", $persona, "--windowed"
     )
     Start-Process $Godot -ArgumentList $gameArgs -WindowStyle Minimized
 }

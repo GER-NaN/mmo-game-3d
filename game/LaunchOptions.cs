@@ -28,6 +28,7 @@ using MmoGame3d.Rules.Time;
 ///   --address 1.2.3.4   the server to connect to
 ///   --autoconnect       skip the main menu and connect at once
 ///   --bot               the client plays by itself (implies --autoconnect)
+///   --persona curious   with --bot: who the bot is (game/dev/BotPersonas.cs)
 ///   --windowed          stay in a window whatever the saved settings say, without
 ///                       changing them (scripts/bots-up.ps1 tiles its bots)
 ///   --report-every 2    print what the client sees every 2 seconds
@@ -74,6 +75,7 @@ public class LaunchOptions
     public bool AutoConnect { get; private set; }
     public bool Bot { get; private set; }
     public bool Windowed { get; private set; }
+    public string Persona { get; private set; } = "wanderer";
     public string? Scenario { get; private set; }
 
     // Load tests: the dev scenario every load bot asks for and then keeps doing.
@@ -174,6 +176,10 @@ public class LaunchOptions
                 case "--bot":
                     options.Bot = true;
                     options.AutoConnect = true;
+                    break;
+                case "--persona":
+                    options.Persona = next;
+                    i++;
                     break;
                 case "--windowed":
                     options.Windowed = true;

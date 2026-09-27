@@ -428,7 +428,7 @@ public sealed class OnlineStep : BotStep
     {
         _phase = Phase.Pick;
         _appsLeft = 1 + body.Random.Next(3);
-        _wait = 0.8;
+        _wait = 0.8 * body.Pace;
         _jobClicked = false;
     }
 
@@ -524,7 +524,7 @@ public sealed class OnlineStep : BotStep
         GD.Print("Bot: opening " + pick.Text);
         body.Click(pick);
         _phase = Phase.Read;
-        _wait = 2 + (body.Random.NextDouble() * 4);
+        _wait = (2 + (body.Random.NextDouble() * 4)) * body.Pace;
     }
 
     // Start a code, then a guess each time a new answer shows, until cracked or locked.

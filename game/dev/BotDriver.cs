@@ -63,9 +63,17 @@ public partial class BotDriver : Node
     // Names the bot in the judge's findings and pictures.
     public string Profile { get; set; } = "";
 
+    // Who it is (BotPersonas): what it likes to do, and at what pace.
+    public string PersonaName { get; set; } = BotPersonas.Default;
+
+    private BotPersona _persona = BotPersonas.Get(BotPersonas.Default);
+    private bool _introduced;
+
     public override void _Ready()
     {
         _body = new BotBody(this, _random);
+        _persona = BotPersonas.Get(PersonaName);
+        _body.Pace = _persona.Pace;
         _judge = new BotPositionJudge(Profile);
         _zoneJudge = new BotZoneJudge(Profile);
         _closer.Begin(_body);
@@ -87,9 +95,15 @@ public partial class BotDriver : Node
             return;
         }
 
+        if (!_introduced)
+        {
+            _introduced = true;
+            Announce("I am " + ("aeiou".Contains(_persona.Name[0]) ? "an " : "a ") + _persona.Name + " bot: " + _persona.About);
+        }
+
         AcceptInvites(delta);
         _body.Navigation.Tick(_body);
-        string doing = (_goal != null ? _goal.Name + " > " : "") + (_activity?.Name ?? (_closing ? "closing up" : "choosing"));
+        string doing = _persona.Name + ": " + (_goal != null ? _goal.Name + " > " : "") + (_activity?.Name ?? (_closing ? "closing up" : "choosing"));
         _judge.Tick(_body, delta, doing, _activity != null ? _steps[_step] : null);
         _zoneJudge.Tick(_body, delta, doing);
 
@@ -111,6 +125,9 @@ public partial class BotDriver : Node
             if (_closer.Tick(_body, delta) != StepResult.Running || _closingFor > _closer.Limit)
             {
                 _closing = false;
+
+                // A moment between one thing and the next, longer at a slower pace.
+                _pickIn = (0.5 + _random.NextDouble()) * _persona.Pace;
             }
 
             return;
@@ -189,21 +206,24 @@ public partial class BotDriver : Node
         List<BotGoal> goals = new List<BotGoal>();
         int total = 0;
 
-        foreach (BotActivity activity in BotActivities.All)
+        List<BotActivity> choices = new List<BotActivity>(BotActivities.All);
+        choices.AddRange(_persona.Own);
+
+        foreach (BotActivity activity in choices)
         {
-            if (activity.CanStart(_body))
+            if (activity.CanStart(_body) && Weight(activity) > 0)
             {
                 open.Add(activity);
-                total += activity.Weight;
+                total += Weight(activity);
             }
         }
 
         foreach (BotGoal goal in BotGoals.All)
         {
-            if (goal.CanStart(_body))
+            if (goal.CanStart(_body) && Weight(goal) > 0)
             {
                 goals.Add(goal);
-                total += goal.Weight;
+                total += Weight(goal);
             }
         }
 
@@ -212,20 +232,20 @@ public partial class BotDriver : Node
 
         foreach (BotGoal goal in goals)
         {
-            if (goalRoll < goal.Weight)
+            if (goalRoll < Weight(goal))
             {
                 StartGoal(goal);
                 return;
             }
 
-            goalRoll -= goal.Weight;
+            goalRoll -= Weight(goal);
         }
 
         total = 0;
 
         foreach (BotActivity activity in open)
         {
-            total += activity.Weight;
+            total += Weight(activity);
         }
 
         if (open.Count > 1 && open.Exists(a => a.Name == _lastActivity))
@@ -248,13 +268,13 @@ public partial class BotDriver : Node
 
         foreach (BotActivity activity in open)
         {
-            if (roll < activity.Weight)
+            if (roll < Weight(activity))
             {
                 pick = activity;
                 break;
             }
 
-            roll -= activity.Weight;
+            roll -= Weight(activity);
         }
 
         Start(pick);
@@ -278,12 +298,23 @@ public partial class BotDriver : Node
         _body.Chat("[bot] " + line);
     }
 
+    // Its own weight, times what the persona thinks of it.
+    private int Weight(BotActivity activity)
+    {
+        return (int)Math.Round(activity.Weight * _persona.Factor(activity.Name) * 10);
+    }
+
+    private int Weight(BotGoal goal)
+    {
+        return (int)Math.Round(goal.Weight * _persona.Factor(goal.Name) * 10);
+    }
+
     private void StartGoal(BotGoal goal)
     {
         _goal = goal;
         _goalState = new GoalState();
         _goalFor = 0;
-        _dropAt = _random.NextDouble() < DropChance ? 3 + (_random.NextDouble() * (goal.UsualSeconds - 3)) : -1;
+        _dropAt = _random.NextDouble() < _persona.DropChance ? 3 + (_random.NextDouble() * ((goal.UsualSeconds * _persona.Pace) - 3)) : -1;
         GD.Print("Bot: goal \"" + goal.Name + "\"" + (_dropAt >= 0 ? " (will drop it after " + (int)_dropAt + " s)" : ""));
         Announce("goal: " + goal.Name);
 
@@ -397,7 +428,7 @@ public partial class BotDriver : Node
         {
             // On a solo goal, never; in wander mode, now and then.
             _joinDecided = true;
-            _willJoin = (_goal == null || !_goal.Solo) && _random.NextDouble() < JoinChance;
+            _willJoin = (_goal == null || !_goal.Solo) && _random.NextDouble() < _persona.JoinChance;
         }
 
         _joinSeenFor += delta;
