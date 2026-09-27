@@ -62,11 +62,13 @@ def new_lines(path, state):
 
 
 def running_bots():
+    """The bots' profiles, and the process ids of the server."""
     out = subprocess.run(
         ["powershell", "-NoProfile", "-Command",
-         "Get-CimInstance Win32_Process -Filter \"Name like 'Godot%'\" | ForEach-Object { $_.CommandLine }"],
+         "Get-CimInstance Win32_Process -Filter \"Name like 'Godot%'\" | ForEach-Object { [string]$_.ProcessId + ' ' + $_.CommandLine }"],
         capture_output=True, text=True).stdout
-    return set(re.findall(r"--profile (soak\d+)", out)), "--server" in out
+    servers = {line.split(" ", 1)[0] for line in out.splitlines() if "--server" in line and "--port 7071" not in line}
+    return set(re.findall(r"--profile (soak\d+)", out)), servers
 
 
 def action(line):
@@ -75,7 +77,8 @@ def action(line):
 
 
 def look(state, shots):
-    bots, server_up = running_bots()
+    bots, servers = running_bots()
+    server_up = len(servers) > 0
     flags = []
     quiet = 0
     for path in sorted(glob.glob(os.path.join(LOGS, "soak*.log"))):
@@ -115,7 +118,7 @@ def look(state, shots):
         line += "; server: " + server
     if flags:
         line += "; " + "; ".join(flags)
-    return line, server_up
+    return line, servers
 
 
 def server_errors(state):
@@ -153,12 +156,16 @@ def main():
     parser.add_argument("--no-shots", action="store_true", help="flag bots, take no screenshots")
     args = parser.parse_args()
 
+    # Watches the server that was up when it started: a restarted server gets a watcher
+    # of its own, or two would take turns with one state file.
     state = load_state()
+    first = None
     while True:
-        line, server_up = look(state, not args.no_shots)
+        line, servers = look(state, not args.no_shots)
         save_state(state)
         print(line, flush=True)
-        if args.every <= 0 or not server_up:
+        first = servers if first is None else first
+        if args.every <= 0 or not (first & servers):
             return 0
         time.sleep(args.every)
 

@@ -6,7 +6,7 @@ one page to review. The framework itself is described in
 
 ```
 python tools/bot-watch/watch.py                one look now
-python tools/bot-watch/watch.py --every 120    a look every 2 minutes, until the server stops
+python tools/bot-watch/watch.py --every 120    a look every 2 minutes, until that server stops
 python tools/bot-watch/watch.py --no-shots     flag, but take no pictures
 python tools/bot-watch/report.py               only complete the findings and rewrite the page
 ```
@@ -20,10 +20,13 @@ diagnostics are listed too. A flagged bot's picture goes to
 client (`game/dev/BotKeeper.cs`) saves its game view there, so nothing else on the
 screen is ever in it.
 
+Both the watcher and the memory recorder follow the server that was up when they
+started, and stop with it: after restarting the server, start them again.
+
 ## Memory
 
 ```
-powershell -File tools\bot-watch\memory.ps1                  every 5 minutes, until the server stops
+powershell -File tools\bot-watch\memory.ps1                  every 5 minutes, until that server stops
 powershell -File tools\bot-watch\memory.ps1 -EverySeconds 60
 ```
 

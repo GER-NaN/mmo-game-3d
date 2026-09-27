@@ -18,13 +18,22 @@ if (-not (Test-Path $csv)) {
     "time,process,profile,working_set_mb,private_mb" | Set-Content -Encoding utf8 $csv
 }
 
+$first = $null
+
 while ($true) {
     # The console exe only starts the game exe, which holds the memory.
     $all = Get-CimInstance Win32_Process | Where-Object { $_.Name -like "Godot*" -and $_.Name -notlike "*_console.exe" }
-    $server = $all | Where-Object { $_.CommandLine -like "*--server*" }
+    # The bots' server; the dev scenarios' own (port 7071) comes and goes.
+    $server = @($all | Where-Object { $_.CommandLine -like "*--server*" -and $_.CommandLine -notlike "*--port 7071*" } | ForEach-Object { $_.ProcessId })
 
-    if (-not $server) {
-        Write-Host "No server running; stopped."
+    # The server that was up at the start: a restarted one gets a recorder of its own,
+    # or two would write every row twice.
+    if ($null -eq $first) {
+        $first = $server
+    }
+
+    if (@($server | Where-Object { $first -contains $_ }).Count -eq 0) {
+        Write-Host "The server stopped; stopped."
         break
     }
 

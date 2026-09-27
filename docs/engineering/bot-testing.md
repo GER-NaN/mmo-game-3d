@@ -19,7 +19,7 @@ way people do, for as long as it runs.
 .\scripts\bots-up.ps1                         9 bots, soak1 to soak9, tiled over every screen
 .\scripts\bots-up.ps1 -Count 4 -Layout Full   4 bots, each window the size of its screen
 .\scripts\bots-up.ps1 -Personas gamer,curious  who each bot is, in turn (one of each by default)
-python tools/bot-watch/watch.py --every 120   a look every 2 minutes, until the server stops
+python tools/bot-watch/watch.py --every 120   a look every 2 minutes, until that server stops
 python tools/bot-watch/triage.py --since 02:00   the findings since then, grouped into issues
 ```
 
