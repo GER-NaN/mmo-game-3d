@@ -2,6 +2,7 @@ namespace MmoGame3d.Dev;
 
 using System;
 using Godot;
+using MmoGame3d.Players;
 
 public enum StepResult
 {
@@ -448,6 +449,8 @@ public sealed class WanderStep : BotStep
     private readonly double _seconds;
     private double _left;
     private double _spell;
+    private Vector3 _spellFrom;
+    private bool _spellWalks;
 
     public WanderStep(double seconds)
         : base("wander", seconds + 5)
@@ -495,10 +498,25 @@ public sealed class WanderStep : BotStep
 
         _spell = 1 + (body.Random.NextDouble() * 3);
         body.Stop();
+        Player? me = body.Me;
+
+        // A walk that got nowhere (a parked car, a wall): turn away first, as a person
+        // would, not into it again.
+        bool blocked = me != null && _spellWalks && me.GlobalPosition.DistanceTo(_spellFrom) < 0.5f;
+        _spellFrom = me?.GlobalPosition ?? Vector3.Zero;
+        _spellWalks = !blocked;
+
+        if (blocked)
+        {
+            _spell = 0.5 + (body.Random.NextDouble() * 1.0);
+            Input.ActionPress(body.Random.Next(2) == 0 ? "turn_left" : "turn_right");
+            return StepResult.Running;
+        }
 
         switch (body.Random.Next(10))
         {
             case 0:
+                _spellWalks = false;
                 break;
             case 1:
             case 2:
