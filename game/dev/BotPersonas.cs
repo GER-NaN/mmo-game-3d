@@ -64,6 +64,8 @@ public static class BotPersonas
                 return Earner();
             case "slow":
                 return Slow();
+            case "masher":
+                return Masher();
             default:
                 return new BotPersona(Default, "I walk around and do a bit of everything.");
         }
@@ -123,6 +125,15 @@ public static class BotPersonas
         p.Likes["fight drones"] = 2;
         p.Likes["walk around town"] = 0.3;
         p.DropChance = 0.1;
+        return p;
+    }
+
+    // Hammers keys nobody would press in that order: input the game did not plan for.
+    private static BotPersona Masher()
+    {
+        BotPersona p = new BotPersona("masher", "I press all the keys, fast, in any order.");
+        p.Own.Add(BotExtraActivities.MashKeys);
+        p.Likes["walk around town"] = 0.5;
         return p;
     }
 
