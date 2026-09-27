@@ -522,11 +522,12 @@ public partial class BotDriver : Node
     // Key by key into whatever has the focus, then Enter.
     public static void Type(string text)
     {
-        foreach (char c in text)
+        // By code point, as a keyboard sends them: an emoji is two chars but one key.
+        foreach (System.Text.Rune rune in text.EnumerateRunes())
         {
-            Key key = KeyFor(c);
-            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = c, Pressed = true });
-            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = c, Pressed = false });
+            Key key = rune.IsBmp ? KeyFor((char)rune.Value) : Key.None;
+            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = rune.Value, Pressed = true });
+            Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = rune.Value, Pressed = false });
         }
 
         Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, PhysicalKeycode = Key.Enter, Pressed = true });

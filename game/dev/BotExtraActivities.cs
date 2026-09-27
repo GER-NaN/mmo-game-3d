@@ -18,6 +18,13 @@ public static class BotExtraActivities
         new CloseAllStep(),
     });
 
+    // One of the typed lines, in public chat, for everyone's chat box and the server.
+    public static readonly BotActivity SaySomethingOdd = new BotActivity("say something odd", 2, body => body.Zone != null, body =>
+        new BotPlan()
+            .Say(PokeStep.Lines[body.Random.Next(PokeStep.Lines.Length)])
+            .Pause(1.5)
+            .Steps);
+
     public static readonly BotActivity PokeAtTerminal = new BotActivity("poke at a terminal", 5, body => body.ZoneId == ZoneIds.Town, body =>
     {
         string terminal = body.Random.Next(2) == 0 ? "Interactables/LibraryTerminal" : "Interactables/StreetKiosk";
@@ -57,7 +64,18 @@ public sealed class PokeStep : BotStep
 {
     private static readonly string[] Opens = { "inventory", "skills", "social", "map" };
     private static readonly string[] Denied = { "Quit", "main menu", "Leave to", "Delete", "Go Offline" };
-    private static readonly string[] Lines = { "hello", "testing 123", "this is my plan", "lfg", "brb" };
+    // Ordinary lines, and lines a careless or hostile player types: markup, other
+    // scripts and emoji, far too long, blank, format strings, quotes for a database.
+    public static readonly string[] Lines =
+    {
+        "hello", "testing 123", "this is my plan", "lfg", "brb",
+        "[color=red]red[/color] [b]bold[/b] [url]x[/url]",
+        "Åsa Ñoño 日本語 Привет 🙂🔥",
+        new string('W', 400),
+        "   ",
+        "%s %d {0} {{1}} \\n $name",
+        "'; DROP TABLE players; --",
+    };
 
     private readonly bool _terminal;
     private readonly double _seconds;

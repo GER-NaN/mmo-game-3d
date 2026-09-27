@@ -83,6 +83,7 @@ public static class BotPersonas
         BotPersona p = new BotPersona("curious", "I open everything and press what I find.");
         p.Own.Add(BotExtraActivities.PokeAround);
         p.Own.Add(BotExtraActivities.PokeAtTerminal);
+        p.Own.Add(BotExtraActivities.SaySomethingOdd);
         p.Likes["walk around town"] = 0.3;
         p.Likes["fight drones"] = 0.3;
         return p;
