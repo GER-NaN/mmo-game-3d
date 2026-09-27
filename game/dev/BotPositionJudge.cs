@@ -54,6 +54,10 @@ public sealed class BotPositionJudge
     // (a roof) even where that something counts as walkable (a taxi cabin's roof is part
     // of the cabin). Not on sculpted ground, which rises far above its markers.
     private const float AboveMarkers = 1.2f;
+
+    // Past the edge of the zone's map by this much, or this far below the zone.
+    private const float PastEdge = 5f;
+    private const float BelowZone = 10f;
     private const float RayDown = 4f;
 
     private static readonly HashSet<string> Walkable = new HashSet<string> { "Ground", "Roads", "Terrain", "Room", "Cabin" };
@@ -66,6 +70,10 @@ public sealed class BotPositionJudge
     private double _vehiclesIn = VehiclesEvery;
     private double _trackIn = TrackEvery;
     private readonly List<Sample> _track = new List<Sample>();
+    private string _trackZone = "";
+
+    // Further than this between two quarter-second samples is not walking.
+    private const float Teleport = 4f;
     private string _historyZone = "";
     private string _badFooting = "";
     private double _badFootingFor;
@@ -110,6 +118,16 @@ public sealed class BotPositionJudge
 
         _checkIn = CheckEvery;
         JudgeFooting(body, me, activity, step);
+        JudgeBounds(body, me, activity, step);
+
+        // Online (a terminal, the phone) or reading a panel, standing still is the point:
+        // not stuck, and the clock starts again after. Unless the step is a walk: then the
+        // bot means to go and cannot, which is just what stuck is.
+        if ((body.IsOnline || body.OpenPanels().Count > 0) && (step == null || !step.Walks))
+        {
+            _history.Clear();
+            return;
+        }
 
         // A ride's cabin stands still in its own instance: sitting there is not stuck.
         if (body.ZoneId.StartsWith("taxi"))
@@ -173,6 +191,14 @@ public sealed class BotPositionJudge
     // and forth in one place (its own steering, or the server putting it back).
     private void JudgeThrashing(BotBody body, Player me, string activity, BotStep? step)
     {
+        // A new zone, or a jump no walk makes (a door, a respawn, the party pulling it
+        // along): the track starts again, or the jump would count as travel.
+        if (body.ZoneId != _trackZone || (_track.Count > 0 && me.GlobalPosition.DistanceTo(_track[_track.Count - 1].At) > Teleport))
+        {
+            _track.Clear();
+            _trackZone = body.ZoneId;
+        }
+
         _track.Add(new Sample(_clock, me.GlobalPosition, step != null && step.Walks));
 
         while (_track.Count > 0 && _track[0].Time < _clock - TrackWindow)
@@ -249,6 +275,34 @@ public sealed class BotPositionJudge
                 return;
             }
         }
+    }
+
+    // Outside the zone's map, or far below it: out of the world a player should be in.
+    private void JudgeBounds(BotBody body, Player me, string activity, BotStep? step)
+    {
+        Zones.Zone? zone = body.Zone;
+
+        if (zone == null)
+        {
+            return;
+        }
+
+        Vector3 local = zone.ToLocal(me.GlobalPosition);
+        bool past = zone.MapSize != Vector2.Zero
+            && (Mathf.Abs(local.X) > (zone.MapSize.X / 2f) + PastEdge || Mathf.Abs(local.Z) > (zone.MapSize.Y / 2f) + PastEdge);
+
+        if (!past && local.Y > -BelowZone)
+        {
+            return;
+        }
+
+        string under;
+        float above;
+        Under(body, me, out under, out above);
+        string where = past
+            ? "past the map's edge at (" + local.X.ToString("0") + ", " + local.Z.ToString("0") + "), the map being " + zone.MapSize.X.ToString("0") + " by " + zone.MapSize.Y.ToString("0") + " m"
+            : local.Y.ToString("0.0") + " m below the zone";
+        Report("out-of-bounds", where, body, me, activity, step, under, above);
     }
 
     // A walk the bot gave up on after its tries at working round something: stuck, if

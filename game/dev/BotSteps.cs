@@ -98,6 +98,7 @@ public sealed class Walker
     private int _next;
     private Vector3 _pathTo;
     private double _repathIn;
+    private double _closeIn;
     private int _unsticks;
     private bool _turnLeft;
 
@@ -113,6 +114,22 @@ public sealed class Walker
         {
             Unstick(body, delta);
             _repathIn = 0;
+            return StepResult.Running;
+        }
+
+        // Still at a terminal (a goal dropped mid-run leaves it open): off it first, as a
+        // person would, since no key walks while it is up.
+        if (body.CannotWalk)
+        {
+            _closeIn -= delta;
+
+            if (_closeIn <= 0)
+            {
+                _closeIn = 1;
+                GD.Print("Bot: closing the screen before walking");
+                body.CloseOne();
+            }
+
             return StepResult.Running;
         }
 
@@ -488,14 +505,14 @@ public sealed class PauseStep : BotStep
     private double _left;
 
     public PauseStep(double seconds)
-        : base("pause", seconds + 1)
+        : base("pause", (seconds * 4) + 1)
     {
         _seconds = seconds;
     }
 
     public override void Begin(BotBody body)
     {
-        _left = _seconds;
+        _left = _seconds * body.Pace;
         body.Stop();
     }
 

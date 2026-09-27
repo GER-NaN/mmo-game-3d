@@ -11,16 +11,18 @@ using MmoGame3d.Players;
 /// - Too many: more than MaxChanges zone changes in Window, far more than a person
 ///   walking between places makes.
 /// - Ping-pong: back and forth between the same two zones (A, B, A, B...) PingPongs
-///   times in a row, as when a door or an arrival puts a player straight back where
-///   they came from.
+///   times in a row, each stay shorter than QuickStay: bounced straight back, as when
+///   an arrival puts a player in the door they came through. A visit to the shop and
+///   one to the college are town, shop, town, college, town: that is play, not this.
 ///
 /// A ride counts: town to a taxi cabin and back is two changes.
 /// </summary>
 public sealed class BotZoneJudge
 {
-    private const double Window = 300;
+    private const double Window = 60;
     private const int MaxChanges = 8;
     private const int PingPongs = 3;
+    private const double QuickStay = 10;
     private const double RepeatAfter = 60;
 
     private readonly string _profile;
@@ -84,7 +86,7 @@ public sealed class BotZoneJudge
             Change later = _changes[i];
             Change earlier = _changes[i - 1];
 
-            if (later.From != earlier.To || later.To != earlier.From)
+            if (later.From != earlier.To || later.To != earlier.From || later.Time - earlier.Time > QuickStay)
             {
                 break;
             }
