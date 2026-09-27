@@ -144,8 +144,8 @@ public partial class Network : NetworkNode
         RpcId(1, MethodName.Jump);
     }
 
-    // Unreliable but ordered: a lost walk is replaced by the next one 50 ms later, and an
-    // old one never overtakes a newer one.
+    // Unreliable but ordered: a lost walk is replaced by the next one (Player sends an
+    // unchanged walk again every 0.25 s), and an old one never overtakes a newer one.
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.UnreliableOrdered)]
     private void Walk(Vector2 direction, float heading)
     {

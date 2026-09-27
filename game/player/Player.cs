@@ -50,6 +50,10 @@ public partial class Player : CharacterBody3D
     // The owner sends a changing walk at most this often. A stop goes out at once.
     private const double InputSendInterval = 0.05;
 
+    // A walk is unreliable: an unchanged one is sent again this often, or one lost packet
+    // leaves the server's body standing while the client walks and snaps back.
+    private const double WalkResendInterval = 0.25;
+
     // Speeds, in world units a second, where the look changes from standing to walking
     // to running.
     private const float WalkFrom = 0.3f;
@@ -570,7 +574,8 @@ public partial class Player : CharacterBody3D
             _sentHeading = Heading;
             _sinceSend = 0;
         }
-        else if ((walk != _sentDirection || !Mathf.IsEqualApprox(Heading, _sentHeading)) && _sinceSend >= InputSendInterval)
+        else if (walk != Vector2.Zero && _sinceSend >= WalkResendInterval
+            || (walk != _sentDirection || !Mathf.IsEqualApprox(Heading, _sentHeading)) && _sinceSend >= InputSendInterval)
         {
             network.SendWalk(walk, Heading);
             _sentDirection = walk;
