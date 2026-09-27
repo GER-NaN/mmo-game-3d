@@ -20,6 +20,9 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+# The docs wiki, if a doc changed. A failure here never stops the game.
+& (Join-Path $PSScriptRoot "wiki-publish.ps1") -IfChanged
+
 # Arguments after "--" are the game's own; see game/LaunchOptions.cs.
 $gameArgs = @("--path", "`"$root`"", "--", "--profile", $Profile)
 
