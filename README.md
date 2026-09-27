@@ -44,8 +44,11 @@ making-changes has the recipes.
   lives, resetting, playing with someone else.
 - `docs/engineering/editor.md`: working in the Godot editor: running, zones, props,
   doors, what it does not show.
-- `docs/engineering/making-changes.md`: how to add an RPC, a migration, a zone, an
-  interactable, synced state, a terminal app, a prop, a sound; the git flow.
+- `docs/engineering/making-changes.md`: recipes: a zone, a door, a model as a prop,
+  placing it, a building to enter, an item, a skill, a mechanic, a person, a sound, a
+  gesture, an RPC, an intent, a migration, synced state, a terminal app; the git flow.
+- `docs/engineering/example-tree-chopping.md`: a new mechanic from end to end (not
+  built), to copy from.
 - `docs/engineering/testing.md`: unit tests, dev scenarios, bots, load tests.
 - `docs/engineering/sound.md`: the sound catalog, the director, where sounds come from.
 - `docs/engineering/diagnostics.md`: logs, traces and the packet log.
