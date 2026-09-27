@@ -49,6 +49,9 @@ public partial class ScenarioDriver : Node
     private float _headingBefore;
     private float _distanceBefore;
     private double _turnHeld = -1;
+    private BotBody? _body;
+    private bool _swarmSeen;
+    private double _empIn;
 
     public ScenarioDriver(string name, Networks networks)
     {
@@ -134,6 +137,28 @@ public partial class ScenarioDriver : Node
                     return true;
                 });
                 Expect("standing on the terrain", StandingInMeadows);
+                break;
+            case "swarm":
+                Step("see the swarm", () =>
+                {
+                    if (_body == null)
+                    {
+                        _body = new BotBody(this, new Random());
+                    }
+
+                    _swarmSeen = _body.ZoneId == "meadows" && _body.LiveDrones().Count > 0;
+                    return _swarmSeen;
+                });
+                Step("bring every drone down", BringDronesDown);
+                Expect("GPU cores dropped", () => _body!.GroundItems().Count > 0 || Noticed("Picked up 1 GPU core"));
+                Step("take the phone out", () =>
+                {
+                    Input.ParseInputEvent(new InputEventAction { Action = "phone", Pressed = true });
+                    Input.ParseInputEvent(new InputEventAction { Action = "phone", Pressed = false });
+                    return true;
+                });
+                Step("open Notifications", () => ClickGroup(TerminalScreen.AppGroupPrefix + TerminalApps.Notifications));
+                Expect("the swarm completed, and taken part in", () => EventRow("completed") && EventRow("you took part"));
                 break;
             case "taxi-relog":
                 Expect("logged in at the taxi drop-off in Old Town", AtTheDropOff);
@@ -419,6 +444,46 @@ public partial class ScenarioDriver : Node
     {
         Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
         return me != null ? me.Heading : 0f;
+    }
+
+    // Walks under the nearest drone and fires the EMP until none is flying.
+    private bool BringDronesDown()
+    {
+        List<Node3D> drones = _body!.LiveDrones();
+
+        if (drones.Count == 0)
+        {
+            _body.Stop();
+            return true;
+        }
+
+        Node3D nearest = _body.Nearest(drones)!;
+        _body.SteerTo(nearest.GlobalPosition);
+        _empIn -= GetProcessDeltaTime();
+
+        if (_empIn <= 0 && _body.DistanceTo(nearest.GlobalPosition) < 8f)
+        {
+            _empIn = 1.5;
+            BotBody.Press("emp");
+        }
+
+        return false;
+    }
+
+    // A Notifications row, as shown, with this text.
+    private bool EventRow(string text)
+    {
+        foreach (Node node in GetTree().GetNodesInGroup(TerminalScreen.EventRowGroup))
+        {
+            Label? label = node as Label;
+
+            if (label != null && label.Text.Contains(text))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void GoOnline()

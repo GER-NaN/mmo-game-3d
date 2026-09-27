@@ -115,10 +115,13 @@ public partial class Drone : Node3D
 
         if (Down)
         {
-            if (NetPosition.Y > 0.15f)
+            // To the ground its circle is set on, which in the meadows is not at 0.
+            float floor = Center.Y + 0.15f;
+
+            if (NetPosition.Y > floor)
             {
                 _fallSpeed += Gravity * step;
-                NetPosition = new Vector3(NetPosition.X, Mathf.Max(0.15f, NetPosition.Y - (_fallSpeed * step)), NetPosition.Z);
+                NetPosition = new Vector3(NetPosition.X, Mathf.Max(floor, NetPosition.Y - (_fallSpeed * step)), NetPosition.Z);
             }
             else
             {

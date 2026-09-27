@@ -73,6 +73,11 @@ pixel_size = 0.01
 [node name="FromTown" type="Marker3D" parent="Arrivals"]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -1480, 0, 0)
 
+[node name="Events" type="Node3D" parent="."]
+
+[node name="DroneSwarm" type="Marker3D" parent="Events"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1420, 0, 0)
+
 [node name="Spawn" type="Marker3D" parent="."]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -1480, 0, 0)
 
@@ -87,3 +92,9 @@ spawn_path = NodePath("../Players")
 [node name="ItemSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://game/items/GroundItem.tscn")
 spawn_path = NodePath("../Items")
+
+[node name="Drones" type="Node3D" parent="."]
+
+[node name="DroneSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/drones/Drone.tscn")
+spawn_path = NodePath("../Drones")

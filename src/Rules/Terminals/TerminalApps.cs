@@ -65,9 +65,13 @@ public static class TerminalApps
     public const string TownCameras = "cameras";
     public const string Defense = "defense";
 
+    // World events: running and past, and the player's part in them.
+    public const string Notifications = "notifications";
+
     private static readonly TerminalApp[] All =
     {
         new TerminalApp(Chat, "Chat", ""),
+        new TerminalApp(Notifications, "Notifications", ""),
         new TerminalApp(Online, "Who's online", ""),
         new TerminalApp(Whois, "Whois", ""),
         new TerminalApp(TodoList, "Town repairs", ""),
@@ -86,7 +90,7 @@ public static class TerminalApps
     };
 
     // What a phone keeps: the simple apps, and it still shows the locked ones.
-    private static readonly HashSet<string> PhoneApps = new HashSet<string> { Chat, Online, Whois, TodoList, Defense, "wallet" };
+    private static readonly HashSet<string> PhoneApps = new HashSet<string> { Chat, Notifications, Online, Whois, TodoList, Defense, "wallet" };
 
     public static List<TerminalApp> For(TerminalType door)
     {

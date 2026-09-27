@@ -55,6 +55,9 @@ public partial class TerminalScreen : Control
 
     // Bots find Agent Defense's start button by this group.
     public const string DefenseStartGroup = "terminal_defense_start";
+
+    // Bots and scenarios read the Notifications rows, as shown, by this group.
+    public const string EventRowGroup = "terminal_event_row";
     public event Action? CrackStartPressed;
 
     // Whois: search text, open a page by player id, your own page, props, your own
@@ -118,6 +121,9 @@ public partial class TerminalScreen : Control
     private int _crackLeft;
     private int _crackStatus;
     private string[] _status = new string[0];
+    private int _eventPoints;
+    private string[] _eventsNow = new string[0];
+    private string[] _eventsPast = new string[0];
     private string[] _crackBoard = new string[0];
     private string[] _defenseBoard = new string[0];
     private AgentDefenseView? _defense;
@@ -262,6 +268,18 @@ public partial class TerminalScreen : Control
         _defense?.Play(seed, lengthMs);
     }
 
+    public void ShowEvents(int points, string[] current, string[] past)
+    {
+        _eventPoints = points;
+        _eventsNow = current;
+        _eventsPast = past;
+
+        if (_openApp == TerminalApps.Notifications)
+        {
+            ShowApp(new TerminalApp(TerminalApps.Notifications, "Notifications", ""));
+        }
+    }
+
     public void ShowStatus(string[] lines)
     {
         _status = lines;
@@ -380,6 +398,9 @@ public partial class TerminalScreen : Control
                 break;
             case TerminalApps.Whois:
                 ShowWhois(content);
+                break;
+            case TerminalApps.Notifications:
+                ShowNotifications(content);
                 break;
             case TerminalApps.StatusBoard:
                 AddLine(content, "What is happening in the world, newest first.", Dim, 15);
@@ -799,6 +820,29 @@ public partial class TerminalScreen : Control
         Timer tick = new Timer { WaitTime = 0.5, Autostart = true };
         tick.Timeout += () => caption.Text = view.ShownWorks ? "  REC   CAM " + view.CameraNumber + "   OLD TOWN" : "  CAM " + view.CameraNumber + " IS DOWN   FIX IT IN TOWN";
         switches.AddChild(tick);
+    }
+
+    private void ShowNotifications(VBoxContainer content)
+    {
+        AddLine(content, "World event points: " + _eventPoints, Text, 17);
+        AddLine(content, "Current", Dim, 15);
+
+        if (_eventsNow.Length == 0)
+        {
+            AddLine(content, "Nothing going on.", Text, 16);
+        }
+
+        foreach (string row in _eventsNow)
+        {
+            AddLine(content, row, Text, 16).AddToGroup(EventRowGroup);
+        }
+
+        AddLine(content, "Past", Dim, 15);
+
+        foreach (string row in _eventsPast)
+        {
+            AddLine(content, row, Text, 16).AddToGroup(EventRowGroup);
+        }
     }
 
     private void ShowOnline(VBoxContainer content)

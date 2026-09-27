@@ -34,6 +34,7 @@ public class ServerScenarios
     public ServerDefense? Defense { get; set; }
     public ServerDrones? Drones { get; set; }
     public ServerRides? Rides { get; set; }
+    public ServerWorldEvents? Events { get; set; }
 
     public void Ask(long peer, string name)
     {
@@ -111,6 +112,13 @@ public class ServerScenarios
                 break;
             case "hills":
                 StandAtFootOfHill(record);
+                break;
+            case "swarm":
+                // At the swarm's spot with an EMP worn, and a swarm of two on its way.
+                StandAtSwarm(record);
+                WearEmp(session);
+                EquipPhone(session);
+                Events?.StartSoon("drone-swarm-meadows", 2);
                 break;
             case "lights":
                 StandBy(record, ZoneIds.Town, "JunctionBox", new Vector3(0f, 0f, 1.3f));
@@ -266,6 +274,24 @@ public class ServerScenarios
         record.PositionY = at.Y;
         record.PositionZ = at.Z;
         record.Yaw = -Mathf.Pi / 2f;
+    }
+
+    private void StandAtSwarm(PlayerRecord record)
+    {
+        Zone zone = _world.GetZone(ZoneIds.Meadows)!;
+        Vector3 at = zone.GetNode<Node3D>(ServerWorldEvents.SpotsNode + "/DroneSwarm").Position;
+        at.Y = SpaceQueries.GroundUnder(zone, at, 300f, 600f) ?? at.Y;
+        record.Zone = ZoneIds.Meadows;
+        record.PositionX = at.X;
+        record.PositionY = at.Y;
+        record.PositionZ = at.Z;
+    }
+
+    private static void WearEmp(Session session)
+    {
+        ItemInstance emp = new ItemInstance(Guid.NewGuid(), ItemType.EmpEmitter, ItemTier.Standard);
+        session.Instances.Add(emp);
+        new Belongings(session.Inventory!, session.Instances).Equip(emp.Id);
     }
 
     private void StandBy(PlayerRecord record, string zoneId, string thing, Vector3 offset)

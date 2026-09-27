@@ -277,6 +277,11 @@ public partial class ClientGame : Node
             GD.Print("Agent Defense: run with seed " + seed + ", " + lengthMs + " ms");
             _terminal?.PlayDefense(seed, lengthMs);
         };
+        _terminalNetwork.EventsReceived += (points, current, past) =>
+        {
+            GD.Print("World events: " + current.Length + " running, " + past.Length + " past, " + points + " points");
+            _terminal?.ShowEvents(points, current, past);
+        };
         _terminalNetwork.StatusReceived += lines =>
         {
             GD.Print("Status board: " + (lines.Length > 0 ? lines[0] : "all quiet"));
