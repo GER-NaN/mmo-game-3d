@@ -339,6 +339,17 @@ With a private conversation's tab shown, "/wave" goes to that player as the text
 does not offer the emotes, so this may be meant. Most games read a slash command on
 any tab.
 
+### The street kiosk sits at the end of a one-body lane
+
+**Found** 2026-09-27, the masher, twice at the same spot (`stuck`, x 20.5, z -7.5).
+**Status:** open, for the author: where the kiosk goes is a look at the town.
+
+The kiosk was moved to (28, 0, -7) out of a door's trigger. There it stands behind a
+dumpster, on a sidewalk about one body wide between the dumpster and the shop fronts.
+With two players at the kiosk, a third one walking to it has no way past them and
+stands against them. An open stretch of sidewalk would let players queue beside each
+other.
+
 ## Bot problems
 
 Fixed as found; kept here so the same thing is recognised next time.
