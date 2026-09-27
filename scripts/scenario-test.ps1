@@ -73,7 +73,8 @@ foreach ($name in $Scenarios) {
     else {
         Write-Host $result.Line
 
-        if ($result.Line -notmatch "PASS") {
+        # Case-sensitive, on the result itself: a notice in a FAIL line can hold "Pass".
+        if ($result.Line -cnotmatch ": PASS") {
             $failed++
         }
     }
