@@ -16,20 +16,21 @@ author's machine.
 
 ## 2. Postgres
 
-The author's container is `game-db`, shared with the older `mmo-game` repo (it made the
-container; its data is in the Docker volume `mmo-game_game-db-data`). User and password
-are both `mmo`, on port 5432. On a new machine:
+Postgres runs in this repo's own Docker Compose project, `mmo-game-3d`, with the
+diagnostics viewer (`docker/docker-compose.yml`). One command starts both, and they
+start again with Docker:
 
 ```
-docker run -d --name game-db -e POSTGRES_USER=mmo -e POSTGRES_PASSWORD=mmo -e POSTGRES_DB=mmo -p 5432:5432 -v game-db-data:/var/lib/postgresql postgres:18
+docker compose -f docker/docker-compose.yml up -d
 ```
 
-Then make the two databases this repo uses. They were made by hand; nothing makes them:
+The container is `mmo3d-db`, user and password both `mmo`, on port 5432. Its data is
+in the Docker volume `mmo-game-3d_db-data`. A new volume gets both databases at once:
+`mmo3d` (the world) and `mmo3d_test` (the tests, from `docker/db-init`).
 
-```
-docker exec game-db psql -U mmo -d postgres -c "create database mmo3d;"
-docker exec game-db psql -U mmo -d postgres -c "create database mmo3d_test;"
-```
+The older `mmo-game` repo's container `game-db` is stopped and does not restart. It
+still holds that repo's database and the first copy of `mmo3d`, moved here on
+2026-09-26.
 
 The tables come from the migrations in `src/Data/Migrations`: the server applies any
 new ones at start (it prints "migrations applied: ..."), and so do the data tests on

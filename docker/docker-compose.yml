@@ -1,13 +1,33 @@
-# The diagnostics viewer: Grafana with Loki (logs), Tempo (traces) and Prometheus in
-# one container, taking OTLP from the server. For development, as the image says.
+# The game's database and the diagnostics viewer.
 # Start: docker compose -f docker/docker-compose.yml up -d
-# Open:  http://localhost:3000 (admin / admin)
 name: mmo-game-3d
 
 services:
+  # Postgres: the world in mmo3d, the tests in mmo3d_test. User and password mmo.
+  db:
+    image: postgres:18
+    container_name: mmo3d-db
+    environment:
+      POSTGRES_USER: mmo
+      POSTGRES_PASSWORD: mmo
+      POSTGRES_DB: mmo3d
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mmo", "-d", "mmo3d"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Grafana with Loki (logs), Tempo (traces) and Prometheus in one container, taking
+  # OTLP from the server. For development, as the image says.
+  # Open http://localhost:3000 (admin / admin).
   lgtm:
     image: grafana/otel-lgtm:0.34.0
-    container_name: game-lgtm
+    container_name: mmo3d-lgtm
     ports:
       - "3000:3000"
       - "4317:4317"
@@ -17,4 +37,5 @@ services:
     restart: unless-stopped
 
 volumes:
+  db-data:
   lgtm-data:

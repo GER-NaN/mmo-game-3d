@@ -63,7 +63,8 @@ making-changes has the recipes.
   the design docs, which were copied here on 2026-09-26 (from its commit `ac8ae05`).
 - The art library `C:\game-art` and the sound library `C:\game-sound`, on the author's
   machine (assets/README.md says what is copied from each).
-- The Postgres container `game-db`, shared with `mmo-game` (setup.md).
+- The older repo's stopped Postgres container `game-db`, which still holds its data
+  (setup.md).
 - The play-test checklist and the sound plan are private pages on claude.ai:
   https://claude.ai/artifact/SC2qn9pVeZu9ARAJGB6Nuj and
   https://claude.ai/artifact/1MKB3GyhdAnXvWJCbGj3oD

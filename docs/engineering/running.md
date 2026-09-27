@@ -86,8 +86,8 @@ Godot's user data folder is `%APPDATA%\Godot\app_userdata\mmo-game-3d`:
   at start.
 
   ```
-  docker exec game-db psql -U mmo -d postgres -c "drop database mmo3d with (force);"
-  docker exec game-db psql -U mmo -d postgres -c "create database mmo3d;"
+  docker exec mmo3d-db psql -U mmo -d postgres -c "drop database mmo3d with (force);"
+  docker exec mmo3d-db psql -U mmo -d postgres -c "create database mmo3d;"
   ```
 
   The dev database holds test data: scenario players ("Test cracker", ...), load bots
