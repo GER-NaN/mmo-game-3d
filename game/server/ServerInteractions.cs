@@ -128,6 +128,7 @@ public class ServerInteractions
                 Subway?.ReadBook(session, int.MaxValue);
                 break;
             case Townsperson person:
+                person.Listen(session.Body.GlobalPosition);
                 _session.SendNotice(session.PeerId, person.PersonName + ": " + Chatter.Pick(_random));
                 break;
             default:
