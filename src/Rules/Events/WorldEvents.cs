@@ -19,15 +19,14 @@ public enum WorldEventOutcome
 /// </summary>
 public sealed class WorldEventDefinition
 {
-    public WorldEventDefinition(string id, string family, string kind, string line, string zone, float spotX, float spotZ, int count, int timeLimitSeconds, int everySeconds)
+    public WorldEventDefinition(string id, string family, string kind, string line, string zone, string spot, int count, int timeLimitSeconds, int everySeconds)
     {
         Id = id;
         Family = family;
         Kind = kind;
         Line = line;
         Zone = zone;
-        SpotX = spotX;
-        SpotZ = spotZ;
+        Spot = spot;
         Count = count;
         TimeLimitSeconds = timeLimitSeconds;
         EverySeconds = everySeconds;
@@ -48,9 +47,9 @@ public sealed class WorldEventDefinition
 
     public string Zone { get; }
 
-    public float SpotX { get; }
-
-    public float SpotZ { get; }
+    // A marker under the zone's Events node: where the event happens. The scene holds
+    // the place, so moving it is a scene edit.
+    public string Spot { get; }
 
     // How many enemies.
     public int Count { get; }

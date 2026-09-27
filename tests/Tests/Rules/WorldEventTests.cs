@@ -6,7 +6,7 @@ using MmoGame3d.Rules.Events;
 public class WorldEventTests
 {
     private static readonly WorldEventDefinition Swarm = new WorldEventDefinition(
-        "drone-swarm-meadows", WorldEventDefinition.AiSwarm, WorldEventDefinition.DroneSwarm, "Drone Swarm in Meadows!", "meadows", -1420f, 0f, 10, 180, 300);
+        "drone-swarm-meadows", WorldEventDefinition.AiSwarm, WorldEventDefinition.DroneSwarm, "Drone Swarm in Meadows!", "meadows", "DroneSwarm", 10, 180, 300);
 
     [Fact]
     public void TheFirstStartsOneIntervalAfterTheServerAndTheNextOneAfterTheLastEnded()
