@@ -128,6 +128,19 @@ public class ServerScenarios
             case "shop":
                 StandBy(record, ZoneIds.Shop, "Shopkeeper", new Vector3(0f, 0f, 1.3f));
                 break;
+            case "too-dear":
+                // Nothing in the pocket: every offer is out of reach.
+                StandBy(record, ZoneIds.Shop, "Shopkeeper", new Vector3(0f, 0f, 1.3f));
+                session.Dollars = 0;
+                break;
+            case "phone-dead":
+                EquipPhone(session, 0f);
+                break;
+            case "door-exit":
+                // Inside the shop where players arrive, facing its door out (+z).
+                StandBy(record, ZoneIds.Shop, "../Arrivals/FromTown", Vector3.Zero);
+                record.Yaw = Mathf.Pi;
+                break;
             case "garden":
                 StandBy(record, ZoneIds.Greenhouse, "PottingTable", new Vector3(0f, 0f, 1.5f));
                 break;
@@ -181,7 +194,7 @@ public class ServerScenarios
         record.PositionZ = _random.RandfRange(-4f, 4f);
     }
 
-    private static void EquipPhone(Session session)
+    private static void EquipPhone(Session session, float charge = 1f)
     {
         Belongings mine = new Belongings(session.Inventory!, session.Instances);
 
@@ -198,7 +211,7 @@ public class ServerScenarios
 
                 if (battery != null)
                 {
-                    battery.Charge = 1f;
+                    battery.Charge = charge;
                 }
 
                 return;

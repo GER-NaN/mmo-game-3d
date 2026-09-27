@@ -38,6 +38,7 @@ public partial class ScenarioDriver : Node
     private string _lastStatus = "";
     private int _guessesSeen = -1;
     private double _releaseIn = -1;
+    private string _refusal = "";
     private double _walkedFor;
     private float _lastY = float.NaN;
     private double _sinceRiseSample;
@@ -62,7 +63,11 @@ public partial class ScenarioDriver : Node
             _zone = zone;
             _zoneSince = _elapsed;
         };
-        _networks.Session.IntentAnswered += (id, refusal) => _bought = _bought || refusal.Length == 0;
+        _networks.Session.IntentAnswered += (id, refusal) =>
+        {
+            _bought = _bought || refusal.Length == 0;
+            _refusal = refusal.Length > 0 ? refusal : _refusal;
+        };
         _networks.Garden.PlantMade += (id, name, reward) => _plantMade = true;
         _networks.Terminal.StatusReceived += lines => _lastStatus = lines.Length > 0 ? lines[0] : "";
         GD.Print("SCENARIO " + _name + ": started");
@@ -130,6 +135,35 @@ public partial class ScenarioDriver : Node
                 break;
             case "taxi-relog":
                 Expect("logged in at the taxi drop-off in Old Town", AtTheDropOff);
+                break;
+            case "too-dear":
+                Use("Talk to Dee");
+                Step("buy the first thing", () => ClickGroup(ShopPanel.BuyGroup));
+                Expect("refused, with the price and the balance", () => _refusal.Contains("You cannot afford that") && _refusal.Contains("you have $0"));
+                break;
+            case "phone-dead":
+                Step("take the phone out", () =>
+                {
+                    Input.ParseInputEvent(new InputEventAction { Action = "phone", Pressed = true });
+                    Input.ParseInputEvent(new InputEventAction { Action = "phone", Pressed = false });
+                    return true;
+                });
+                Expect("refused: the battery is dead", () => Noticed("battery is dead"));
+                Expect("not online", () => GetTree().GetFirstNodeInGroup(TerminalScreen.GoOfflineGroup) == null);
+                break;
+            case "door-exit":
+                Step("walk out of the shop", () =>
+                {
+                    Input.ActionPress("move_forward");
+                    return _zone == "town";
+                });
+                Step("keep walking a moment", () => _elapsed > _zoneSince + 2.5);
+                Step("stop", () =>
+                {
+                    Input.ActionRelease("move_forward");
+                    return true;
+                });
+                Expect("still outside: not straight back into the shop", () => _zone == "town" && _elapsed > _zoneSince + 3);
                 break;
             case "taxi-ride":
                 Use("Call a robo taxi");
