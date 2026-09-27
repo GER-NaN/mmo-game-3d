@@ -434,7 +434,7 @@ public sealed class BotBody
         return control is InventoryPanel || control is SkillsPanel || control is SocialPanel || control is MapPanel
             || control is InGameMenu || control is SettingsPanel || control is ShopPanel || control is WorkbenchPanel
             || control is GivePanel || control is RecyclerPanel || control is CollegePanel || control is VisitorBookPanel
-            || control is GardenScreen || control is PlantCard;
+            || control is GardenScreen || control is PlantCard || control is CharacterCreator;
     }
 
     // ---------------------------------------------------------------- hands
@@ -580,6 +580,15 @@ public sealed class BotBody
                 if (back != null)
                 {
                     Click(back);
+                }
+            }
+            else if (panel is CharacterCreator)
+            {
+                Button? cancel = Usable(CharacterCreator.CancelGroup);
+
+                if (cancel != null)
+                {
+                    Click(cancel);
                 }
             }
             else if (panel is InGameMenu)
