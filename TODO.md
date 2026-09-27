@@ -97,6 +97,12 @@ All four are in docs/engineering/performance.md, with the numbers.
 
 ## Planned, not built
 
+- [ ] Bring over mmo-game's code rules and make them run on every build here:
+      `src/Analyzers` (GAME0001 to GAME0006: no async/await, no lock, no primary
+      constructors, no reflection inspection, no switch expressions, no tuple
+      deconstruction) and StyleCop, wired in by mmo-game's `Directory.Build.props`.
+      One rule at a time, each for the author to look at, since the code here was
+      written without them.
 - [ ] More test zones on Terrain3D: cliffs (terraces, `tools/terrain-seed --terraces`),
       woods (many trees and rocks; Terrain3D's instancer has no collision, so trunks
       need their own shapes), a movement proving ground (ramps, stairs, gaps).
