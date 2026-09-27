@@ -35,6 +35,9 @@ public sealed class BotBody
 
     public Random Random { get; }
 
+    // Paths round buildings in the current zone.
+    public BotNavigation Navigation { get; } = new BotNavigation();
+
     private SceneTree Tree
     {
         get { return _node.GetTree(); }

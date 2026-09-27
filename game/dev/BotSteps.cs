@@ -77,19 +77,27 @@ public sealed class DoStep : BotStep
 }
 
 /// <summary>
-/// Walking to a point, and getting unstuck on the way: with no progress for a while it
-/// backs off, turns aside, walks on with a jump, and tries again. After a few tries
-/// the point is out of reach.
+/// Walking to a point: along the navigation path round the buildings where the zone has
+/// one (BotNavigation), straight where it has not, and getting unstuck on the way: not
+/// moving for a while, it backs off, turns aside, walks on with a jump, and tries again.
+/// After a few tries the point is out of reach.
 /// </summary>
 public sealed class Walker
 {
-    private const float Progress = 0.5f;
+    private const float Moved = 0.5f;
     private const double StuckAfter = 2.5;
     private const int MaxUnsticks = 8;
+    private const double RepathEvery = 3;
+    private const float WaypointReached = 0.8f;
 
-    private float _best = float.MaxValue;
+    private Vector3 _lastAt;
+    private bool _haveLastAt;
     private double _sinceProgress;
     private double _unstickLeft = -1;
+    private Vector3[] _path = System.Array.Empty<Vector3>();
+    private int _next;
+    private Vector3 _pathTo;
+    private double _repathIn;
     private int _unsticks;
     private bool _turnLeft;
 
@@ -104,20 +112,31 @@ public sealed class Walker
         if (_unstickLeft >= 0)
         {
             Unstick(body, delta);
+            _repathIn = 0;
             return StepResult.Running;
         }
 
-        float distance = body.SteerTo(target);
+        Players.Player? me = body.Me;
 
-        if (distance <= near)
+        if (me == null)
+        {
+            return StepResult.Running;
+        }
+
+        if (body.DistanceTo(target) <= near)
         {
             body.Stop();
             return StepResult.Done;
         }
 
-        if (distance < _best - Progress)
+        body.SteerTo(Aim(body, me.GlobalPosition, target, delta));
+
+        // Stuck is not moving: a path round a building takes the bot away from the
+        // target for a while, so getting no closer is not stuck.
+        if (!_haveLastAt || me.GlobalPosition.DistanceTo(_lastAt) > Moved)
         {
-            _best = distance;
+            _lastAt = me.GlobalPosition;
+            _haveLastAt = true;
             _sinceProgress = 0;
             return StepResult.Running;
         }
@@ -137,7 +156,6 @@ public sealed class Walker
 
         _unsticks++;
         _sinceProgress = 0;
-        _best = float.MaxValue;
         _turnLeft = body.Random.Next(2) == 0;
         _backFor = 0.4 + (body.Random.NextDouble() * 0.6);
         _turnFor = 0.4 + (body.Random.NextDouble() * 0.4 * _unsticks);
@@ -145,6 +163,33 @@ public sealed class Walker
         _unstickLeft = _backFor + _turnFor + _onFor;
         GD.Print("Bot: stuck, working round it");
         return StepResult.Running;
+    }
+
+    // The next point of the path to the target, asked for again now and then, or the
+    // target itself with no path.
+    private Vector3 Aim(BotBody body, Vector3 at, Vector3 target, double delta)
+    {
+        _repathIn -= delta;
+
+        if (_repathIn <= 0 || _pathTo.DistanceTo(target) > 1f)
+        {
+            _path = body.Navigation.Path(at, target);
+            _next = 1;
+            _pathTo = target;
+            _repathIn = RepathEvery;
+        }
+
+        while (_next < _path.Length - 1 && Flat(at, _path[_next]) < WaypointReached)
+        {
+            _next++;
+        }
+
+        return _next < _path.Length - 1 ? _path[_next] : target;
+    }
+
+    private static float Flat(Vector3 a, Vector3 b)
+    {
+        return new Vector2(a.X - b.X, a.Z - b.Z).Length();
     }
 
     // Back off, turn aside, walk on with a jump.
@@ -258,6 +303,17 @@ public sealed class DoorStep : BotStep
         if (body.ZoneId != _from && body.ZoneId.Length > 0)
         {
             body.Stop();
+
+            // Door ToShop leads to shop: somewhere else is the party pulling it through
+            // another door on the way, and the rest of the plan is for the shop.
+            string meant = _door.StartsWith("To") ? _door.Substring(2).ToLowerInvariant() : body.ZoneId;
+
+            if (body.ZoneId != meant)
+            {
+                GD.Print("Bot: arrived in " + body.ZoneId + ", not " + meant);
+                return StepResult.Failed;
+            }
+
             return StepResult.Done;
         }
 

@@ -32,6 +32,12 @@ public sealed class BotPositionJudge
 
     // A taxi passes through a bot in about a second: checked far more often.
     private const double VehiclesEvery = 0.5;
+
+    // Back and forth in one place: far travelled, little gained, over a few seconds.
+    private const double TrackEvery = 0.25;
+    private const double TrackWindow = 5;
+    private const float ThrashTravelled = 5f;
+    private const float ThrashNet = 1f;
     private const double WalkFailedRepeat = 180;
     private const double BadFootingFor = 10;
     private const float StuckRadius = 2.5f;
@@ -51,6 +57,8 @@ public sealed class BotPositionJudge
     private double _clock;
     private double _checkIn = CheckEvery;
     private double _vehiclesIn = VehiclesEvery;
+    private double _trackIn = TrackEvery;
+    private readonly List<Sample> _track = new List<Sample>();
     private string _historyZone = "";
     private string _badFooting = "";
     private double _badFootingFor;
@@ -78,6 +86,14 @@ public sealed class BotPositionJudge
         {
             _vehiclesIn = VehiclesEvery;
             JudgeVehicles(body, me, activity, step);
+        }
+
+        _trackIn -= delta;
+
+        if (_trackIn <= 0)
+        {
+            _trackIn = TrackEvery;
+            JudgeThrashing(body, me, activity, step);
         }
 
         if (_checkIn > 0)
@@ -140,6 +156,40 @@ public sealed class BotPositionJudge
                 ? "nothing under the feet for " + _badFootingFor + " s (falling out of the world?)"
                 : (kind == "floating" ? "floating " : "standing on ") + under + " for " + _badFootingFor + " s, " + above.ToString("0.00") + " m above it";
             Report(kind, detail, body, me, activity, step, under, above);
+        }
+    }
+
+    // Many metres travelled over a few seconds, and barely anywhere gained: the bot
+    // jerks back and forth in one place (its own steering, or the server putting it back).
+    private void JudgeThrashing(BotBody body, Player me, string activity, BotStep? step)
+    {
+        _track.Add(new Sample(_clock, me.GlobalPosition, step != null && step.Walks));
+
+        while (_track.Count > 0 && _track[0].Time < _clock - TrackWindow)
+        {
+            _track.RemoveAt(0);
+        }
+
+        if (_track.Count < 2 || _clock - _track[0].Time < TrackWindow - TrackEvery)
+        {
+            return;
+        }
+
+        float travelled = 0f;
+
+        for (int i = 1; i < _track.Count; i++)
+        {
+            travelled += _track[i].At.DistanceTo(_track[i - 1].At);
+        }
+
+        float net = _track[_track.Count - 1].At.DistanceTo(_track[0].At);
+
+        if (travelled > ThrashTravelled && net < ThrashNet)
+        {
+            string under;
+            float above;
+            Under(body, me, out under, out above);
+            Report("thrashing", "travelled " + travelled.ToString("0.0") + " m in " + TrackWindow + " s and ended " + net.ToString("0.0") + " m from where it began", body, me, activity, step, under, above);
         }
     }
 

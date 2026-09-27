@@ -74,6 +74,7 @@ public partial class BotDriver : Node
     public override void _ExitTree()
     {
         _body?.Stop();
+        _body?.Navigation.Clear();
     }
 
     public override void _Process(double delta)
@@ -87,6 +88,7 @@ public partial class BotDriver : Node
         }
 
         AcceptInvites(delta);
+        _body.Navigation.Tick(_body);
         string doing = (_goal != null ? _goal.Name + " > " : "") + (_activity?.Name ?? (_closing ? "closing up" : "choosing"));
         _judge.Tick(_body, delta, doing, _activity != null ? _steps[_step] : null);
         _zoneJudge.Tick(_body, delta, doing);
@@ -143,9 +145,11 @@ public partial class BotDriver : Node
             case StepResult.Running:
                 break;
             case StepResult.Failed:
-                _failedWalks = step.Walks ? _failedWalks + 1 : 0;
+                // A walk failed at a thing that is there; a missing one is not a walk.
+                bool walkFailed = step.Walks && step.Target(_body) != null;
+                _failedWalks = walkFailed ? _failedWalks + 1 : 0;
 
-                if (step.Walks && !tooLong)
+                if (walkFailed && !tooLong)
                 {
                     _judge.WalkFailed(_body, (_goal != null ? _goal.Name + " > " : "") + (_activity?.Name ?? ""), step);
                 }
@@ -264,7 +268,14 @@ public partial class BotDriver : Node
         _step = 0;
         _zone = _body.ZoneId;
         GD.Print("Bot: starting \"" + activity.Name + "\"");
+        Announce((_goal != null ? _goal.Name + " -> " : "wandering: ") + activity.Name);
         StartStep();
+    }
+
+    // Said in public chat, so whoever watches sees what each bot is after.
+    private void Announce(string line)
+    {
+        _body.Chat("[bot] " + line);
     }
 
     private void StartGoal(BotGoal goal)
@@ -274,6 +285,7 @@ public partial class BotDriver : Node
         _goalFor = 0;
         _dropAt = _random.NextDouble() < DropChance ? 3 + (_random.NextDouble() * (goal.UsualSeconds - 3)) : -1;
         GD.Print("Bot: goal \"" + goal.Name + "\"" + (_dropAt >= 0 ? " (will drop it after " + (int)_dropAt + " s)" : ""));
+        Announce("goal: " + goal.Name);
 
         if (!NextForGoal())
         {
@@ -309,6 +321,7 @@ public partial class BotDriver : Node
         if (next == null)
         {
             GD.Print(_goalState.GiveUp.Length > 0 ? "Bot: gave up goal \"" + _goal.Name + "\": " + _goalState.GiveUp : "Bot: goal met \"" + _goal.Name + "\"");
+            Announce(_goalState.GiveUp.Length > 0 ? "giving up " + _goal.Name + ": " + _goalState.GiveUp : "done: " + _goal.Name);
             _goal = null;
             return false;
         }
@@ -338,6 +351,7 @@ public partial class BotDriver : Node
     {
         GD.Print("Bot: dropped goal \"" + _goal?.Name + "\" after " + (int)_goalFor + " s, during \"" + (_activity?.Name ?? "") + "\""
             + (_activity != null ? " at \"" + _steps[_step].Name + "\"" : ""));
+        Announce("dropping " + _goal?.Name + " (mid " + (_activity?.Name ?? "nothing") + ")");
         _goal = null;
         _activity = null;
         _closing = false;
