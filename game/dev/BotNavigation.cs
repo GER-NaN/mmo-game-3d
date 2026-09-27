@@ -22,6 +22,8 @@ public sealed class BotNavigation
     private Rid _region;
     private Rid _map;
     private bool _ready;
+    private uint _bakedAt;
+    private ulong _bakedMsec;
 
     public void Tick(BotBody body)
     {
@@ -63,7 +65,8 @@ public sealed class BotNavigation
         NavigationServer3D.RegionSetMap(_region, _map);
         NavigationServer3D.RegionSetTransform(_region, zone.GlobalTransform);
         NavigationServer3D.RegionSetNavigationMesh(_region, mesh);
-        NavigationServer3D.MapForceUpdate(_map);
+        _bakedAt = NavigationServer3D.MapGetIterationId(_map);
+        _bakedMsec = Time.GetTicksMsec();
         _ready = mesh.GetPolygonCount() > 0;
         GD.Print("Bot: navigation for " + zone.ZoneId + ": " + mesh.GetPolygonCount() + " polygons in " + (Time.GetTicksMsec() - started) + " ms");
     }
@@ -112,6 +115,14 @@ public sealed class BotNavigation
     public bool Ready
     {
         get { return _ready; }
+    }
+
+    // Baked, but the map takes the region in only on the next physics frame (it syncs
+    // then, MapForceUpdate or not): until then every path is empty, and a walk would go
+    // straight, through doors too. A second at most, should the map never sync.
+    public bool Pending
+    {
+        get { return _ready && NavigationServer3D.MapGetIterationId(_map) == _bakedAt && Time.GetTicksMsec() - _bakedMsec < 1000; }
     }
 
     // The points to walk through, first to last; empty with no mesh here.

@@ -154,6 +154,13 @@ public sealed class Walker
             return StepResult.Done;
         }
 
+        if (body.Navigation.Pending)
+        {
+            body.Stop();
+            _repathIn = 0;
+            return StepResult.Running;
+        }
+
         body.SteerTo(Aim(body, me.GlobalPosition, target, delta));
 
         // Stuck is not moving: a path round a building takes the bot away from the
