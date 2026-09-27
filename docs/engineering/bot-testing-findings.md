@@ -25,7 +25,12 @@ System.InvalidOperationException: Handle is not initialized.
 ```
 
 The town still loads and the player plays on. Only one of eight bots hit it, after its
-first ride. The error is inside Godot's C# bridge: while loading the scene it swaps the
+first ride.
+
+Not reproduced since (run 5): the `taxi-ride` scenario rides a whole taxi ride, 4 s and
+then 30 s long, with no error, and neither did four bot rides that night. It comes and
+goes; the scenario and the bot watch now flag any C# exception in a client's log, so
+the next time it happens it is caught with its log. The error is inside Godot's C# bridge: while loading the scene it swaps the
 handle of a C# script instance that is already gone. The next step is to find which
 resource in the town scene it is.
 
@@ -33,7 +38,9 @@ resource in the town scene it is.
 
 ### A player saved inside a taxi ride logs back into it, and the town arrives too early
 
-**Found** 2026-09-27, run 2, Soak6. **Status:** open.
+**Found** 2026-09-27, run 2, Soak6. **Status:** the first half fixed: a player saved in a
+ride now logs back in at the taxi drop-off (the `taxi-relog` scenario). The town's
+nodes arriving early is open.
 
 Soak6 was stopped during a robo taxi ride, so the server saved its zone as `taxi-14`.
 At its next login the server put it back into that ride, which ended at once ("You have
