@@ -76,6 +76,7 @@ public sealed class EmoteJudge : BotActivityJudge
     private bool _clear;
     private bool _online;
     private bool _seen;
+    private string _zone = "";
 
     public EmoteJudge(EmoteActivity activity)
     {
@@ -87,6 +88,7 @@ public sealed class EmoteJudge : BotActivityJudge
         _online = body.IsOnline;
         _clear = !_online && body.OpenPanels().Count == 0;
         _seen = false;
+        _zone = body.ZoneId;
     }
 
     public override string? Watch(BotBody body, double delta)
@@ -98,6 +100,6 @@ public sealed class EmoteJudge : BotActivityJudge
 
     public override string? After(BotBody body, BotEnd end)
     {
-        return end == BotEnd.Finished ? EmoteCheck.Judge(_activity.Emote, _clear, _online, _seen) : null;
+        return end == BotEnd.Finished ? EmoteCheck.Judge(_activity.Emote, _clear, _online, _seen, body.ZoneId != _zone) : null;
     }
 }

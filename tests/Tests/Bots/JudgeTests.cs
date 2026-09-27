@@ -258,6 +258,14 @@ public class JudgeTests
     }
 
     [Fact]
+    public void AnEmoteTypedAsTheBodyWentThroughADoorIsNotJudged()
+    {
+        // Soak5, 2026-09-27: /wave typed at the meadows door; the zone changed and the
+        // body with it.
+        Assert.Null(EmoteCheck.Judge("wave", clear: true, online: false, seen: false, zoneChanged: true));
+    }
+
+    [Fact]
     public void WithAScreenOpenTheEmoteIsNotJudged()
     {
         Assert.Null(EmoteCheck.Judge("cheer", clear: false, online: false, seen: false));
