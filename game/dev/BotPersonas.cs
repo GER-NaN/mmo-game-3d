@@ -1,6 +1,7 @@
 namespace MmoGame3d.Dev;
 
 using System.Collections.Generic;
+using MmoGame3d.Dev.Activities;
 
 /// <summary>
 /// Who a bot is (--persona): numbers the driver reads, no code of its own. The activities
@@ -96,9 +97,9 @@ public static class BotPersonas
     private static BotPersona Curious()
     {
         BotPersona p = new BotPersona("curious", "I open everything and press what I find.");
-        p.Own.Add(BotExtraActivities.PokeAround);
-        p.Own.Add(BotExtraActivities.PokeAtTerminal);
-        p.Own.Add(BotExtraActivities.SaySomethingOdd);
+        p.Own.Add(PersonaActivities.PokeAround);
+        p.Own.Add(PersonaActivities.PokeAtTerminal);
+        p.Own.Add(PersonaActivities.SaySomethingOdd);
         p.Likes["walk around town"] = 0.3;
         p.Likes["fight drones"] = 0.3;
         return p;
@@ -122,7 +123,7 @@ public static class BotPersonas
     private static BotPersona Escaper()
     {
         BotPersona p = new BotPersona("escaper", "I look for the edge of the world and try to get past it.");
-        p.Own.Add(BotExtraActivities.RunForTheEdge);
+        p.Own.Add(PersonaActivities.RunForTheEdge);
         p.Likes["walk the meadows"] = 3;
         p.Likes["go to the outskirts"] = 3;
         p.JoinChance = 0;
@@ -133,7 +134,7 @@ public static class BotPersonas
     private static BotPersona Wedger()
     {
         BotPersona p = new BotPersona("wedger", "I squeeze into gaps to see where I get stuck.");
-        p.Own.Add(BotExtraActivities.SqueezeIntoAGap);
+        p.Own.Add(PersonaActivities.SqueezeIntoAGap);
         p.Likes["walk around town"] = 0.5;
         p.JoinChance = 0;
         return p;
@@ -156,7 +157,7 @@ public static class BotPersonas
     private static BotPersona Masher()
     {
         BotPersona p = new BotPersona("masher", "I press all the keys, fast, in any order.");
-        p.Own.Add(BotExtraActivities.MashKeys);
+        p.Own.Add(PersonaActivities.MashKeys);
         p.Likes["walk around town"] = 0.5;
         p.AsideShare = 25;
         p.AsideRate = 3;
@@ -180,7 +181,7 @@ public static class BotPersonas
     private static BotPersona Shadow()
     {
         BotPersona p = new BotPersona("shadow", "I follow someone and use what they use.");
-        p.Own.Add(BotExtraActivities.ShadowSomeone);
+        p.Own.Add(PersonaActivities.ShadowSomeone);
         p.Likes["walk around town"] = 0.3;
         p.JoinChance = 0.6;
         return p;

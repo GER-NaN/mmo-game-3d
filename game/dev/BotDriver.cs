@@ -279,9 +279,9 @@ public partial class BotDriver : Node
         if (total <= 0)
         {
             // Only one thing, and it cannot start here: back to town, where most things can.
-            if (Only.Length > 0 && BotActivities.GoBackToTown.CanStart(_body))
+            if (Only.Length > 0 && BotCatalog.BackToTown.CanStart(_body))
             {
-                TakeActivity(BotActivities.GoBackToTown);
+                TakeActivity(BotCatalog.BackToTown);
                 return;
             }
 
@@ -365,7 +365,7 @@ public partial class BotDriver : Node
         Announce((chain.Kind == ChainKind.Goal ? "goal: " : "chain: ") + chain.Name);
 
         // Its own business: out of any party first.
-        BotActivity? first = chain.Solo && BotActivities.LeaveParty.CanStart(_body) ? BotActivities.LeaveParty : chain.Next(_body, null, BotEnd.Finished);
+        BotActivity? first = chain.Solo && BotCatalog.LeaveParty.CanStart(_body) ? BotCatalog.LeaveParty : chain.Next(_body, null, BotEnd.Finished);
         StartInChain(first);
     }
 
@@ -767,7 +767,7 @@ public partial class BotDriver : Node
         _closing = false;
         _judge.Forget();
         _escaping = true;
-        _activity = BotActivities.Escape;
+        _activity = BotCatalog.Escape;
         _judgeOfActivity = null;
         _activity.Begin(_body);
     }

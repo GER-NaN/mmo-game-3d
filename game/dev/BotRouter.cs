@@ -146,7 +146,7 @@ public sealed class DoorLink
 /// party pull, a wrong door or a relog lands it somewhere else, and it plans again from
 /// there; a taxi ride ends where it ends.
 /// </summary>
-public sealed class TravelActivity : BotActivity
+public class TravelActivity : BotActivity
 {
     private const int MaxPlans = 6;
 
@@ -158,7 +158,13 @@ public sealed class TravelActivity : BotActivity
     private int _plans;
 
     public TravelActivity(string zoneId)
-        : base("travel to " + zoneId, 0)
+        : this(zoneId, "travel to " + zoneId, 0)
+    {
+    }
+
+    // Travel a bot may choose by itself, under a name of its own ("go back to town").
+    protected TravelActivity(string zoneId, string name, int weight)
+        : base(name, weight)
     {
         _to = zoneId;
         _gives = new List<BotFact> { BotFact.InZone(zoneId) };
@@ -273,5 +279,45 @@ public sealed class TravelJudge : BotActivityJudge
 
         Vector3 at = me.GlobalPosition;
         return _watch.Look(delta, body.ZoneId, new System.Numerics.Vector3(at.X, at.Y, at.Z));
+    }
+}
+
+/// <summary>
+/// A travel as one step of an activity, for one whose zone depends on a choice it makes
+/// (a public terminal in town, or the phone anywhere).
+/// </summary>
+public sealed class TravelStep : BotStep
+{
+    private readonly TravelActivity _travel;
+
+    public TravelStep(string zoneId)
+        : base("travel to " + zoneId, 300)
+    {
+        _travel = new TravelActivity(zoneId);
+    }
+
+    public override bool MovesZone
+    {
+        get { return true; }
+    }
+
+    public override bool Walks
+    {
+        get { return true; }
+    }
+
+    public override Vector3? Target(BotBody body)
+    {
+        return _travel.Step?.Target(body);
+    }
+
+    public override void Begin(BotBody body)
+    {
+        _travel.Begin(body);
+    }
+
+    public override StepResult Tick(BotBody body, double delta)
+    {
+        return _travel.Tick(body, delta);
     }
 }

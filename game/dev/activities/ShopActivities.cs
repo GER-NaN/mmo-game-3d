@@ -2,6 +2,7 @@ namespace MmoGame3d.Dev.Activities;
 
 using System;
 using System.Collections.Generic;
+using MmoGame3d.Dev.Screens;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Shops;
 using MmoGame3d.Rules.World;
@@ -44,7 +45,7 @@ public sealed class BuyActivity : StepsActivity
             .WalkTo("Interactables/Shopkeeper")
             .Use("Talk to", b => b.Usable(ShopPanel.BuyGroup) != null)
             .Pause(1)
-            .Click(ShopPanel.BuyGroup, name)
+            .Step(ShopUi.Buy(name))
             .Pause(1.5)
             .Close()
             .Steps;
@@ -61,6 +62,43 @@ public sealed class BuyActivity : StepsActivity
         }
 
         return int.MaxValue;
+    }
+}
+
+/// <summary>
+/// A look round the shop: something bought from the keeper, then the workbench, a battery
+/// out of a phone and one in, whichever.
+/// </summary>
+public sealed class GoShoppingActivity : StepsActivity
+{
+    public GoShoppingActivity()
+        : base("go shopping", 3)
+    {
+    }
+
+    public override string Zone
+    {
+        get { return ZoneIds.Shop; }
+    }
+
+    protected override List<BotStep> Plan(BotBody body)
+    {
+        return new BotPlan()
+            .WalkTo("Interactables/Shopkeeper")
+            .Use("Talk to", b => b.Usable(ShopPanel.BuyGroup) != null)
+            .Pause(1)
+            .Step(ShopUi.BuyAny())
+            .Pause(1)
+            .Close()
+            .WalkTo("Interactables/Workbench")
+            .Use("workbench", b => b.IsOpen<WorkbenchPanel>())
+            .Pause(0.8)
+            .Step(WorkbenchUi.TakeBatteryOut())
+            .Pause(0.8)
+            .Step(WorkbenchUi.PutAnyIn())
+            .Pause(0.8)
+            .Close()
+            .Steps;
     }
 }
 
@@ -104,9 +142,9 @@ public sealed class SwapBatteryActivity : StepsActivity
             .WalkTo("Interactables/Workbench")
             .Use("workbench", b => b.IsOpen<WorkbenchPanel>())
             .Pause(0.8)
-            .Click(WorkbenchPanel.RemoveGroup, "", true)
+            .Step(WorkbenchUi.TakeBatteryOut())
             .Pause(0.8)
-            .Click(WorkbenchPanel.InsertGroup, "", true)
+            .Step(WorkbenchUi.PutFullestIn())
             .Pause(0.8)
             .Close()
             .Steps;
@@ -120,7 +158,7 @@ public sealed class RecycleActivity : StepsActivity
     private static readonly List<BotFact> GivesList = new List<BotFact> { BotFact.MoneyAtLeast(0) };
 
     public RecycleActivity()
-        : base("recycle for money", 0)
+        : base("recycle something", 1)
     {
     }
 
@@ -145,7 +183,7 @@ public sealed class RecycleActivity : StepsActivity
             .WalkTo("Interactables/Recycler")
             .Use("recycler", b => b.IsOpen<RecyclerPanel>())
             .Pause(1)
-            .Click(RecyclerPanel.RecycleGroup)
+            .Step(RecyclerUi.RecycleOne())
             .Pause(1)
             .Close()
             .Steps;

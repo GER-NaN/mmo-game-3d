@@ -1,51 +1,53 @@
 namespace MmoGame3d.Dev.Features;
 
-using Godot;
-using MmoGame3d.Ui;
+using System.Collections.Generic;
+using MmoGame3d.Dev.Screens;
 
-/// <summary>
-/// The wardrobe in bot testing: from the game menu, a bot changes its look (a few steps
-/// through the rows, sometimes Random) and saves it, or thinks better of it and cancels.
-/// Others see the new look: the server syncs it, and every client redresses the body.
-/// </summary>
+/// <summary>The wardrobe in bot testing (IBotFeature): the activity that changes a look.</summary>
 public sealed class BotWardrobeFeature : IBotFeature
 {
     public void AddTo(BotCatalog catalog)
     {
-        catalog.Add(new StepsActivity("change my look", 1, body => body.Zone != null && !body.ZoneId.StartsWith("taxi"), body =>
-        {
-            BotPlan plan = new BotPlan()
-                .Press("ui_cancel")
-                .Pause(0.8)
-                .Click(InGameMenu.WardrobeGroup)
-                .Pause(1);
+        catalog.Add(new ChangeLookActivity());
+    }
+}
 
-            // A few changes: a step along some row, or everything at once.
-            int changes = 2 + body.Random.Next(5);
-
-            for (int i = 0; i < changes; i++)
-            {
-                plan = body.Random.Next(4) == 0 ? plan.Click(CharacterCreator.RandomGroup) : plan.Do("step a row", 2, (b, d) => StepARow(b));
-                plan = plan.Pause(0.6);
-            }
-
-            // Mostly saved; now and then cancelled, which must leave the look as it was.
-            plan = body.Random.Next(4) == 0 ? plan.Click(CharacterCreator.CancelGroup) : plan.Click(CharacterCreator.DoneGroup);
-            return plan.Pause(1).Close().Steps;
-        }));
+/// <summary>
+/// From the game menu, the wardrobe: a few steps along its rows, sometimes Random, then
+/// saved, or now and then cancelled, which must leave the look as it was. Others see the
+/// new look: the server syncs it, and every client redresses the body.
+/// </summary>
+public sealed class ChangeLookActivity : StepsActivity
+{
+    public ChangeLookActivity()
+        : base("change my look", 1)
+    {
     }
 
-    private static StepResult StepARow(BotBody body)
+    public override bool CanStart(BotBody body)
     {
-        System.Collections.Generic.List<Button> buttons = body.UsableAll(CharacterCreator.StepGroup);
+        return BotWhere.InWorld(body);
+    }
 
-        if (buttons.Count == 0)
+    protected override List<BotStep> Plan(BotBody body)
+    {
+        BotPlan plan = new BotPlan()
+            .Step(WardrobeUi.OpenMenu())
+            .Pause(0.8)
+            .Step(WardrobeUi.OpenWardrobe())
+            .Pause(1);
+
+        int changes = 2 + body.Random.Next(5);
+
+        for (int i = 0; i < changes; i++)
         {
-            return StepResult.Running;
+            plan = plan.Step(body.Random.Next(4) == 0 ? WardrobeUi.Randomize() : WardrobeUi.StepARow()).Pause(0.6);
         }
 
-        Button pick = buttons[body.Random.Next(buttons.Count)];
-        body.Click(pick);
-        return StepResult.Done;
+        return plan
+            .Step(body.Random.Next(4) == 0 ? WardrobeUi.Cancel() : WardrobeUi.Save())
+            .Pause(1)
+            .Close()
+            .Steps;
     }
 }

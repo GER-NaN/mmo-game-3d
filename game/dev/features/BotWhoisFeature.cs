@@ -1,16 +1,23 @@
 namespace MmoGame3d.Dev.Features;
 
 using System.Collections.Generic;
+using MmoGame3d.Dev.Screens;
 using MmoGame3d.Rules.Items;
-using MmoGame3d.Rules.Terminals;
-using MmoGame3d.Ui;
 
 /// <summary>
-/// Whois in bot testing: a bot looks at its own page and edits it, the Plan and the
-/// Show Skills setting, on the phone. The first feature file (IBotFeature); a model for
-/// the next.
+/// Whois in bot testing, in one file: the activity, registered with the catalog by the
+/// feature (IBotFeature). A model for a feature's bot part.
 /// </summary>
 public sealed class BotWhoisFeature : IBotFeature
+{
+    public void AddTo(BotCatalog catalog)
+    {
+        catalog.Add(new EditWhoisActivity());
+    }
+}
+
+/// <summary>The bot's own Whois page, on the phone: its plan rewritten, Show Skills flipped.</summary>
+public sealed class EditWhoisActivity : StepsActivity
 {
     private static readonly string[] Plans =
     {
@@ -21,21 +28,23 @@ public sealed class BotWhoisFeature : IBotFeature
         "Hunting drones tonight",
     };
 
-    public void AddTo(BotCatalog catalog)
+    public EditWhoisActivity()
+        : base("edit my Whois page", 2)
     {
-        catalog.Add(new StepsActivity("edit my Whois page", 2, body => body.Zone != null && !body.ZoneId.StartsWith("taxi") && (body.PhonePercent > 5 || body.Has(ItemType.Phone)), body =>
-            new BotPlan()
-                .Equip(ItemType.Phone)
-                .Phone()
-                .Click(TerminalScreen.AppGroupPrefix + TerminalApps.Whois)
-                .Pause(1)
-                .Click(TerminalScreen.WhoisMineGroup)
-                .Pause(1)
-                .Type(TerminalScreen.WhoisPlanGroup, Plans[body.Random.Next(Plans.Length)])
-                .Pause(1)
-                .Click(TerminalScreen.WhoisShowSkillsGroup, "", true)
-                .Pause(1.5)
-                .Close()
-                .Steps));
+    }
+
+    public override bool CanStart(BotBody body)
+    {
+        return BotWhere.InWorld(body) && (body.PhonePercent > 5 || body.Has(ItemType.Phone));
+    }
+
+    protected override List<BotStep> Plan(BotBody body)
+    {
+        List<BotStep> steps = new BotPlan().Equip(ItemType.Phone).Steps;
+        steps.Add(TerminalUi.PhoneOut());
+        steps.AddRange(TerminalUi.EditWhois(Plans[body.Random.Next(Plans.Length)]));
+        steps.Add(new PauseStep(1.5));
+        steps.Add(new CloseAllStep());
+        return steps;
     }
 }

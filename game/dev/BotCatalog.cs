@@ -19,11 +19,16 @@ public interface IBotFeature
 
 /// <summary>
 /// Everything a bot can do: activities (chosen by weight, or asides on a timer) and chains
-/// (related, random, and goals), from BotActivities, BotGoals, the activity classes and
-/// every IBotFeature. Activities with weight 0 are only started by chains and goals.
+/// (related, random, and goals), from the activity classes and every IBotFeature.
+/// Activities with weight 0 are only started by chains and goals.
 /// </summary>
 public sealed class BotCatalog
 {
+    // The driver's own: out of a trap, out of a party before a goal, home to town.
+    public static readonly BotActivity Escape = new EscapeActivity();
+    public static readonly BotActivity LeaveParty = new LeavePartyActivity();
+    public static readonly BotActivity BackToTown = new BackToTownActivity();
+
     private static BotCatalog? _all;
 
     public List<BotActivity> Activities { get; } = new List<BotActivity>();
@@ -37,14 +42,7 @@ public sealed class BotCatalog
             if (_all == null)
             {
                 _all = new BotCatalog();
-                _all.Activities.AddRange(BotActivities.All);
-                _all.AddModelActivities();
-
-                foreach (BotGoal goal in BotGoals.All)
-                {
-                    _all.Add(goal);
-                }
-
+                _all.AddActivities();
                 _all.AddChains();
 
                 foreach (Type type in typeof(IBotFeature).Assembly.GetTypes())
@@ -84,21 +82,43 @@ public sealed class BotCatalog
         Activities.Add(activity);
     }
 
-    // An older hand-coded goal, run as a chain.
-    public void Add(BotGoal goal)
-    {
-        Chains.Add(new LegacyGoalChain(goal));
-    }
-
     public void Add(BotChain chain)
     {
         Chains.Add(chain);
     }
 
-    private void AddModelActivities()
+    private void AddActivities()
     {
+        // Chosen when free, by weight.
+        Add(new WalkAroundTownActivity());
+        Add(new VisitCollegeActivity());
+        Add(new GoShoppingActivity());
+        Add(new UsePublicTerminalActivity());
+        Add(new UsePhoneActivity());
+        Add(new PlayDefenseActivity());
+        Add(new CheckBagActivity());
+        Add(new TidyBagActivity());
+        Add(new RideTaxiActivity());
+        Add(new FixSomethingActivity());
+        Add(new RepairLightsActivity());
+        Add(new TagSubwayActivity());
+        Add(new OutskirtsActivity());
+        Add(new WalkMeadowsActivity());
         Add(new GreenhouseActivity());
+        Add(new MeetSomeoneActivity());
+        Add(LeaveParty);
+        Add(new RecycleActivity());
+        Add(new LookAtMapActivity());
+        Add(new LookAtSkillsActivity());
+        Add(new ExploreActivity());
+        Add(BackToTown);
+
+        // Asides, on their own timers too.
         Add(new EmoteActivity());
+
+        // Only chains and goals start these.
+        Add(new HuntDroneActivity());
+        Add(new ReportDronesActivity());
         Add(new BuyActivity(ItemType.Battery));
         Add(new BuyActivity(ItemType.EmpEmitter));
         Add(new SwapBatteryActivity());
@@ -117,7 +137,11 @@ public sealed class BotCatalog
 
     private void AddChains()
     {
-        // Goals: the facts wanted, planned by BotResolver.
+        // Goals: the facts wanted, planned by BotResolver, then what they were for.
+        Add(new GoalChain("fight drones", 4, body => BotWhere.InWorld(body) && body.LiveDrones().Count > 0,
+            body => new List<BotFact> { BotFact.Wears(ItemType.EmpEmitter) }, 12, 300,
+            body => new HuntDroneActivity(),
+            body => new HuntDroneActivity()));
         Add(new GoalChain("charge the phone", 5, body => body.Zone != null && body.PhonePercent >= 0 && body.PhonePercent < 20,
             body => new List<BotFact> { BotFact.PhoneAtLeast(50) }, 8, 240));
         Add(new GoalChain("earn some money", 2, body => body.Zone != null,

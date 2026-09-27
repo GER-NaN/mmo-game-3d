@@ -161,8 +161,9 @@ public sealed class RandomChain : BotChain
 }
 
 /// <summary>
-/// A goal: the facts it wants, worked out afresh after every activity (BotResolver). The
-/// facts are set when it starts (money: ten more than now), and a budget caps its activities.
+/// A goal: the facts it wants, worked out afresh after every activity (BotResolver), then
+/// the activities it wants them for, if any (an EMP worn, then two drones hunted). The facts
+/// are set when it starts (money: ten more than now), and a budget caps its activities.
 /// </summary>
 public sealed class GoalChain : BotChain
 {
@@ -170,17 +171,20 @@ public sealed class GoalChain : BotChain
     private readonly Func<BotBody, List<BotFact>> _wanted;
     private readonly int _budget;
     private readonly double _usual;
+    private readonly Func<BotBody, BotActivity>[] _then;
+    private int _thenNext;
     private List<BotFact> _facts = new List<BotFact>();
     private Random _random = new Random();
     private int _rounds;
 
-    public GoalChain(string name, int weight, Func<BotBody, bool> canStart, Func<BotBody, List<BotFact>> wanted, int budget, double usualSeconds)
+    public GoalChain(string name, int weight, Func<BotBody, bool> canStart, Func<BotBody, List<BotFact>> wanted, int budget, double usualSeconds, params Func<BotBody, BotActivity>[] then)
         : base(name, weight, ChainKind.Goal)
     {
         _canStart = canStart;
         _wanted = wanted;
         _budget = budget;
         _usual = usualSeconds;
+        _then = then;
     }
 
     public override bool Solo
@@ -204,6 +208,7 @@ public sealed class GoalChain : BotChain
         _facts = _wanted(body);
         _random = random;
         _rounds = 0;
+        _thenNext = 0;
     }
 
     protected override BotActivity? NextAfter(BotBody body, BotActivity? last, BotEnd lastEnd)
@@ -227,77 +232,23 @@ public sealed class GoalChain : BotChain
         if (next != null)
         {
             GD.Print("Bot: plan for \"" + Name + "\": " + plan);
+            return next;
         }
 
-        return next;
-    }
-}
-
-/// <summary>
-/// An older hand-coded goal (BotGoal), run as a chain until it is written as facts: its
-/// Next names each activity from what the bot has.
-/// </summary>
-public sealed class LegacyGoalChain : BotChain
-{
-    private readonly BotGoal _goal;
-    private GoalState _state = new GoalState();
-
-    public LegacyGoalChain(BotGoal goal)
-        : base(goal.Name, goal.Weight, ChainKind.Goal)
-    {
-        _goal = goal;
-    }
-
-    public override bool Solo
-    {
-        get { return _goal.Solo; }
-    }
-
-    public override double UsualSeconds
-    {
-        get { return _goal.UsualSeconds; }
-    }
-
-    public override bool CanStart(BotBody body)
-    {
-        return _goal.CanStart(body);
-    }
-
-    public override void Begin(BotBody body, Random random)
-    {
-        base.Begin(body, random);
-        _state = new GoalState();
-    }
-
-    protected override BotActivity? NextAfter(BotBody body, BotActivity? last, BotEnd lastEnd)
-    {
-        if (last != null)
+        if (why.Length > 0 || _thenNext >= _then.Length)
         {
-            _state.Rounds++;
-            _state.LastActivity = last.Name;
-            _state.LastFinished = lastEnd == BotEnd.Finished;
-        }
-
-        if (_state.Rounds >= _goal.Budget)
-        {
-            Why = "out of activities";
             return null;
         }
 
-        BotActivity? next = _goal.Next(body, _state);
+        // The facts hold: now what they were for.
+        BotActivity then = _then[_thenNext++](body);
 
-        if (next == null)
+        if (!then.CanStart(body))
         {
-            Why = _state.GiveUp;
+            Why = "cannot " + then.Name + " now";
             return null;
         }
 
-        // Somewhere else than the next thing needs: back to town first, where these start.
-        if (!next.CanStart(body) && BotActivities.GoBackToTown.CanStart(body))
-        {
-            return BotActivities.GoBackToTown;
-        }
-
-        return next;
+        return then;
     }
 }
