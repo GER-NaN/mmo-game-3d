@@ -6,6 +6,30 @@ own findings, each with its picture, client log and server records, are in its r
 (`tools/bot-watch`); the ones worth keeping are written up here. Pictures are in
 `docs/engineering/bot-shots/`, shown in the local wiki and not kept in git.
 
+## The night of 2026-09-27
+
+Eight, then nine bots (one of each persona) ran from about 02:30 to the morning,
+restarted after each fix. What came of it:
+
+- **Fixed game bugs:** walks lost for seconds after login (ENet's packet throttle at 0
+  of 32; the link no longer throttles down, and an unchanged walk is sent again every
+  0.25 s); eight 1 m gaps between Old Town's buildings that held a player for good
+  (filled; `gap` scenario, `tools/map-gaps`); a drop facing a wall landing inside it
+  (`drop-wall` scenario); chat's cut at 120 splitting an emoji (a test).
+- **Waiting on the author:** the size of door triggers; the street kiosk standing in
+  the college door's trigger (the most common finding of the night, as zone churn and
+  ping-pong); panels opening over the game menu (minor).
+- **Open, not understood:** the shop's navigation mesh for bots has holes (the
+  college's, built the same way, has none).
+- **Watched, not seen again:** "Handle is not initialized" on loading Old Town, none
+  since each zone's scene is kept loaded (02:34 on).
+- **Framework:** the dropper (the connection cut mid-activity, back in through the
+  keeper) and shadow (follows a player, uses what they use) personas; the wardrobe
+  feature file; hostile text typed into fields and chat; `cannot-close` findings;
+  findings carry the time since arriving and ENet's link statistics; `--bot-only` and
+  `bot-try.ps1` take a sequence; the watcher and memory recorder follow their own
+  server; a dozen bot problems fixed (below).
+
 ## Game bugs
 
 ### Loading Old Town after a robo taxi ride logs "Handle is not initialized"
