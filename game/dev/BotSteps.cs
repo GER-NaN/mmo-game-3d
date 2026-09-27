@@ -189,6 +189,12 @@ public sealed class Walker
         _unsticks++;
         _sinceProgress = 0;
         _turnLeft = body.Random.Next(2) == 0;
+
+        // The side without a door, when one side has one.
+        if (body.DoorToward(_turnLeft ? Mathf.Pi / 2f : -Mathf.Pi / 2f, 2f))
+        {
+            _turnLeft = !_turnLeft;
+        }
         _backFor = 0.4 + (body.Random.NextDouble() * 0.6);
         _turnFor = 0.4 + (body.Random.NextDouble() * 0.4 * _unsticks);
         _onFor = 1 + (body.Random.NextDouble() * 0.5 * _unsticks);
@@ -244,9 +250,14 @@ public sealed class Walker
         Input.ActionRelease("strafe_right");
         _unstickLeft -= delta;
 
+        // Never into a door it does not mean to use: a person working round a table does
+        // not step out of the shop.
         if (_unstickLeft > _turnFor + _onFor)
         {
-            Input.ActionPress(_turnLeft ? "strafe_left" : "strafe_right");
+            if (!body.DoorToward(_turnLeft ? Mathf.Pi / 2f : -Mathf.Pi / 2f, 2f))
+            {
+                Input.ActionPress(_turnLeft ? "strafe_left" : "strafe_right");
+            }
         }
         else if (_unstickLeft > _onFor)
         {
@@ -254,8 +265,11 @@ public sealed class Walker
         }
         else if (_unstickLeft > 0)
         {
-            Input.ActionPress("move_forward");
-            Input.ActionPress("jump");
+            if (!body.DoorAhead(2f))
+            {
+                Input.ActionPress("move_forward");
+                Input.ActionPress("jump");
+            }
         }
         else
         {

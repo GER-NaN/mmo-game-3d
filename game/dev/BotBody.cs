@@ -76,6 +76,12 @@ public sealed class BotBody
     // and steps round when they do not mean to go in.
     public bool DoorAhead(float reach)
     {
+        return DoorToward(0f, reach);
+    }
+
+    // The same, off to one side: a quarter turn right is -Pi/2, left +Pi/2.
+    public bool DoorToward(float turn, float reach)
+    {
         Player? me = Me;
         Node? doors = Zone?.GetNodeOrNull("Doors");
 
@@ -85,7 +91,8 @@ public sealed class BotBody
         }
 
         // Heading 0 faces -Z, and a positive heading is turned left.
-        Vector3 forward = new Vector3(-Mathf.Sin(me.Heading), 0f, -Mathf.Cos(me.Heading));
+        float heading = me.Heading + turn;
+        Vector3 forward = new Vector3(-Mathf.Sin(heading), 0f, -Mathf.Cos(heading));
 
         foreach (Node node in doors.GetChildren())
         {
