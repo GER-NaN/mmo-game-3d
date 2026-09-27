@@ -13,26 +13,26 @@ using MmoGame3d.Ui;
 /// </summary>
 public static class BotExtraActivities
 {
-    public static readonly BotActivity PokeAround = new BotActivity("poke around", 8, body => body.Zone != null && !body.ZoneId.StartsWith("taxi"), body => new List<BotStep>
+    public static readonly BotActivity PokeAround = new StepsActivity("poke around", 8, body => body.Zone != null && !body.ZoneId.StartsWith("taxi"), body => new List<BotStep>
     {
         new PokeStep(false, 25 + (body.Random.NextDouble() * 20)),
         new CloseAllStep(),
     });
 
-    public static readonly BotActivity ShadowSomeone = new BotActivity("shadow someone", 8, body => body.Zone != null && !body.ZoneId.StartsWith("taxi"), body => new List<BotStep>
+    public static readonly BotActivity ShadowSomeone = new StepsActivity("shadow someone", 8, body => body.Zone != null && !body.ZoneId.StartsWith("taxi"), body => new List<BotStep>
     {
         new ShadowStep(40 + (body.Random.NextDouble() * 40)),
         new CloseAllStep(),
     });
 
     // One of the typed lines, in public chat, for everyone's chat box and the server.
-    public static readonly BotActivity SaySomethingOdd = new BotActivity("say something odd", 2, body => body.Zone != null, body =>
+    public static readonly BotActivity SaySomethingOdd = new StepsActivity("say something odd", 2, body => body.Zone != null, body =>
         new BotPlan()
             .Say(PokeStep.Lines[body.Random.Next(PokeStep.Lines.Length)])
             .Pause(1.5)
             .Steps);
 
-    public static readonly BotActivity PokeAtTerminal = new BotActivity("poke at a terminal", 5, body => body.ZoneId == ZoneIds.Town, body =>
+    public static readonly BotActivity PokeAtTerminal = new StepsActivity("poke at a terminal", 5, body => body.ZoneId == ZoneIds.Town, body =>
     {
         string terminal = body.Random.Next(2) == 0 ? "Interactables/LibraryTerminal" : "Interactables/StreetKiosk";
         return new List<BotStep>
@@ -44,18 +44,18 @@ public static class BotExtraActivities
         };
     });
 
-    public static readonly BotActivity RunForTheEdge = new BotActivity("run for the edge", 8, body => body.Zone != null && !body.ZoneId.StartsWith("taxi"), body => new List<BotStep>
+    public static readonly BotActivity RunForTheEdge = new StepsActivity("run for the edge", 8, body => body.Zone != null && !body.ZoneId.StartsWith("taxi"), body => new List<BotStep>
     {
         new EdgeStep(45),
     });
 
-    public static readonly BotActivity MashKeys = new BotActivity("mash the keys", 10, body => body.Zone != null, body => new List<BotStep>
+    public static readonly BotActivity MashKeys = new StepsActivity("mash the keys", 10, body => body.Zone != null, body => new List<BotStep>
     {
         new MashStep(10 + (body.Random.NextDouble() * 15)),
         new CloseAllStep(),
     });
 
-    public static readonly BotActivity SqueezeIntoAGap = new BotActivity("squeeze into a gap", 8, body => body.Zone?.GetNodeOrNull("Buildings") != null, body => new List<BotStep>
+    public static readonly BotActivity SqueezeIntoAGap = new StepsActivity("squeeze into a gap", 8, body => body.Zone?.GetNodeOrNull("Buildings") != null, body => new List<BotStep>
     {
         new SqueezeStep(),
     });

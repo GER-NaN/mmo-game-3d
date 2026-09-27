@@ -41,7 +41,7 @@ public sealed class BotBody
     // Its persona's pace: every pause and read is this many times as long.
     public double Pace { get; set; } = 1;
 
-    private SceneTree Tree
+    public SceneTree Tree
     {
         get { return _node.GetTree(); }
     }
@@ -251,6 +251,15 @@ public sealed class BotBody
     {
         get { return Game?.Dollars ?? 0; }
     }
+
+    // Rules.Skills.CareerId, or -1 with none.
+    public int Career
+    {
+        get { return Game?.Career ?? -1; }
+    }
+
+    // A walk given up at a thing that is there: the driver passes it to the position judge.
+    public Action<BotStep>? WalkFailed { get; set; }
 
     // In the bag: a stack of it, or one loose.
     public bool Has(Rules.Items.ItemType type)
@@ -601,6 +610,63 @@ public sealed class BotBody
     {
         BotDriver.Click(button.GetGlobalRect().GetCenter());
     }
+
+    // A click a person could make: on a button inside the window. One below or above the
+    // window's edge is first brought in with the mouse wheel over the list it scrolls in;
+    // false while that goes on. One no wheel brings in (a screen taller than the window,
+    // with nothing to scroll) is reported once and never clicked.
+    public bool TryClick(Button button)
+    {
+        Rect2 window = _node.GetViewport().GetVisibleRect();
+        Rect2 rect = button.GetGlobalRect();
+
+        // Just made (a list rebuilt): no size or place until the next layout.
+        if (rect.Size.X < 1 || rect.Size.Y < 1)
+        {
+            return false;
+        }
+
+        ScrollContainer? scroll = null;
+
+        for (Node? node = button.GetParent(); node != null && scroll == null; node = node.GetParent())
+        {
+            scroll = node as ScrollContainer;
+        }
+
+        // What can be clicked: the window, and inside a list only the part it shows.
+        Rect2 shown = scroll == null ? window : scroll.GetGlobalRect().Intersection(window);
+
+        if (shown.Size.X >= 1 && shown.Size.Y >= 1 && shown.Encloses(rect))
+        {
+            _wheeled = 0;
+            Click(button);
+            return true;
+        }
+
+        if (scroll == null || shown.Size.X < 1 || shown.Size.Y < 1 || _wheeled >= MaxWheels)
+        {
+            _wheeled = 0;
+            Report?.Invoke("off-screen", "\"" + button.Text.Trim() + "\" is at " + rect.Position.Round() + ", size " + rect.Size.Round() + ", outside what a window of " + window.Size
+                + " shows" + (scroll == null ? ", with nothing to scroll" : ", and the wheel does not bring it in"));
+            return false;
+        }
+
+        // Down to bring up what is below what the list shows; up for what is above.
+        _wheeled++;
+        Vector2 at = shown.GetCenter();
+        MouseButton wheel = rect.End.Y > shown.End.Y ? MouseButton.WheelDown : MouseButton.WheelUp;
+        Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at });
+        Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = wheel, Pressed = true, Position = at, GlobalPosition = at });
+        Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = wheel, Pressed = false, Position = at, GlobalPosition = at });
+        return false;
+    }
+
+    // Wheel turns spent bringing one button in, before it counts as off the screen.
+    private const int MaxWheels = 8;
+    private int _wheeled;
+
+    // A finding a step or screen saw (kind, detail): the driver writes it.
+    public Action<string, string>? Report { get; set; }
 
     // A key as an input event, for what the game takes from events (menus, the bag,
     // the phone) rather than from polled actions.

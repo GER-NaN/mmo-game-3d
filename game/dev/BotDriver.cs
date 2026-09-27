@@ -8,70 +8,80 @@ using MmoGame3d.Rules.Terminals;
 using MmoGame3d.Ui;
 
 /// <summary>
-/// Plays a client by itself (--bot), for soak runs and headless checks. The rule, kept
+/// Plays a client by itself (--bot), for long runs and headless checks. The rule, kept
 /// from mmo-game: a bot may look things up, but it acts through input. It presses the
 /// same keys and clicks the same buttons a person does, so everything past the keyboard
 /// and mouse is the real game (BotBody).
 ///
-/// How it plays: it picks an activity that can start where it is (BotActivities), by
-/// weight, and works through that activity's steps: walk to the college, talk to the
-/// registrar, work the panel, close it, emote, talk to the professor, walk out. Every
-/// step has a time limit, and a step that fails ends its activity; so does a zone
-/// change no step asked for (the party walked through a door). Between activities it
-/// closes whatever is open, so its window shows the world. It joins any party it is
-/// invited to, whatever it is doing. Back at the main menu, BotKeeper takes over.
+/// The loop, the same for every persona: when free it picks an activity, a chain or an
+/// aside (BotCatalog), weighted by the persona; rolls whether and when to cancel it or
+/// lose the connection in it; routes to the activity's zone first (BotRouter); and runs
+/// it frame by frame while its judge watches. A chain gives the next activity after each
+/// one ends; an aside fires on its own timer too, pausing what runs. Between runs it
+/// closes whatever is open, except after a cancel, which leaves everything as it is.
+/// The persona is only numbers (BotPersona). Back at the main menu, BotKeeper takes over.
 /// </summary>
 public partial class BotDriver : Node
 {
     // A person takes a moment to read before clicking.
     private const double JoinAfter = 0.8;
 
-    // Most invites are turned down, so parties stay small.
-    private const double JoinChance = 0.35;
-
     // With nothing that can start, it looks again after this long.
     private const double PickAgain = 2;
 
-    private readonly Random _random = new Random();
+    // An aside comes this many times as seldom while something else runs.
+    private const double AsideBusyFactor = 3;
+
+    // Findings for screens that would not close, each at most every five minutes.
+    private const double CannotCloseRepeat = 300;
+
+    private Random _random = new Random();
     private BotBody _body = null!;
+    private BotPersona _persona = BotPersonas.Get(BotPersonas.Default);
+
+    // What runs now: the activity (a travel first, when it happens elsewhere, with the
+    // activity it is for), its judge, the chain it belongs to, and an aside pausing it.
     private BotActivity? _activity;
-    private List<BotStep> _steps = new List<BotStep>();
-    private int _step;
-    private double _inStep;
-    private string _zone = "";
-    private string _lastActivity = "";
+    private BotActivity? _after;
+    private BotActivityJudge? _judgeOfActivity;
+    private BotChain? _chain;
+    private BotActivity? _pendingInChain;
+    private BotActivity? _aside;
+    private BotActivityJudge? _judgeOfAside;
+    private string _lastPicked = "";
+
+    // Out of a trap the position judge saw: the escape, and what it interrupted.
+    private bool _escaping;
+    private BotActivity? _escapedFrom;
+
+    // Walks that failed in a row: two, and it is trapped somewhere; it escapes first.
+    private int _failedWalks;
+
     private readonly CloseAllStep _closer = new CloseAllStep();
     private bool _closing = true;
     private double _closingFor;
     private double _pickIn;
+
+    // The interrupt rolled for the choice running now: seconds into it, or -1.
+    private string _choice = "";
+    private double _choiceFor;
+    private double _cancelAt = -1;
+    private double _cutAt = -1;
+
+    // Seconds until each aside may fire again.
+    private readonly Dictionary<BotActivity, double> _asideIn = new Dictionary<BotActivity, double>();
+
     private double _joinSeenFor;
     private bool _joinDecided;
     private bool _willJoin;
     private BotPositionJudge _judge = null!;
     private BotZoneJudge _zoneJudge = null!;
     private readonly BotErrorJudge _errorJudge = new BotErrorJudge();
-
-    // Walks that failed in a row: two, and it is trapped somewhere; it escapes first.
-    private int _failedWalks;
-
-    // A goal in hand: what it wants, and the activities chosen for it one by one. A
-    // quarter of goals are dropped at a random moment, wherever the bot is then.
-    private const double DropChance = 0.25;
-    private BotGoal? _goal;
-    private GoalState _goalState = new GoalState();
-    private double _goalFor;
-    private double _dropAt = -1;
-
-    // Findings for screens that would not close, each at most every five minutes.
-    private const double CannotCloseRepeat = 300;
     private readonly Dictionary<string, double> _cannotCloseAt = new Dictionary<string, double>();
-    private double _clockForCannotClose;
-
-    // When the connection is cut in this activity (the persona's CutChance), or -1.
-    private double _activityFor;
-    private double _cutAt = -1;
-
+    private readonly Dictionary<string, double> _reportedAt = new Dictionary<string, double>();
+    private double _clock;
     private bool _outOfWorld = true;
+    private bool _introduced;
 
     // Drops the connection as a lost one does, back to the main menu, where BotKeeper
     // logs in again. Set by ClientGame.
@@ -83,21 +93,36 @@ public partial class BotDriver : Node
     // Who it is (BotPersonas): what it likes to do, and at what pace.
     public string PersonaName { get; set; } = BotPersonas.Default;
 
-    // Only these activities or goals (--bot-only, comma-separated), again and again, or
-    // "" for all of them.
+    // Only these activities, chains or asides (--bot-only, comma-separated), again and
+    // again, or "" for all of them.
     public string Only { get; set; } = "";
-
-    private BotPersona _persona = BotPersonas.Get(BotPersonas.Default);
-    private bool _introduced;
 
     public override void _Ready()
     {
+        // Logged, so a run's choices can be drawn again (the world will differ).
+        int seed = System.Environment.TickCount;
+        _random = new Random(seed);
+        GD.Print("Bot: seed " + seed);
         _body = new BotBody(this, _random);
         _persona = BotPersonas.Get(PersonaName);
         _body.Pace = _persona.Pace;
         _judge = new BotPositionJudge(Profile);
         _zoneJudge = new BotZoneJudge(Profile);
         _errorJudge.Start(Profile);
+        _body.WalkFailed = step => _judge.WalkFailed(_body, Doing(), step);
+        _body.Report = (kind, detail) =>
+        {
+            // The same thing seen again within five minutes is the same finding.
+            double at;
+
+            if (_reportedAt.TryGetValue(kind + detail, out at) && _clock - at < CannotCloseRepeat)
+            {
+                return;
+            }
+
+            _reportedAt[kind + detail] = _clock;
+            Finding(kind, detail);
+        };
         _closer.Begin(_body);
     }
 
@@ -111,7 +136,7 @@ public partial class BotDriver : Node
     public override void _Process(double delta)
     {
         _body.Tick(delta);
-        _clockForCannotClose += delta;
+        _clock += delta;
 
         // Not in the world: loading, or the menus, which are BotKeeper's.
         if (_body.Me == null)
@@ -139,55 +164,33 @@ public partial class BotDriver : Node
 
         AcceptInvites(delta);
         _body.Navigation.Tick(_body);
-        string doing = _persona.Name + ": " + (_goal != null ? _goal.Name + " > " : "") + (_activity?.Name ?? (_closing ? "closing up" : "choosing"));
-        _judge.Tick(_body, delta, doing, _activity != null ? _steps[_step] : null);
+        string doing = Doing();
+        BotStep? step = _aside != null ? _aside.Step : _activity?.Step;
+        _judge.Tick(_body, delta, doing, step);
         _zoneJudge.Tick(_body, delta, doing);
-        _errorJudge.Tick(_body, delta, doing, _activity != null ? _steps[_step] : null);
+        _errorJudge.Tick(_body, delta, doing, step);
 
-        // Judged stuck (a wedge a wander never notices): out of it before anything else.
-        if (_judge.IsStuck && _activity != BotActivities.Escape)
+        // Judged stuck (a wedge a walk never notices): out of it before anything else.
+        if (_judge.IsStuck && !_escaping)
         {
-            GD.Print("Bot: the judge says stuck; escaping");
-
-            if (_activity != null)
-            {
-                End("judged stuck", false);
-            }
-
-            _closing = false;
-            _judge.Forget();
-            Start(BotActivities.Escape);
+            Escape();
             return;
-        }
-
-        if (_goal != null)
-        {
-            _goalFor += delta;
-
-            if (_dropAt >= 0 && _goalFor >= _dropAt)
-            {
-                DropGoal();
-                return;
-            }
         }
 
         if (_closing)
         {
-            _closingFor += delta;
+            TickClosing(delta);
+            return;
+        }
 
-            if (_closer.Tick(_body, delta) != StepResult.Running || _closingFor > _closer.Limit)
-            {
-                _closing = false;
+        if (_aside == null)
+        {
+            TickAsideTimers(delta);
+        }
 
-                if (_closingFor > _closer.Limit)
-                {
-                    CouldNotClose();
-                }
-
-                // A moment between one thing and the next, longer at a slower pace.
-                _pickIn = (0.5 + _random.NextDouble()) * _persona.Pace;
-            }
-
+        if (_aside != null)
+        {
+            TickAside(delta);
             return;
         }
 
@@ -195,7 +198,7 @@ public partial class BotDriver : Node
         {
             _pickIn -= delta;
 
-            if (_pickIn <= 0 && !NextForGoal())
+            if (_pickIn <= 0)
             {
                 Pick();
             }
@@ -203,168 +206,608 @@ public partial class BotDriver : Node
             return;
         }
 
-        _activityFor += delta;
+        _choiceFor += delta;
 
-        if (_cutAt >= 0 && _activityFor >= _cutAt)
+        if (_cutAt >= 0 && _choiceFor >= _cutAt)
         {
             Cut();
             return;
         }
 
-        BotStep step = _steps[_step];
-
-        if (_body.ZoneId != _zone && !step.MovesZone)
+        if (_cancelAt >= 0 && _choiceFor >= _cancelAt)
         {
-            End("pulled from " + _zone + " to " + _body.ZoneId, false);
+            CancelChoice();
             return;
         }
 
-        _inStep += delta;
-        bool tooLong = _inStep > step.Limit;
-        StepResult result = tooLong ? StepResult.Failed : step.Tick(_body, delta);
-
-        switch (result)
-        {
-            case StepResult.Running:
-                break;
-            case StepResult.Failed:
-                // A walk failed at a thing that is there; a missing one is not a walk.
-                bool walkFailed = step.Walks && step.Target(_body) != null;
-                _failedWalks = walkFailed ? _failedWalks + 1 : 0;
-
-                if (walkFailed && !tooLong)
-                {
-                    _judge.WalkFailed(_body, (_goal != null ? _goal.Name + " > " : "") + (_activity?.Name ?? ""), step);
-                }
-
-                End("\"" + step.Name + "\" " + (tooLong ? "took too long" : "failed"), false);
-                break;
-            default:
-                _zone = _body.ZoneId;
-                _step++;
-
-                if (_step >= _steps.Count)
-                {
-                    _failedWalks = 0;
-                    End("done", true);
-                }
-                else
-                {
-                    StartStep();
-                }
-
-                break;
-        }
+        TickActivity(delta);
     }
 
-    // By weight among those that can start here, and not the same one twice running
-    // when there is a choice.
+    // ---------------------------------------------------------------- choosing
+
     private void Pick()
     {
         if (_failedWalks >= 2)
         {
             _failedWalks = 0;
-            Start(BotActivities.Escape);
+            Escape();
             return;
         }
 
-        List<BotActivity> open = new List<BotActivity>();
-        List<BotGoal> goals = new List<BotGoal>();
-        int total = 0;
+        List<BotActivity> activities = new List<BotActivity>();
+        List<BotActivity> asides = new List<BotActivity>();
+        List<BotChain> chains = new List<BotChain>();
+        List<BotActivity> all = new List<BotActivity>(BotCatalog.All.Activities);
+        all.AddRange(_persona.Own);
 
-        List<BotActivity> choices = new List<BotActivity>(BotCatalog.All.Activities);
-        choices.AddRange(_persona.Own);
-
-        foreach (BotActivity activity in choices)
+        foreach (BotActivity activity in all)
         {
-            if (activity.CanStart(_body) && Weight(activity) > 0 && Allowed(activity.Name))
+            if (Weight(activity.Weight, activity.Name) <= 0 || !Allowed(activity.Name) || !activity.CanStart(_body))
             {
-                open.Add(activity);
-                total += Weight(activity);
+                continue;
+            }
+
+            if (activity.Timing == BotTiming.Aside)
+            {
+                asides.Add(activity);
+            }
+            else if (activity.NeedsMet(_body) && Reachable(activity))
+            {
+                activities.Add(activity);
             }
         }
 
-        foreach (BotGoal goal in BotCatalog.All.Goals)
+        foreach (BotChain chain in BotCatalog.All.Chains)
         {
-            if (goal.CanStart(_body) && Weight(goal) > 0 && Allowed(goal.Name))
+            if (Weight(chain.Weight, chain.Name) > 0 && Allowed(chain.Name) && chain.CanStart(_body))
             {
-                goals.Add(goal);
-                total += Weight(goal);
+                chains.Add(chain);
             }
         }
 
-        // Only one thing, and it cannot start here: back to town, where most things can.
-        if (Only.Length > 0 && open.Count == 0 && goals.Count == 0 && BotActivities.GoBackToTown.CanStart(_body))
+        // Not the same activity twice running, when there is a choice.
+        if (activities.Count > 1)
         {
-            Start(BotActivities.GoBackToTown);
-            return;
+            activities.RemoveAll(a => a.Name == _lastPicked);
         }
 
-        // A goal, by the same weights as the activities.
-        int goalRoll = _random.Next(Math.Max(1, total));
+        double activityShare = activities.Count > 0 ? _persona.ActivityShare : 0;
+        double chainShare = chains.Count > 0 ? _persona.ChainShare : 0;
+        double asideShare = asides.Count > 0 ? _persona.AsideShare : 0;
+        double total = activityShare + chainShare + asideShare;
 
-        foreach (BotGoal goal in goals)
+        if (total <= 0)
         {
-            if (goalRoll < Weight(goal))
+            // Only one thing, and it cannot start here: back to town, where most things can.
+            if (Only.Length > 0 && BotActivities.GoBackToTown.CanStart(_body))
             {
-                StartGoal(goal);
+                TakeActivity(BotActivities.GoBackToTown);
                 return;
             }
 
-            goalRoll -= Weight(goal);
-        }
-
-        total = 0;
-
-        foreach (BotActivity activity in open)
-        {
-            total += Weight(activity);
-        }
-
-        if (open.Count > 1 && open.Exists(a => a.Name == _lastActivity))
-        {
-            BotActivity last = open.Find(a => a.Name == _lastActivity)!;
-            open.Remove(last);
-            total -= last.Weight;
-        }
-
-        if (open.Count == 0)
-        {
             _pickIn = PickAgain;
             return;
         }
 
-        GD.Print("Bot: wander mode");
+        double roll = _random.NextDouble() * total;
 
-        int roll = _random.Next(total);
-        BotActivity pick = open[open.Count - 1];
-
-        foreach (BotActivity activity in open)
+        if (roll < activityShare)
         {
-            if (roll < Weight(activity))
-            {
-                pick = activity;
-                break;
-            }
-
-            roll -= Weight(activity);
+            TakeActivity(Weighted(activities, a => Weight(a.Weight, a.Name)));
         }
-
-        Start(pick);
+        else if (roll < activityShare + chainShare)
+        {
+            TakeChain(Weighted(chains, c => Weight(c.Weight, c.Name)));
+        }
+        else
+        {
+            StartAside(Weighted(asides, a => Weight(a.Weight, a.Name)));
+        }
     }
 
-    private void Start(BotActivity activity)
+    // Its own weight times the persona's liking; one named in --bot-only is picked even
+    // when only chains start it (weight 0).
+    private double Weight(int weight, string name)
     {
+        if (Only.Length > 0 && Allowed(name))
+        {
+            return Math.Max(1, weight);
+        }
+
+        return weight * _persona.Factor(name);
+    }
+
+    private T Weighted<T>(List<T> choices, Func<T, double> weight)
+    {
+        double total = 0;
+
+        foreach (T choice in choices)
+        {
+            total += weight(choice);
+        }
+
+        double roll = _random.NextDouble() * total;
+
+        foreach (T choice in choices)
+        {
+            roll -= weight(choice);
+
+            if (roll < 0)
+            {
+                return choice;
+            }
+        }
+
+        return choices[choices.Count - 1];
+    }
+
+    // Somewhere the router can take it from here (or here already).
+    private bool Reachable(BotActivity activity)
+    {
+        return activity.Zone.Length == 0 || activity.Zone == _body.ZoneId || BotRouter.Route(_body.ZoneId, activity.Zone) != null;
+    }
+
+    private void TakeActivity(BotActivity activity)
+    {
+        _lastPicked = activity.Name;
+        RollInterrupt(activity.Name, activity.UsualSeconds);
+        Announce("wandering: " + activity.Name);
+        StartActivity(activity);
+    }
+
+    private void TakeChain(BotChain chain)
+    {
+        _lastPicked = chain.Name;
+        _chain = chain;
+        chain.Begin(_body, _random);
+        RollInterrupt(chain.Name, chain.UsualSeconds);
+        GD.Print("Bot: " + chain.Kind.ToString().ToLowerInvariant() + " chain \"" + chain.Name + "\"");
+        Announce((chain.Kind == ChainKind.Goal ? "goal: " : "chain: ") + chain.Name);
+
+        // Its own business: out of any party first.
+        BotActivity? first = chain.Solo && BotActivities.LeaveParty.CanStart(_body) ? BotActivities.LeaveParty : chain.Next(_body, null, BotEnd.Finished);
+        StartInChain(first);
+    }
+
+    // Whether, and when, to walk away from this choice or lose the connection in it; the
+    // log names the moment, so a replay can put it in the same place.
+    private void RollInterrupt(string name, double usualSeconds)
+    {
+        _choice = name;
+        _choiceFor = 0;
+        _cancelAt = -1;
+        _cutAt = -1;
+
+        if (CutConnection != null && _random.NextDouble() < _persona.CutChance)
+        {
+            _cutAt = 1 + (_random.NextDouble() * 20 * _persona.Pace);
+        }
+        else if (_random.NextDouble() < _persona.CancelChance)
+        {
+            _cancelAt = 3 + (_random.NextDouble() * Math.Max(1, (usualSeconds * _persona.Pace) - 3));
+        }
+
+        GD.Print("Bot: taking \"" + name + "\""
+            + (_cutAt >= 0 ? " (will lose the connection after " + (int)_cutAt + " s)" : "")
+            + (_cancelAt >= 0 ? " (will cancel it after " + (int)_cancelAt + " s)" : ""));
+    }
+
+    // ---------------------------------------------------------------- running
+
+    private void StartInChain(BotActivity? next)
+    {
+        // Links that cannot start here: skipped in a random chain, a finding in a related
+        // one, where the author set up what each needs.
+        while (next != null && _chain != null && !next.CanStart(_body))
+        {
+            GD.Print("Bot: \"" + next.Name + "\" cannot start here; next in \"" + _chain.Name + "\"");
+
+            if (_chain.Kind == ChainKind.Related)
+            {
+                Finding("chain-step-cannot-start", "\"" + next.Name + "\" in \"" + _chain.Name + "\" cannot start in " + _body.ZoneId);
+            }
+
+            next = _chain.Next(_body, next, BotEnd.Failed);
+        }
+
+        if (next == null)
+        {
+            EndChain();
+            return;
+        }
+
+        if (_chain != null && _chain.Kind == ChainKind.Goal)
+        {
+            Announce(_chain.Name + " -> " + next.Name);
+        }
+
+        StartActivity(next);
+    }
+
+    private void StartActivity(BotActivity activity)
+    {
+        // Somewhere else: the router first, then the activity.
+        if (activity.Zone.Length > 0 && activity.Zone != _body.ZoneId)
+        {
+            _after = activity;
+            activity = new TravelActivity(activity.Zone);
+        }
+
         _activity = activity;
-        _lastActivity = activity.Name;
-        _steps = activity.Plan(_body);
-        _step = 0;
-        _zone = _body.ZoneId;
-        _activityFor = 0;
-        _cutAt = CutConnection != null && _random.NextDouble() < _persona.CutChance ? 1 + (_random.NextDouble() * 20 * _persona.Pace) : -1;
-        GD.Print("Bot: starting \"" + activity.Name + "\"" + (_cutAt >= 0 ? " (will lose the connection after " + (int)_cutAt + " s)" : ""));
-        Announce((_goal != null ? _goal.Name + " -> " : "wandering: ") + activity.Name);
-        StartStep();
+        _judgeOfActivity = activity.NewJudge();
+        _judgeOfActivity?.Before(_body);
+        GD.Print("Bot: starting \"" + activity.Name + "\"" + (_after != null ? " for \"" + _after.Name + "\"" : ""));
+        activity.Begin(_body);
+    }
+
+    private void TickActivity(double delta)
+    {
+        BotActivity activity = _activity!;
+        string? wrong = _judgeOfActivity?.Watch(_body, delta);
+
+        if (wrong != null)
+        {
+            activity.Cancel(_body, "judged");
+            EndActivity(BotEnd.Failed, "judged: " + wrong, wrong);
+            return;
+        }
+
+        StepResult result = activity.Tick(_body, delta);
+
+        switch (result)
+        {
+            case StepResult.Running:
+                return;
+            case StepResult.Done:
+                EndActivity(BotEnd.Finished, "done", null);
+                return;
+            default:
+                EndActivity(BotEnd.Failed, activity.Why, null);
+                return;
+        }
+    }
+
+    // The activity is over: its judge's verdict, its promises, then what comes next.
+    private void EndActivity(BotEnd end, string why, string? judged)
+    {
+        BotActivity done = _activity!;
+        Judge(done, _judgeOfActivity, end, judged);
+        GD.Print("Bot: " + (end == BotEnd.Finished ? "finished" : "gave up on") + " \"" + done.Name + "\": " + why);
+        _failedWalks = end == BotEnd.Failed && done.FailedWalking ? _failedWalks + 1 : end == BotEnd.Finished ? 0 : _failedWalks;
+        _activity = null;
+        _judgeOfActivity = null;
+        _body.Stop();
+
+        // A travel for an activity: on to it; if the travel failed, so did the activity.
+        if (_after != null)
+        {
+            BotActivity target = _after;
+            _after = null;
+
+            if (end == BotEnd.Finished)
+            {
+                StartActivity(target);
+                return;
+            }
+
+            done = target;
+        }
+
+        if (_escaping)
+        {
+            _escaping = false;
+
+            if (_escapedFrom != null)
+            {
+                done = _escapedFrom;
+                end = BotEnd.Failed;
+                _escapedFrom = null;
+            }
+        }
+
+        if (_chain != null)
+        {
+            // Tidied between links, then the next.
+            _pendingInChain = _chain.Next(_body, done, end);
+
+            if (_pendingInChain == null)
+            {
+                EndChain();
+                return;
+            }
+        }
+        else
+        {
+            _choice = "";
+        }
+
+        StartClosing();
+    }
+
+    private void Judge(BotActivity activity, BotActivityJudge? judge, BotEnd end, string? judged)
+    {
+        string? verdict = judged ?? judge?.After(_body, end);
+
+        if (verdict != null)
+        {
+            Finding("activity-failed", activity.Name + ": " + verdict);
+        }
+
+        if (end != BotEnd.Finished)
+        {
+            return;
+        }
+
+        foreach (BotFact promise in activity.Gives)
+        {
+            // Money promised is more money; the amount is the goal's business.
+            if (promise.Kind != FactKind.MoneyAtLeast && !promise.IsTrue(_body))
+            {
+                Finding("promise-broken", activity.Name + " finished, but not " + promise);
+            }
+        }
+    }
+
+    private void EndChain()
+    {
+        BotChain? chain = _chain;
+        _chain = null;
+        _pendingInChain = null;
+        _choice = "";
+        _cancelAt = -1;
+        _cutAt = -1;
+
+        if (chain != null)
+        {
+            GD.Print("Bot: chain \"" + chain.Name + "\" over" + (chain.Why.Length > 0 ? " (" + chain.Why + ")" : "") + ": " + chain.Describe());
+            Announce(chain.Why.Length > 0 ? "giving up " + chain.Name + ": " + chain.Why : "done: " + chain.Name);
+        }
+
+        StartClosing();
+    }
+
+    private void StartClosing()
+    {
+        _closing = true;
+        _closingFor = 0;
+        _closer.Begin(_body);
+    }
+
+    private void TickClosing(double delta)
+    {
+        _closingFor += delta;
+
+        if (_closer.Tick(_body, delta) == StepResult.Running && _closingFor <= _closer.Limit)
+        {
+            return;
+        }
+
+        _closing = false;
+
+        if (_closingFor > _closer.Limit)
+        {
+            CouldNotClose();
+        }
+
+        if (_pendingInChain != null)
+        {
+            BotActivity next = _pendingInChain;
+            _pendingInChain = null;
+            StartInChain(next);
+            return;
+        }
+
+        // A moment between one thing and the next, longer at a slower pace.
+        _pickIn = (0.5 + _random.NextDouble()) * _persona.Pace;
+    }
+
+    // ---------------------------------------------------------------- asides
+
+    private void TickAsideTimers(double delta)
+    {
+        List<BotActivity> all = new List<BotActivity>(BotCatalog.All.Activities);
+        all.AddRange(_persona.Own);
+        bool busy = _activity != null;
+
+        foreach (BotActivity aside in all)
+        {
+            if (aside.Timing != BotTiming.Aside || _persona.Factor(aside.Name) <= 0 || !Allowed(aside.Name))
+            {
+                continue;
+            }
+
+            double left;
+
+            if (!_asideIn.TryGetValue(aside, out left))
+            {
+                left = NextAsideIn(aside, busy);
+            }
+
+            left -= delta;
+
+            if (left > 0)
+            {
+                _asideIn[aside] = left;
+                continue;
+            }
+
+            _asideIn[aside] = NextAsideIn(aside, busy);
+
+            if (aside.CanStart(_body) && (_activity == null || _activity.AllowsAsides))
+            {
+                StartAside(aside);
+                return;
+            }
+        }
+    }
+
+    // Seconds to the next firing: random, around the aside's own mean, scaled by the
+    // persona and by being busy.
+    private double NextAsideIn(BotActivity aside, double busy)
+    {
+        double mean = aside.AsideEvery / Math.Max(0.01, _persona.AsideRate) * busy;
+        return -Math.Log(1 - _random.NextDouble()) * mean;
+    }
+
+    private double NextAsideIn(BotActivity aside, bool busy)
+    {
+        return NextAsideIn(aside, busy ? AsideBusyFactor : 1);
+    }
+
+    private void StartAside(BotActivity aside)
+    {
+        _aside = aside;
+        _judgeOfAside = aside.NewJudge();
+        _judgeOfAside?.Before(_body);
+        GD.Print("Bot: aside \"" + aside.Name + "\"" + (_activity != null ? " during \"" + _activity.Name + "\"" : ""));
+        _body.Stop();
+        aside.Begin(_body);
+    }
+
+    private void TickAside(double delta)
+    {
+        BotActivity aside = _aside!;
+        string? wrong = _judgeOfAside?.Watch(_body, delta);
+        StepResult result = wrong != null ? StepResult.Failed : aside.Tick(_body, delta);
+
+        if (result == StepResult.Running)
+        {
+            return;
+        }
+
+        BotEnd end = result == StepResult.Done ? BotEnd.Finished : BotEnd.Failed;
+        Judge(aside, _judgeOfAside, end, wrong);
+        GD.Print("Bot: aside \"" + aside.Name + "\" " + (end == BotEnd.Finished ? "done" : "failed: " + (wrong ?? aside.Why)));
+        _aside = null;
+        _judgeOfAside = null;
+        _body.Stop();
+
+        // Taken when free: a moment, then the next pick. Mid-activity, it carries on.
+        if (_activity == null && !_closing)
+        {
+            _pickIn = (0.5 + _random.NextDouble()) * _persona.Pace;
+        }
+    }
+
+    // ---------------------------------------------------------------- interrupts
+
+    // Walks away mid-step, leaving everything as it is: the state a distracted player
+    // leaves. The chain goes too.
+    private void CancelChoice()
+    {
+        GD.Print("Bot: cancelling \"" + _choice + "\" after " + (int)_choiceFor + " s, during \"" + (_activity?.Name ?? "") + "\" at \""
+            + (_activity?.Step?.Name ?? "") + "\"");
+        Announce("cancelling " + _choice + " (mid " + (_activity?.Name ?? "nothing") + ")");
+        StopEverything("cancelled");
+        _pickIn = 0;
+    }
+
+    // The connection goes mid-step, with whatever is open left open; BotKeeper logs in
+    // again.
+    private void Cut()
+    {
+        GD.Print("Bot: cutting the connection after " + (int)_choiceFor + " s of \"" + _choice + "\", during \"" + (_activity?.Name ?? "") + "\" at \""
+            + (_activity?.Step?.Name ?? "") + "\"");
+        StopEverything("connection cut");
+        StartClosing();
+        CutConnection?.Invoke();
+    }
+
+    private void StopEverything(string reason)
+    {
+        if (_aside != null)
+        {
+            _aside.Cancel(_body, reason);
+            Judge(_aside, _judgeOfAside, BotEnd.Cancelled, null);
+            _aside = null;
+            _judgeOfAside = null;
+        }
+
+        if (_activity != null)
+        {
+            _activity.Cancel(_body, reason);
+            Judge(_activity, _judgeOfActivity, BotEnd.Cancelled, null);
+            _activity = null;
+            _judgeOfActivity = null;
+        }
+
+        _after = null;
+        _chain = null;
+        _pendingInChain = null;
+        _choice = "";
+        _cancelAt = -1;
+        _cutAt = -1;
+        _closing = false;
+        _escaping = false;
+        _escapedFrom = null;
+        _body.Stop();
+    }
+
+    // Out of a trap, before anything else; a chain carries on after it.
+    private void Escape()
+    {
+        GD.Print("Bot: stuck; escaping");
+
+        if (_aside != null)
+        {
+            _aside.Cancel(_body, "stuck");
+            _aside = null;
+            _judgeOfAside = null;
+        }
+
+        _escapedFrom = _after ?? _activity;
+
+        if (_activity != null)
+        {
+            _activity.Cancel(_body, "stuck");
+            GD.Print("Bot: gave up on \"" + _activity.Name + "\": judged stuck");
+        }
+
+        _after = null;
+        _closing = false;
+        _judge.Forget();
+        _escaping = true;
+        _activity = BotActivities.Escape;
+        _judgeOfActivity = null;
+        _activity.Begin(_body);
+    }
+
+    // ---------------------------------------------------------------- the rest
+
+    private string Doing()
+    {
+        return _persona.Name + ": " + (_chain != null ? _chain.Name + " > " : "")
+            + (_aside != null ? _aside.Name + " (aside), during " : "")
+            + (_activity?.Name ?? (_closing ? "closing up" : "choosing"));
+    }
+
+    private void Finding(string kind, string detail)
+    {
+        Player? me = _body.Me;
+
+        if (me == null)
+        {
+            return;
+        }
+
+        List<string> open = new List<string>();
+
+        foreach (Control panel in _body.OpenPanels())
+        {
+            open.Add(panel.GetType().Name);
+        }
+
+        GD.Print("Bot: finding " + kind + ": " + detail);
+        BotFindings.Write(me, Profile, kind, detail, new Dictionary<string, object?>
+        {
+            { "zone", _body.ZoneId },
+            { "body_age", Math.Round(_body.BodyAge, 1) },
+            { "activity", Doing() },
+            { "chain", _chain?.Describe() },
+            { "step", _activity?.Step?.Name },
+            { "online", _body.IsOnline },
+            { "open", open },
+        });
     }
 
     // Said in public chat, so whoever watches sees what each bot is after.
@@ -376,98 +819,6 @@ public partial class BotDriver : Node
     private bool Allowed(string name)
     {
         return Only.Length == 0 || Array.IndexOf(Only.Split(','), name) >= 0;
-    }
-
-    // Its own weight, times what the persona thinks of it.
-    private int Weight(BotActivity activity)
-    {
-        return (int)Math.Round(activity.Weight * _persona.Factor(activity.Name) * 10);
-    }
-
-    private int Weight(BotGoal goal)
-    {
-        return (int)Math.Round(goal.Weight * _persona.Factor(goal.Name) * 10);
-    }
-
-    private void StartGoal(BotGoal goal)
-    {
-        _goal = goal;
-        _goalState = new GoalState();
-        _goalFor = 0;
-        _dropAt = _random.NextDouble() < _persona.DropChance ? 3 + (_random.NextDouble() * ((goal.UsualSeconds * _persona.Pace) - 3)) : -1;
-        GD.Print("Bot: goal \"" + goal.Name + "\"" + (_dropAt >= 0 ? " (will drop it after " + (int)_dropAt + " s)" : ""));
-        Announce("goal: " + goal.Name);
-
-        if (!NextForGoal())
-        {
-            Pick();
-        }
-    }
-
-    // The goal's next activity, started; false with no goal, or when it is met or out of
-    // activities.
-    private bool NextForGoal()
-    {
-        if (_goal == null)
-        {
-            return false;
-        }
-
-        if (_goalState.Rounds >= _goal.Budget)
-        {
-            GD.Print("Bot: gave up goal \"" + _goal.Name + "\": out of activities");
-            _goal = null;
-            return false;
-        }
-
-        // Its own business: out of any party first.
-        if (_goal.Solo && BotActivities.LeaveParty.CanStart(_body))
-        {
-            Start(BotActivities.LeaveParty);
-            return true;
-        }
-
-        BotActivity? next = _goal.Next(_body, _goalState);
-
-        if (next == null)
-        {
-            GD.Print(_goalState.GiveUp.Length > 0 ? "Bot: gave up goal \"" + _goal.Name + "\": " + _goalState.GiveUp : "Bot: goal met \"" + _goal.Name + "\"");
-            Announce(_goalState.GiveUp.Length > 0 ? "giving up " + _goal.Name + ": " + _goalState.GiveUp : "done: " + _goal.Name);
-            _goal = null;
-            return false;
-        }
-
-        // Somewhere else than the next thing needs (pulled away, or a plan cut short):
-        // back to town first.
-        if (!next.CanStart(_body) && BotActivities.GoBackToTown.CanStart(_body))
-        {
-            Start(BotActivities.GoBackToTown);
-            return true;
-        }
-
-        if (!next.CanStart(_body))
-        {
-            GD.Print("Bot: gave up goal \"" + _goal.Name + "\": cannot " + next.Name + " here");
-            _goal = null;
-            return false;
-        }
-
-        Start(next);
-        return true;
-    }
-
-    // Walks off from whatever it was doing, mid-step, leaving it as it is: the state a
-    // distracted player leaves behind.
-    private void DropGoal()
-    {
-        GD.Print("Bot: dropped goal \"" + _goal?.Name + "\" after " + (int)_goalFor + " s, during \"" + (_activity?.Name ?? "") + "\""
-            + (_activity != null ? " at \"" + _steps[_step].Name + "\"" : ""));
-        Announce("dropping " + _goal?.Name + " (mid " + (_activity?.Name ?? "nothing") + ")");
-        _goal = null;
-        _activity = null;
-        _closing = false;
-        _body.Stop();
-        _pickIn = 0;
     }
 
     // Ten seconds of Esc, Close, Back and Go Offline, and something is still open: a
@@ -488,57 +839,14 @@ public partial class BotDriver : Node
 
         string what = string.Join(", ", open);
         GD.Print("Bot: could not close " + what);
-        Player? me = _body.Me;
 
-        if (me == null || open.Count == 0 || (_cannotCloseAt.ContainsKey(what) && _clockForCannotClose - _cannotCloseAt[what] < CannotCloseRepeat))
+        if (open.Count == 0 || (_cannotCloseAt.ContainsKey(what) && _clock - _cannotCloseAt[what] < CannotCloseRepeat))
         {
             return;
         }
 
-        _cannotCloseAt[what] = _clockForCannotClose;
-        BotFindings.Write(me, Profile, "cannot-close", "still open after " + (int)_closer.Limit + " s of closing: " + what, new Dictionary<string, object?>
-        {
-            { "zone", _body.ZoneId },
-            { "body_age", Math.Round(_body.BodyAge, 1) },
-            { "activity", _lastActivity },
-            { "open", open },
-        });
-    }
-
-    // The connection goes mid-step, with whatever is open left open; the goal goes too,
-    // since the bot comes back to a fresh login.
-    private void Cut()
-    {
-        GD.Print("Bot: cutting the connection after " + (int)_activityFor + " s of \"" + (_activity?.Name ?? "") + "\" at \"" + _steps[_step].Name + "\"");
-        _goal = null;
-        _activity = null;
-        _closing = true;
-        _closingFor = 0;
-        _body.Stop();
-        CutConnection?.Invoke();
-    }
-
-    private void StartStep()
-    {
-        _inStep = 0;
-        _steps[_step].Begin(_body);
-    }
-
-    private void End(string how, bool finished)
-    {
-        if (_goal != null)
-        {
-            _goalState.Rounds++;
-            _goalState.LastActivity = _activity?.Name ?? "";
-            _goalState.LastFinished = finished;
-        }
-
-        GD.Print("Bot: " + (finished ? "finished" : "gave up on") + " \"" + _activity?.Name + "\": " + how);
-        _activity = null;
-        _body.Stop();
-        _closing = true;
-        _closingFor = 0;
-        _closer.Begin(_body);
+        _cannotCloseAt[what] = _clock;
+        Finding("cannot-close", "still open after " + (int)_closer.Limit + " s of closing: " + what);
     }
 
     private void AcceptInvites(double delta)
@@ -554,9 +862,9 @@ public partial class BotDriver : Node
 
         if (!_joinDecided)
         {
-            // On a solo goal, never; in wander mode, now and then.
+            // On its own business (a solo chain), never; otherwise now and then.
             _joinDecided = true;
-            _willJoin = (_goal == null || !_goal.Solo) && _random.NextDouble() < _persona.JoinChance;
+            _willJoin = (_chain == null || !_chain.Solo) && _random.NextDouble() < _persona.JoinChance;
         }
 
         _joinSeenFor += delta;
@@ -572,9 +880,11 @@ public partial class BotDriver : Node
     }
 
     // A real press and release at a screen point, through the same input queue a mouse
-    // feeds, so the GUI and the picker both see it.
+    // feeds, so the GUI and the picker both see it. The pointer moves there first, as a
+    // hand does: a control learns it is under the pointer from the motion.
     public static void Click(Vector2 at)
     {
+        Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at });
         InputEventMouseButton press = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = at, GlobalPosition = at };
         InputEventMouseButton release = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = at, GlobalPosition = at };
         Input.ParseInputEvent(press);

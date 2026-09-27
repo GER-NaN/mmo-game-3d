@@ -3,10 +3,11 @@ namespace MmoGame3d.Dev;
 using System.Collections.Generic;
 
 /// <summary>
-/// Who a bot is (--persona): what it likes to do and at what pace. The activities and
-/// goals are the same for everyone; a persona weighs them (a factor on each one's own
-/// weight, 0 to leave it out), adds its own, sets how slowly it goes about things, how
-/// often it drops a goal and how readily it joins a party. Several personas side by
+/// Who a bot is (--persona): numbers the driver reads, no code of its own. The activities
+/// and chains are the same for everyone; a persona weighs them (a factor on each one's own
+/// weight, 0 to leave it out), shares its free moments between activities, chains and
+/// asides, adds activities of its own, and sets its pace, how often it cancels what it is
+/// doing, how often its connection drops and how readily it joins a party. Several side by
 /// side play the game several ways at once.
 /// </summary>
 public sealed class BotPersona
@@ -26,7 +27,19 @@ public sealed class BotPersona
     // times as long. 1 is the wanderer's pace.
     public double Pace { get; set; } = 1;
 
-    public double DropChance { get; set; } = 0.25;
+    // When free: how often it takes an activity, a chain or an aside, against each other.
+    public double ActivityShare { get; set; } = 60;
+
+    public double ChainShare { get; set; } = 30;
+
+    public double AsideShare { get; set; } = 10;
+
+    // Asides also fire on their own timers; this many times as often (2) or as seldom (0.5).
+    public double AsideRate { get; set; } = 1;
+
+    // The chance, per activity or chain it takes, that it walks away from it at a random
+    // moment, leaving everything as it is (BotDriver's interrupt roller).
+    public double CancelChance { get; set; } = 0.25;
 
     public double JoinChance { get; set; } = 0.35;
 
@@ -100,6 +113,7 @@ public static class BotPersonas
         p.Likes["make a house plant"] = 4;
         p.Likes["walk around town"] = 0.3;
         p.Likes["meet someone"] = 0.3;
+        p.ChainShare = 40;
         p.JoinChance = 0.1;
         return p;
     }
@@ -133,7 +147,8 @@ public static class BotPersonas
         p.Likes["recycle something"] = 4;
         p.Likes["fight drones"] = 2;
         p.Likes["walk around town"] = 0.3;
-        p.DropChance = 0.1;
+        p.ChainShare = 50;
+        p.CancelChance = 0.1;
         return p;
     }
 
@@ -143,6 +158,8 @@ public static class BotPersonas
         BotPersona p = new BotPersona("masher", "I press all the keys, fast, in any order.");
         p.Own.Add(BotExtraActivities.MashKeys);
         p.Likes["walk around town"] = 0.5;
+        p.AsideShare = 25;
+        p.AsideRate = 3;
         return p;
     }
 
@@ -175,7 +192,8 @@ public static class BotPersonas
     {
         BotPersona p = new BotPersona("slow", "I take my time and finish what I start.");
         p.Pace = 3;
-        p.DropChance = 0.05;
+        p.CancelChance = 0.05;
+        p.AsideRate = 0.5;
         return p;
     }
 }

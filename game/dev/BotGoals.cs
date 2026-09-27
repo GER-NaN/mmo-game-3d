@@ -73,12 +73,12 @@ public static class BotGoals
     private const int EmpPrice = 10;
     private const int BatteryPrice = 8;
 
-    public static readonly BotActivity PickUpItems = new BotActivity("pick up things", 0, InWorld, body => new List<BotStep>
+    public static readonly BotActivity PickUpItems = new StepsActivity("pick up things", 0, InWorld, body => new List<BotStep>
     {
         new PickUpStep(),
     });
 
-    public static readonly BotActivity Recycle = new BotActivity("recycle for money", 0, InTown, body => new List<BotStep>
+    public static readonly BotActivity Recycle = new StepsActivity("recycle for money", 0, ZoneIds.Town, body => new List<BotStep>
     {
         new WalkToStep("walk to the recycler", b => b.Thing("Interactables/Recycler")),
         new UseStep("recycler", b => b.IsOpen<RecyclerPanel>()),
@@ -88,7 +88,7 @@ public static class BotGoals
         new CloseAllStep(),
     });
 
-    public static readonly BotActivity ReportDrones = new BotActivity("report drones on the cameras", 0, InTown, body => new List<BotStep>
+    public static readonly BotActivity ReportDrones = new StepsActivity("report drones on the cameras", 0, ZoneIds.Town, body => new List<BotStep>
     {
         new WalkToStep("walk to the library terminal", b => b.Thing("Interactables/LibraryTerminal")),
         new UseStep("Go Online", b => b.IsOnline),
@@ -99,7 +99,7 @@ public static class BotGoals
 
     // On either public terminal, or on the phone when it has one with charge: every way
     // in to the game gets played.
-    public static readonly BotActivity PlayDefense = new BotActivity("play Agent Defense", 0, InTown, body =>
+    public static readonly BotActivity PlayDefense = new StepsActivity("play Agent Defense", 0, ZoneIds.Town, body =>
     {
         bool phone = body.Has(ItemType.Phone) && body.PhonePercent > 20;
         int where = body.Random.Next(phone ? 3 : 2);
@@ -127,17 +127,17 @@ public static class BotGoals
         return steps;
     });
 
-    public static readonly BotActivity HuntDrones = new BotActivity("hunt a drone", 0, InTown, body => new List<BotStep>
+    public static readonly BotActivity HuntDrones = new StepsActivity("hunt a drone", 0, ZoneIds.Town, body => new List<BotStep>
     {
         new HuntStep(),
     });
 
-    public static readonly BotActivity Explore = new BotActivity("explore", 0, InWorld, body => new List<BotStep>
+    public static readonly BotActivity Explore = new StepsActivity("explore", 0, InWorld, body => new List<BotStep>
     {
         new ExploreStep(),
     });
 
-    public static readonly BotActivity SwapBattery = new BotActivity("swap the battery", 0, InTown, body => new List<BotStep>
+    public static readonly BotActivity SwapBattery = new StepsActivity("swap the battery", 0, ZoneIds.Town, body => new List<BotStep>
     {
         new DoorStep("ToShop"),
         new WalkToStep("walk to the workbench", b => b.Thing("Interactables/Workbench")),
@@ -151,7 +151,7 @@ public static class BotGoals
         new DoorStep("ToTown"),
     });
 
-    public static readonly BotActivity DropSomething = new BotActivity("drop something", 0, InWorld, body => new List<BotStep>
+    public static readonly BotActivity DropSomething = new StepsActivity("drop something", 0, InWorld, body => new List<BotStep>
     {
         new DoStep("open the bag", 1, (b, d) => { BotBody.Press("inventory"); return StepResult.Done; }),
         new PauseStep(1),
@@ -188,41 +188,10 @@ public static class BotGoals
             return HuntDrones;
         }, 12, 300),
 
-        new BotGoal("charge the phone", 5, body => InTown(body) && body.PhonePercent >= 0 && body.PhonePercent < 20, (body, state) =>
-        {
-            if (body.PhonePercent >= 50)
-            {
-                return null;
-            }
-
-            // A swap that finished and left the phone low worked on another phone, or put
-            // in a battery no better: again would only loop.
-            if (state.LastActivity == SwapBattery.Name && state.LastFinished)
-            {
-                state.GiveUp = "the swap left the phone at " + body.PhonePercent + "%";
-                return null;
-            }
-
-            // Only a battery clearly fuller than the phone's is worth the trip; the old one
-            // comes back into the bag after a swap.
-            bool better = body.SpareBatteryPercent >= Math.Max(50, body.PhonePercent + 30);
-            return better ? SwapBattery : body.Money >= BatteryPrice ? Buy(ItemType.Battery) : Earn(body);
-        }, 10, 240),
-
         new BotGoal("explore this zone", 2, body => InWorld(body) && body.Undiscovered().Count > 0, (body, state) =>
         {
             return body.Undiscovered().Count > 0 ? Explore : null;
         }, 8, 300),
-
-        new BotGoal("earn some money", 2, InTown, (body, state) =>
-        {
-            if (state.Target < 0)
-            {
-                state.Target = body.Money + 10;
-            }
-
-            return body.Money >= state.Target ? null : Earn(body);
-        }, 8, 240),
 
         new BotGoal("play Agent Defense", 3, InTown, (body, state) =>
         {
@@ -250,7 +219,7 @@ public static class BotGoals
     private static BotActivity Buy(ItemType type)
     {
         string name = ItemCatalog.Get(type).Name;
-        return new BotActivity("buy " + name, 0, InTown, body => new List<BotStep>
+        return new StepsActivity("buy " + name, 0, ZoneIds.Town, body => new List<BotStep>
         {
             new DoorStep("ToShop"),
             new WalkToStep("walk to the shopkeeper", b => b.Thing("Interactables/Shopkeeper")),
@@ -266,7 +235,7 @@ public static class BotGoals
     private static BotActivity Equip(ItemType type)
     {
         string name = ItemCatalog.Get(type).Name;
-        return new BotActivity("equip " + name, 0, InWorld, body => new List<BotStep>
+        return new StepsActivity("equip " + name, 0, InWorld, body => new List<BotStep>
         {
             new DoStep("open the bag", 1, (b, d) => { BotBody.Press("inventory"); return StepResult.Done; }),
             new PauseStep(1),
@@ -288,8 +257,12 @@ public static class BotGoals
                 return optional ? StepResult.Done : StepResult.Running;
             }
 
-            GD.Print("Bot: clicking " + button.Text + (itemName.Length > 0 ? " (" + itemName + ")" : ""));
-            b.Click(button);
+            if (!b.TryClick(button))
+            {
+                return StepResult.Running;
+            }
+
+            GD.Print("Bot: clicked " + button.Text + (itemName.Length > 0 ? " (" + itemName + ")" : ""));
             return StepResult.Done;
         });
     }

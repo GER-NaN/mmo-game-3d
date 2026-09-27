@@ -11,32 +11,6 @@ using MmoGame3d.Town;
 using MmoGame3d.Ui;
 
 /// <summary>
-/// Something a bot sets out to do, such as visiting the college: a plan of steps made
-/// fresh each time it starts. It may start only where it makes sense (CanStart), and it
-/// ends when its steps are done or one of them fails; either way the bot closes what is
-/// open and picks the next.
-/// </summary>
-public sealed class BotActivity
-{
-    public BotActivity(string name, int weight, Func<BotBody, bool> canStart, Func<BotBody, List<BotStep>> plan)
-    {
-        Name = name;
-        Weight = weight;
-        CanStart = canStart;
-        Plan = plan;
-    }
-
-    public string Name { get; }
-
-    // How often it is picked, against the others that can start.
-    public int Weight { get; }
-
-    public Func<BotBody, bool> CanStart { get; }
-
-    public Func<BotBody, List<BotStep>> Plan { get; }
-}
-
-/// <summary>
 /// Every activity a bot can pick. Add one here: a name, a weight, where it can start,
 /// and its steps. Each ends back where a next one can start, usually in Old Town.
 /// </summary>
@@ -54,7 +28,7 @@ public static class BotActivities
 
     private static readonly string[] Emotes = { "/wave", "/cheer", "/sit", "/pushups" };
 
-    public static readonly BotActivity LeaveParty = new BotActivity("leave the party", 2, body => body.Usable(PartyPanel.LeaveGroup) != null, body => new List<BotStep>
+    public static readonly BotActivity LeaveParty = new StepsActivity("leave the party", 2, body => body.Usable(PartyPanel.LeaveGroup) != null, body => new List<BotStep>
     {
         new DoStep("click Leave party", 2, (b, d) =>
         {
@@ -71,20 +45,20 @@ public static class BotActivities
     });
 
     // Walks back to Old Town from wherever the bot is (a door toward town).
-    public static readonly BotActivity GoBackToTown = new BotActivity("go back to town", 0, OutOfTown, body => new List<BotStep>
+    public static readonly BotActivity GoBackToTown = new StepsActivity("go back to town", 0, OutOfTown, body => new List<BotStep>
     {
         new DoorStep(body.ZoneId == ZoneIds.Greenhouse ? "ToOutskirts" : "ToTown", 150),
     });
 
     // Not picked by weight: the brain runs it after walks fail twice running.
-    public static readonly BotActivity Escape = new BotActivity("get unstuck", 0, body => true, body => new List<BotStep>
+    public static readonly BotActivity Escape = new StepsActivity("get unstuck", 0, body => true, body => new List<BotStep>
     {
         new EscapeStep(),
     });
 
     public static readonly BotActivity[] All =
     {
-        new BotActivity("walk around town", 6, InTown, body => new List<BotStep>
+        new StepsActivity("walk around town", 6, ZoneIds.Town, body => new List<BotStep>
         {
             new WanderStep(15 + (body.Random.NextDouble() * 30)),
             Talk(body),
@@ -92,7 +66,7 @@ public static class BotActivities
             new DoStep("press R for the EMP", 1, (b, d) => { BotBody.Press("emp"); return StepResult.Done; }),
         }),
 
-        new BotActivity("visit the college", 3, InTown, body => new List<BotStep>
+        new StepsActivity("visit the college", 3, ZoneIds.Town, body => new List<BotStep>
         {
             new DoorStep("ToCollege"),
             new WanderStep(4 + (body.Random.NextDouble() * 4)),
@@ -109,7 +83,7 @@ public static class BotActivities
             new DoorStep("ToTown"),
         }),
 
-        new BotActivity("go shopping", 3, InTown, body => new List<BotStep>
+        new StepsActivity("go shopping", 3, ZoneIds.Town, body => new List<BotStep>
         {
             new DoorStep("ToShop"),
             new WalkToStep("walk to the shopkeeper", b => b.Thing("Interactables/Shopkeeper")),
@@ -129,7 +103,7 @@ public static class BotActivities
             new DoorStep("ToTown"),
         }),
 
-        new BotActivity("use a public terminal", 4, InTown, body =>
+        new StepsActivity("use a public terminal", 4, ZoneIds.Town, body =>
         {
             // Chosen once, so it does not swing between the two on the way.
             string terminal = body.Random.Next(2) == 0 ? "Interactables/LibraryTerminal" : "Interactables/StreetKiosk";
@@ -141,13 +115,13 @@ public static class BotActivities
             };
         }),
 
-        new BotActivity("use the phone", 3, InWorld, body => new List<BotStep>
+        new StepsActivity("use the phone", 3, InWorld, body => new List<BotStep>
         {
             PhoneOut(),
             new OnlineStep(),
         }),
 
-        new BotActivity("check the bag", 2, InWorld, body => new List<BotStep>
+        new StepsActivity("check the bag", 2, InWorld, body => new List<BotStep>
         {
             new DoStep("open the bag", 2, (b, d) => { BotBody.Press("inventory"); return StepResult.Done; }),
             new PauseStep(1),
@@ -156,26 +130,26 @@ public static class BotActivities
             new CloseAllStep(),
         }),
 
-        new BotActivity("ride a robo taxi", 1, InTown, body => new List<BotStep>
+        new StepsActivity("ride a robo taxi", 1, ZoneIds.Town, body => new List<BotStep>
         {
             new WalkToStep("walk to the taxi stand", b => b.Thing("Interactables/TaxiStand")),
             new UseStep("robo taxi", b => b.ZoneId.StartsWith("taxi"), 10, true),
             new DoStep("ride to the drop-off", 180, (b, d) => b.ZoneId == ZoneIds.Town ? StepResult.Done : StepResult.Running, true),
         }),
 
-        new BotActivity("fix something", 4, HasBrokenThing, body => new List<BotStep>
+        new StepsActivity("fix something", 4, HasBrokenThing, body => new List<BotStep>
         {
             new WalkToStep("walk to the broken thing", NearestBroken),
             new UseStep("Fix the", b => NearestBroken(b) == null || !Near(b, NearestBroken(b)!), 10),
         }),
 
-        new BotActivity("repair the street lights", 1, InTown, body => new List<BotStep>
+        new StepsActivity("repair the street lights", 1, ZoneIds.Town, body => new List<BotStep>
         {
             new WalkToStep("walk to the junction box", b => b.Thing("Interactables/JunctionBox")),
             new UseStep("Repair", b => !b.Prompt.Contains("Repair"), 5),
         }),
 
-        new BotActivity("tag the subway", 2, InTown, body => new List<BotStep>
+        new StepsActivity("tag the subway", 2, ZoneIds.Town, body => new List<BotStep>
         {
             new DoorStep("ToSubway"),
             new WalkToStep("walk to the wall", b => b.Thing("Interactables/SubwayWall")),
@@ -190,7 +164,7 @@ public static class BotActivities
             new DoorStep("ToTown"),
         }),
 
-        new BotActivity("go to the outskirts", 2, InTown, body => new List<BotStep>
+        new StepsActivity("go to the outskirts", 2, ZoneIds.Town, body => new List<BotStep>
         {
             new DoorStep("ToOutskirts"),
             new WanderStep(6 + (body.Random.NextDouble() * 8)),
@@ -200,26 +174,14 @@ public static class BotActivities
             new DoorStep("ToTown"),
         }),
 
-        new BotActivity("make a house plant", 1, InTown, body => new List<BotStep>
-        {
-            new DoorStep("ToOutskirts"),
-            new DoorStep("ToGreenhouse"),
-            new WalkToStep("walk to the potting table", b => b.Thing("Interactables/PottingTable")),
-            new UseStep("house plant", b => b.IsOpen<GardenScreen>()),
-            new GardenStep(),
-            new CloseAllStep(),
-            new DoorStep("ToOutskirts"),
-            new DoorStep("ToTown"),
-        }),
-
-        new BotActivity("walk the meadows", 2, InTown, body => new List<BotStep>
+        new StepsActivity("walk the meadows", 2, ZoneIds.Town, body => new List<BotStep>
         {
             new DoorStep("ToMeadows"),
             new WanderStep(20 + (body.Random.NextDouble() * 25)),
             new DoorStep("ToTown", 150),
         }),
 
-        new BotActivity("meet someone", 4, InWorld, body => new List<BotStep>
+        new StepsActivity("meet someone", 4, InWorld, body => new List<BotStep>
         {
             new MeetStep(),
             new PauseStep(1),
@@ -228,7 +190,7 @@ public static class BotActivities
 
         LeaveParty,
 
-        new BotActivity("recycle something", 1, InTown, body => new List<BotStep>
+        new StepsActivity("recycle something", 1, ZoneIds.Town, body => new List<BotStep>
         {
             new WalkToStep("walk to the recycler", b => b.Thing("Interactables/Recycler")),
             new UseStep("recycler", b => b.IsOpen<RecyclerPanel>()),
@@ -238,14 +200,14 @@ public static class BotActivities
             new CloseAllStep(),
         }),
 
-        new BotActivity("look at the map", 1, InWorld, body => new List<BotStep>
+        new StepsActivity("look at the map", 1, InWorld, body => new List<BotStep>
         {
             new DoStep("open the map", 1, (b, d) => { BotBody.Press("map"); return StepResult.Done; }),
             new PauseStep(3),
             new CloseAllStep(),
         }),
 
-        new BotActivity("look at skills and friends", 1, InWorld, body => new List<BotStep>
+        new StepsActivity("look at skills and friends", 1, InWorld, body => new List<BotStep>
         {
             new DoStep("open skills", 1, (b, d) => { BotBody.Press("skills"); return StepResult.Done; }),
             new PauseStep(2.5),
@@ -257,7 +219,7 @@ public static class BotActivities
 
         // Somewhere other than town and not on a ride (pulled through a door by the party,
         // or a plan that failed half way): walk back.
-        new BotActivity("go back to town", 20, OutOfTown, body => new List<BotStep>
+        new StepsActivity("go back to town", 20, OutOfTown, body => new List<BotStep>
         {
             new DoorStep(body.ZoneId == ZoneIds.Greenhouse ? "ToOutskirts" : "ToTown", 150),
         }),
@@ -348,18 +310,28 @@ public static class BotActivities
     // Clicks one of the group's buttons, a random one. Optional: done with none there.
     private static BotStep ClickOne(string name, string group, bool optional = false)
     {
-        return new DoStep(name, 3, (b, d) =>
+        // Picked once, so scrolling one into view does not change the mind.
+        Button? pick = null;
+        return new DoStep(name, 4, (b, d) =>
         {
-            List<Button> buttons = b.UsableAll(group);
-
-            if (buttons.Count == 0)
+            if (pick == null || !GodotObject.IsInstanceValid(pick) || !pick.IsVisibleInTree())
             {
-                return optional ? StepResult.Done : StepResult.Running;
+                List<Button> buttons = b.UsableAll(group);
+
+                if (buttons.Count == 0)
+                {
+                    return optional ? StepResult.Done : StepResult.Running;
+                }
+
+                pick = buttons[b.Random.Next(buttons.Count)];
             }
 
-            Button pick = buttons[b.Random.Next(buttons.Count)];
-            GD.Print("Bot: clicking " + pick.Text);
-            b.Click(pick);
+            if (!b.TryClick(pick))
+            {
+                return StepResult.Running;
+            }
+
+            GD.Print("Bot: clicked " + pick.Text);
             return StepResult.Done;
         });
     }
@@ -570,106 +542,6 @@ public sealed class OnlineStep : BotStep
         _crackSeen = guesses.Length;
         BotDriver.Type(BotDriver.NextGuess(guesses, screen.CrackExact, screen.CrackPartial));
         return true;
-    }
-}
-
-/// <summary>
-/// At the potting table: drags three pieces onto the soil, then Complete, a name and
-/// Finish. Each drag is a press on a piece, a move over the soil, a release there.
-/// </summary>
-public sealed class GardenStep : BotStep
-{
-    private static readonly Vector2[] Spots = { new Vector2(0f, 0f), new Vector2(0.45f, 0.2f), new Vector2(-0.35f, -0.3f) };
-
-    private int _step;
-    private double _wait;
-
-    public GardenStep()
-        : base("make a plant", 40)
-    {
-    }
-
-    public override void Begin(BotBody body)
-    {
-        _step = 0;
-        _wait = 0.8;
-    }
-
-    public override StepResult Tick(BotBody body, double delta)
-    {
-        GardenScreen? screen = null;
-
-        foreach (Node node in body.Me!.GetTree().GetNodesInGroup(GardenScreen.CompleteGroup))
-        {
-            screen = node.FindParent("GardenScreen") as GardenScreen;
-        }
-
-        if (screen == null)
-        {
-            return StepResult.Failed;
-        }
-
-        _wait -= delta;
-
-        if (_wait > 0)
-        {
-            return StepResult.Running;
-        }
-
-        _wait = 0.4;
-        int piece = _step / 3;
-
-        if (piece < Spots.Length)
-        {
-            Vector2 spot = screen.ScreenPointOnSoil(Spots[piece].X, Spots[piece].Y);
-
-            switch (_step % 3)
-            {
-                case 0:
-                    Godot.Collections.Array<Node> pieces = body.Me!.GetTree().GetNodesInGroup(GardenScreen.PieceGroup);
-                    Button button = (Button)pieces[(piece * 4) % pieces.Count];
-                    Vector2 at = button.GetGlobalRect().GetCenter();
-                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = at, GlobalPosition = at });
-                    break;
-                case 1:
-                    Input.ParseInputEvent(new InputEventMouseMotion { Position = spot, GlobalPosition = spot, Relative = Vector2.One });
-                    break;
-                default:
-                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = spot, GlobalPosition = spot });
-                    break;
-            }
-
-            _step++;
-            return StepResult.Running;
-        }
-
-        switch (_step - (Spots.Length * 3))
-        {
-            case 0:
-                Button? complete = body.Usable(GardenScreen.CompleteGroup);
-
-                if (complete != null)
-                {
-                    GD.Print("Bot: clicking Complete");
-                    body.Click(complete);
-                }
-
-                break;
-            case 1:
-                BotDriver.Type("fern");
-                break;
-            default:
-                if (screen.IsDone)
-                {
-                    GD.Print("Bot: the plant is made");
-                    return StepResult.Done;
-                }
-
-                return StepResult.Running;
-        }
-
-        _step++;
-        return StepResult.Running;
     }
 }
 

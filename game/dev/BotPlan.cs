@@ -65,8 +65,12 @@ public sealed class BotPlan
                 return optional ? StepResult.Done : StepResult.Running;
             }
 
-            GD.Print("Bot: clicking " + button.Text + (item.Length > 0 ? " (" + item + ")" : ""));
-            b.Click(button);
+            if (!b.TryClick(button))
+            {
+                return StepResult.Running;
+            }
+
+            GD.Print("Bot: clicked " + button.Text + (item.Length > 0 ? " (" + item + ")" : ""));
             return StepResult.Done;
         }));
     }

@@ -122,6 +122,12 @@ public partial class ClientGame : Node
         get { return _dollars; }
     }
 
+    // The career (Rules.Skills.CareerId), or -1 with none yet.
+    public int Career
+    {
+        get { return _career; }
+    }
+
     public IReadOnlyList<ItemStack> Stacks
     {
         get { return _stacks; }

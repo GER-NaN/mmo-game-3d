@@ -104,6 +104,17 @@ public partial class GardenScreen : Control
         get { return _done.Visible; }
     }
 
+    // What the table shows: the pieces planted (its count line), and its status line.
+    public int PieceCount
+    {
+        get { return _design.Pieces.Count; }
+    }
+
+    public string Status
+    {
+        get { return _status.Text; }
+    }
+
     public void ShowProblem(string text)
     {
         _status.Text = text;

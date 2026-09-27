@@ -12,7 +12,7 @@ public sealed class BotWardrobeFeature : IBotFeature
 {
     public void AddTo(BotCatalog catalog)
     {
-        catalog.Add(new BotActivity("change my look", 1, body => body.Zone != null && !body.ZoneId.StartsWith("taxi"), body =>
+        catalog.Add(new StepsActivity("change my look", 1, body => body.Zone != null && !body.ZoneId.StartsWith("taxi"), body =>
         {
             BotPlan plan = new BotPlan()
                 .Press("ui_cancel")

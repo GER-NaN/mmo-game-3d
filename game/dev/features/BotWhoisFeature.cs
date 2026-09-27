@@ -23,7 +23,7 @@ public sealed class BotWhoisFeature : IBotFeature
 
     public void AddTo(BotCatalog catalog)
     {
-        catalog.Add(new BotActivity("edit my Whois page", 2, body => body.Zone != null && !body.ZoneId.StartsWith("taxi") && (body.PhonePercent > 5 || body.Has(ItemType.Phone)), body =>
+        catalog.Add(new StepsActivity("edit my Whois page", 2, body => body.Zone != null && !body.ZoneId.StartsWith("taxi") && (body.PhonePercent > 5 || body.Has(ItemType.Phone)), body =>
             new BotPlan()
                 .Equip(ItemType.Phone)
                 .Phone()
