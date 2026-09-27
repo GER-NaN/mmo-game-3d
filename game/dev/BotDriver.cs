@@ -48,6 +48,7 @@ public partial class BotDriver : Node
     private bool _willJoin;
     private BotPositionJudge _judge = null!;
     private BotZoneJudge _zoneJudge = null!;
+    private readonly BotErrorJudge _errorJudge = new BotErrorJudge();
 
     // Walks that failed in a row: two, and it is trapped somewhere; it escapes first.
     private int _failedWalks;
@@ -76,6 +77,7 @@ public partial class BotDriver : Node
         _body.Pace = _persona.Pace;
         _judge = new BotPositionJudge(Profile);
         _zoneJudge = new BotZoneJudge(Profile);
+        _errorJudge.Start(Profile);
         _closer.Begin(_body);
     }
 
@@ -83,6 +85,7 @@ public partial class BotDriver : Node
     {
         _body?.Stop();
         _body?.Navigation.Clear();
+        _errorJudge.Stop();
     }
 
     public override void _Process(double delta)
@@ -106,6 +109,7 @@ public partial class BotDriver : Node
         string doing = _persona.Name + ": " + (_goal != null ? _goal.Name + " > " : "") + (_activity?.Name ?? (_closing ? "closing up" : "choosing"));
         _judge.Tick(_body, delta, doing, _activity != null ? _steps[_step] : null);
         _zoneJudge.Tick(_body, delta, doing);
+        _errorJudge.Tick(_body, delta, doing, _activity != null ? _steps[_step] : null);
 
         if (_goal != null)
         {
