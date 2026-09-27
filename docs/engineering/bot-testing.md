@@ -165,6 +165,15 @@ little off is never a finding:
 | | `chain-step-cannot-start` | a link of a related chain cannot start where the chain has brought the bot |
 | `BotBody` | `off-screen` | a button to click that no window or scroll shows, with where it is and the window's size |
 
+**The judges are tested.** Their decisions are plain C# in `src/BotJudging` (thrashing,
+stuck, travel, zone changes, emotes), with no Godot in them; the live judges only look
+and report. `tests/Tests/Bots/JudgeTests.cs` hands each check a run of what a bot saw and
+checks the verdict: a bot told to go to the college that stands still is caught; one
+walking on the spot for half a minute is stuck; standing at a terminal is not; real
+tracks from findings are kept as cases, the bugs that must be caught and the false
+alarms (a wedged bot's jitter) that must stay quiet. A new judge puts its decision there
+too, with a test for what it must catch and one for what it must not.
+
 The same kind for the same bot is written at most once a minute. Each finding is a
 folder, complete on its own, so it can be reviewed without anyone having watched:
 
