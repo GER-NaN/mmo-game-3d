@@ -167,6 +167,12 @@ public static class WardrobeUi
         return ScreenSteps.Press("open the game menu", "ui_cancel");
     }
 
+    // Out of the world, back to the main menu.
+    public static BotStep Leave()
+    {
+        return ScreenSteps.ClickAny("leave to the main menu", InGameMenu.LeaveGroup);
+    }
+
     public static BotStep OpenWardrobe()
     {
         return ScreenSteps.ClickAny("open the wardrobe", InGameMenu.WardrobeGroup);

@@ -671,7 +671,10 @@ public partial class ClientGame : Node
     {
         GD.Print("Characters: " + string.Join(", ", names) + (message.Length > 0 ? " (" + message + ")" : ""));
 
-        if (_options.AutoConnect && !_options.ShowCharacters)
+        // A bot switching characters chooses on the screen, as a player does.
+        Dev.BotKeeper? keeper = GetNodeOrNull<Dev.BotKeeper>("BotKeeper");
+
+        if (_options.AutoConnect && !_options.ShowCharacters && (keeper == null || !keeper.Switching))
         {
             if (ids.Length == 0 && !_autoCreated)
             {

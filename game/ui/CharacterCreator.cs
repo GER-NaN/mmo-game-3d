@@ -20,6 +20,7 @@ public partial class CharacterCreator : Control
     public const string RandomGroup = "creator_random";
     public const string DoneGroup = "creator_done";
     public const string CancelGroup = "creator_cancel";
+    public const string NameGroup = "creator_name";
 
     private const float TurnRadiansPerSecond = 0.6f;
 
@@ -92,6 +93,7 @@ public partial class CharacterCreator : Control
         GetNode<Button>("%Cancel").Pressed += () => CancelPressed?.Invoke();
         GetNode<Button>("%Random").AddToGroup(RandomGroup);
         GetNode<Button>("%Done").AddToGroup(DoneGroup);
+        GetNode<LineEdit>("%Name").AddToGroup(NameGroup);
         GetNode<Button>("%Cancel").AddToGroup(CancelGroup);
         Changed();
     }

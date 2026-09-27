@@ -139,7 +139,11 @@ trying eight directions. Open land (the meadows) is walked straight.
 
 **The keeper** (`BotKeeper.cs`) lives as long as the client: back at the main menu it
 clicks Play after 15 seconds, and it closes a game menu left open. It also saves a
-picture of the bot's game view when the watcher asks.
+picture of the bot's game view when the watcher asks. It finishes a character switch
+("switch characters" leaves by the game menu and ends there): Play, then Play on the
+other character's card, or a second character made (a random look, the name with
+" Two"). Back in the world it judges the switch (`switch-failed`: the same character
+again, or over a minute).
 
 ## The judges
 
