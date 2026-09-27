@@ -200,6 +200,16 @@ Defense Objectives) makes the phone panel taller than the window, and its Go Off
 button is below the bottom edge. Esc still goes offline. A player on a small window
 would not see the button.
 
+### Panels open over the game menu
+
+**Found** 2026-09-27, run 12, Soak8 (the masher; the first `cannot-close`). **Status:**
+open, for the author (minor).
+
+With the game menu up, the other keys still work: M opened the map over the menu,
+hiding its Resume button, and Enter put the cursor in the chat line, which then took
+M as a letter. A person gets out (click away from the chat, M, then Resume), but the
+game menu is usually a screen that holds the rest still while it is up.
+
 ## Bot problems
 
 Fixed as found; kept here so the same thing is recognised next time.
@@ -261,6 +271,9 @@ Fixed as found; kept here so the same thing is recognised next time.
   frame, whatever `MapForceUpdate` says, so each arrival started with a straight walk,
   through doors too. Bots now wait for the map (a second at most). The shop still has
   no path from its entrance to the shopkeeper; the straight walk there works.
+- **Closing under the chat line.** With the chat line focused, the map's own key
+  typed into it, so the map never closed. Closing now lets go of a text field first,
+  and closes the top panel first.
 - **Walking into parked cars.** The blind wander walked into a car spell after spell;
   a spell that got nowhere now turns away first.
 - **Bobbing read as thrashing.** Against the world's edge the escaper bobbed up and
