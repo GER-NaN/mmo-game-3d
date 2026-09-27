@@ -20,7 +20,7 @@ project/assembly_name="mmo-game-3d"
 
 [gui]
 
-theme/custom="res://game/ui/theme/Theme.tres"
+theme/custom="res://game/ui/theme/clean_dark.tres"
 
 [input]
 
