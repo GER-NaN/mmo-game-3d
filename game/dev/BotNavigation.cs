@@ -68,8 +68,20 @@ public sealed class BotNavigation
         NavigationServer3D.RegionSetUseAsyncIterations(_region, false);
         NavigationServer3D.RegionSetNavigationMesh(_region, mesh);
         _bakedMsec = Time.GetTicksMsec();
+        // A probe for Pending: the vertex farthest from the origin, since an empty map
+        // answers every nearest point with the origin, and a probe near it looks found.
         Vector3[] baked = mesh.GetVertices();
-        _probe = baked.Length > 0 ? zone.GlobalTransform * baked[0] : Vector3.Zero;
+        _probe = Vector3.Zero;
+
+        foreach (Vector3 vertex in baked)
+        {
+            Vector3 global = zone.GlobalTransform * vertex;
+
+            if (global.LengthSquared() > _probe.LengthSquared())
+            {
+                _probe = global;
+            }
+        }
         _ready = mesh.GetPolygonCount() > 0;
         Aabb extent = new Aabb();
         Vector3[] vertices = mesh.GetVertices();
