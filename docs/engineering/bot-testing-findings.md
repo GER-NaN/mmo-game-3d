@@ -333,6 +333,11 @@ Fixed as found; kept here so the same thing is recognised next time.
   forward out through the door: zone churn in the shop, over and over, from several
   bots. It now takes the side without a door and skips the push with a door ahead;
   no finding in the 15 minutes after.
+- **Swapping batteries for ever.** The charge-the-phone goal swapped whenever the bag
+  held a battery; after a swap the old, low one is back in the bag, so the dropper went
+  to the shop's workbench and back every 15 seconds (zone churn). It now swaps only for
+  a battery clearly fuller than the phone's (else buys one), and gives up when a
+  finished swap left the phone low.
 - **Walking into parked cars.** The blind wander walked into a car spell after spell;
   a spell that got nowhere now turns away first.
 - **Bobbing read as thrashing.** Against the world's edge the escaper bobbed up and
