@@ -28,16 +28,16 @@ using MmoGame3d.Zones;
 /// </summary>
 public sealed class BotPositionJudge
 {
-    private const double CheckEvery = 5;
+    private const double CheckEvery = 2;
 
     // A taxi passes through a bot in about a second: checked far more often.
     private const double VehiclesEvery = 0.5;
     private const double WalkFailedRepeat = 180;
     private const double BadFootingFor = 10;
-    private const float StuckRadius = 3f;
-    private const double StuckAfter = 240;
-    private const double WalkingShare = 0.75;
-    private const double RepeatAfter = 600;
+    private const float StuckRadius = 2.5f;
+    private const double StuckAfter = 30;
+    private const double WalkingShare = 0.9;
+    private const double RepeatAfter = 180;
     private const float RayUp = 0.5f;
     private const float FloatAbove = 0.8f;
     private const float InsideVehicle = 1.6f;
