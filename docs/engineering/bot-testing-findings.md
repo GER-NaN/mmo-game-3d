@@ -166,6 +166,14 @@ still. The client walks ahead on its own prediction, is snapped back past 3 m, a
 does it again. A person walking straight after logging in, or after any lost packet,
 would see it. Now an unchanged walk is sent again every 0.25 s.
 
+That was half of it: the resent walks went missing too, for about five seconds after
+each login. Findings now carry ENet's view of the link, and the next one (Soak1, run
+10) had the packet throttle at 0 of 32: ENet was dropping every unreliable packet it
+was given, because the round trip wavered in the login's burst. ENet's throttle is
+there for bulky unreliable streams; ours are small. The client now sets the link to
+never throttle down (`ThrottleConfigure(5000, 2, 0)` on connecting), and ENet applies
+that at the server's end too, so position updates keep flowing as well.
+
 ### The phone's Go Offline button falls off a short window
 
 **Found** 2026-09-27, run 1, all bots. **Status:** open.
