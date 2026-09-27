@@ -96,6 +96,7 @@ public sealed class Walker
     private const double StuckAfter = 2.5;
     private const int MaxUnsticks = 8;
     private const double RepathEvery = 3;
+    private bool _mapShown;
     private const float WaypointReached = 0.8f;
 
     private Vector3 _lastAt;
@@ -225,6 +226,13 @@ public sealed class Walker
                 GD.Print("Bot: " + (_path.Length == 0 ? "no path" : "the path ends " + shortBy.ToString("0.0") + " m short") + " from ("
                     + at.X.ToString("0") + ", " + at.Z.ToString("0") + ") to (" + target.X.ToString("0") + ", " + target.Z.ToString("0") + "); straight on; the mesh is "
                     + at.DistanceTo(body.Navigation.Closest(at)).ToString("0.0") + " m from here and " + target.DistanceTo(body.Navigation.Closest(target)).ToString("0.0") + " m from there");
+
+                // The map once per walk, so the log shows what the paths saw.
+                if (!_mapShown)
+                {
+                    _mapShown = true;
+                    GD.Print("Bot: the navigation map round it:\n" + body.Navigation.MapAround(at, target));
+                }
             }
         }
 

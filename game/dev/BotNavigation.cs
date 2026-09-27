@@ -141,6 +141,48 @@ public sealed class BotNavigation
         return _ready ? NavigationServer3D.MapGetClosestPoint(_map, to) : to;
     }
 
+    // What the navigation map holds round a spot, as the paths see it: a text map, 0.5 m a
+    // cell, # where the map has walkable ground within a cell of the point (at the height
+    // of the spot), S and T for the two points given. For the log when a path fails, so a
+    // finding shows whether the ground is missing or the map is.
+    public string MapAround(Vector3 start, Vector3 target)
+    {
+        if (!_ready)
+        {
+            return "(no mesh here)";
+        }
+
+        const float Cell = 0.5f;
+        Vector3 middle = (start + target) / 2f;
+        float half = Mathf.Clamp(start.DistanceTo(target) / 2f + 3f, 4f, 12f);
+        System.Text.StringBuilder map = new System.Text.StringBuilder();
+        map.Append("x " + (middle.X - half).ToString("0") + " to " + (middle.X + half).ToString("0") + ", z " + (middle.Z - half).ToString("0") + " (top) to " + (middle.Z + half).ToString("0") + "\n");
+
+        for (float z = middle.Z - half; z <= middle.Z + half; z += Cell)
+        {
+            for (float x = middle.X - half; x <= middle.X + half; x += Cell)
+            {
+                Vector3 point = new Vector3(x, start.Y, z);
+                char mark = NavigationServer3D.MapGetClosestPoint(_map, point).DistanceTo(point) < Cell + 0.5f ? '#' : '.';
+
+                if (new Vector2(x - start.X, z - start.Z).Length() < Cell * 0.75f)
+                {
+                    mark = 'S';
+                }
+                else if (new Vector2(x - target.X, z - target.Z).Length() < Cell * 0.75f)
+                {
+                    mark = 'T';
+                }
+
+                map.Append(mark);
+            }
+
+            map.Append('\n');
+        }
+
+        return map.ToString();
+    }
+
     // The points to walk through, first to last; empty with no mesh here.
     public Vector3[] Path(Vector3 from, Vector3 to)
     {
