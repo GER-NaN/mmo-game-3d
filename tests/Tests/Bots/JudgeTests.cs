@@ -296,4 +296,28 @@ public class JudgeTests
 
         return track;
     }
+
+    // ---------------------------------------------------------------- world events
+
+    private const string Swarm = "Drone Swarm in Meadows!";
+
+    [Fact]
+    public void ABotThatWasThereWhileTheSwarmRanMustBeShownAsTakingPart()
+    {
+        string[] shown = { Swarm + "   12:40 to 12:43   completed   you took part", Swarm + "   12:30 to 12:33   timed out" };
+        string[] missing = { Swarm + "   12:40 to 12:43   completed", Swarm + "   12:30 to 12:33   timed out   you took part" };
+
+        Assert.Null(WorldEventCheck.Judge(Swarm, true, true, shown));
+        Assert.NotNull(WorldEventCheck.Judge(Swarm, true, true, missing));
+        Assert.NotNull(WorldEventCheck.Judge(Swarm, true, true, new string[0]));
+    }
+
+    [Fact]
+    public void ABotThatArrivedTooLateOrNeverReadAgainIsNotJudged()
+    {
+        string[] missing = { Swarm + "   12:40 to 12:43   completed" };
+
+        Assert.Null(WorldEventCheck.Judge(Swarm, false, true, missing));
+        Assert.Null(WorldEventCheck.Judge(Swarm, true, false, missing));
+    }
 }

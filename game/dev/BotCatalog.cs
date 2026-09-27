@@ -104,6 +104,7 @@ public sealed class BotCatalog
         Add(new TagSubwayActivity());
         Add(new OutskirtsActivity());
         Add(new WalkMeadowsActivity());
+        Add(new CheckWorldEventsActivity());
         Add(new GreenhouseActivity());
         Add(new MeetSomeoneActivity());
         Add(LeaveParty);

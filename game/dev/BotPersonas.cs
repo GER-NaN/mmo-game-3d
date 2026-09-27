@@ -88,6 +88,8 @@ public static class BotPersonas
                 return Dropper();
             case "shadow":
                 return Shadow();
+            case "eventer":
+                return Eventer();
             default:
                 return new BotPersona(Default, "I walk around and do a bit of everything.");
         }
@@ -184,6 +186,16 @@ public static class BotPersonas
         p.Own.Add(PersonaActivities.ShadowSomeone);
         p.Likes["walk around town"] = 0.3;
         p.JoinChance = 0.6;
+        return p;
+    }
+
+    // Checks for world events often, and goes to half of those it finds running.
+    private static BotPersona Eventer()
+    {
+        BotPersona p = new BotPersona("eventer", "I check for world events and go when one is on.");
+        p.Likes["check world events"] = 8;
+        p.Likes["wear an EMP emitter"] = 4;
+        p.Likes["walk around town"] = 0.5;
         return p;
     }
 

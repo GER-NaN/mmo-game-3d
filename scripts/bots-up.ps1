@@ -2,7 +2,7 @@
 # (--bot), with no sound. See docs/engineering/bot-testing.md. Needs a server
 # (scripts/server-up.ps1).
 #
-#   .\scripts\bots-up.ps1                  9 bots, soak1 to soak9, one of each persona,
+#   .\scripts\bots-up.ps1                  10 bots, soak1 to soak10, one of each persona,
 #                                          tiled over every screen
 #   .\scripts\bots-up.ps1 -Count 4         4 bots
 #   .\scripts\bots-up.ps1 -Layout Full     each window the size of its screen, stacked:
@@ -16,10 +16,10 @@
 # %TEMP%\mmo-game-3d-bots\soakN.log (replaced each run). Stop them with
 # .\scripts\bots-stop.ps1; stop the server with server-stop.ps1 so it saves.
 param(
-    [int]$Count = 9,
+    [int]$Count = 10,
     [ValidateSet("Tiled", "Full")]
     [string]$Layout = "Tiled",
-    [string[]]$Personas = @("dropper", "curious", "gamer", "escaper", "wedger", "earner", "slow", "masher", "shadow"),
+    [string[]]$Personas = @("dropper", "curious", "gamer", "escaper", "wedger", "earner", "slow", "masher", "shadow", "eventer"),
     [string]$Godot = "C:\Users\geral\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
 )
 

@@ -58,6 +58,7 @@ public partial class TerminalScreen : Control
 
     // Bots and scenarios read the Notifications rows, as shown, by this group.
     public const string EventRowGroup = "terminal_event_row";
+    public const string EventRowPastMeta = "past";
     public event Action? CrackStartPressed;
 
     // Whois: search text, open a page by player id, your own page, props, your own
@@ -841,7 +842,9 @@ public partial class TerminalScreen : Control
 
         foreach (string row in _eventsPast)
         {
-            AddLine(content, row, Text, 16).AddToGroup(EventRowGroup);
+            Label label = AddLine(content, row, Dim, 16);
+            label.AddToGroup(EventRowGroup);
+            label.SetMeta(EventRowPastMeta, true);
         }
     }
 

@@ -44,6 +44,31 @@ public static class TerminalUi
         return ScreenSteps.ClickAny("open " + appId, TerminalScreen.AppGroupPrefix + appId, optional);
     }
 
+    // The Notifications rows as shown: the current ones, or the past ones, newest first.
+    public static List<string> EventRows(BotBody body, bool current)
+    {
+        List<string> rows = new List<string>();
+        Godot.SceneTree? tree = body.Me?.GetTree();
+
+        if (tree == null)
+        {
+            return rows;
+        }
+
+        // The app lists current rows first, then a "Past" heading, then past rows.
+        foreach (Godot.Node node in tree.GetNodesInGroup(TerminalScreen.EventRowGroup))
+        {
+            Godot.Label? label = node as Godot.Label;
+
+            if (label != null && !label.IsQueuedForDeletion() && label.HasMeta(TerminalScreen.EventRowPastMeta) != current)
+            {
+                rows.Add(label.Text);
+            }
+        }
+
+        return rows;
+    }
+
     // A few apps at random, sometimes the code cracker or the repair job, then offline.
     public static BotStep Browse()
     {
