@@ -18,10 +18,9 @@ link points.
       (like the outskirts) for the greenhouse and the subway? Today they are hidden.
 - [ ] What fainting costs (world.md: "needs research").
 - [ ] What Agility and career ranks give.
-- [ ] Sculpted ground path forward: Godot has no terrain tools. Terrain3D add-on (sculpt
-      in the editor; not yet tried on the headless server) or our own noise terrain
-      (`game/zones/terrain/Terrain.cs`, uncommitted draft). Blocks the new zones
-      (meadows, cliffs, woods, proving ground); controller support does not wait on it.
+- [ ] The map achievements fire at 95% of cells (unreachable ones behind buildings), before
+      the minimap looks complete: reveal the rest when it fires, or count only reachable
+      cells at 100% (playtest).
 
 ## Look at or listen to (never seen or heard by the author)
 
@@ -32,6 +31,11 @@ link points.
 - [ ] Which voice is whose (Wren, Old Tomas, Ines, Dee, Mara, Professor Okafor).
 - [ ] The potting table's new pot banner and piece grid, and the mouse key.
 - [ ] The taxi ride's longer view and haze.
+- [ ] The meadows (3 km Terrain3D zone east of Main Street): the hills, the textures,
+      the size; sculpt and paint it in the editor.
+- [ ] The five security cameras: where they hang, what they aim at, the box model.
+- [ ] The compass strip, the tools in the hand, the controller layout and camera rates.
+- [ ] Door thresholds are too big (playtest): options to show side by side.
 
 ## Known issues
 
@@ -85,9 +89,27 @@ Systems standing in for the real thing:
 
 All four are in docs/engineering/performance.md, with the numbers.
 
+- A lean server copy of terrain: the server holds all of Terrain3D (about 165 MB for a
+  3 km zone) but needs only heights; a height grid at 2 m, 16-bit, is about 4.5 MB, and
+  collision could be built only round players. Until server memory matters.
+- The generated wild (world.md's travel ring) runs on its own server or instance,
+  generating ground round its players from a seed; hand-built zones stay loaded.
+
+## Planned, not built
+
+- [ ] More test zones on Terrain3D: cliffs (terraces, `tools/terrain-seed --terraces`),
+      woods (many trees and rocks; Terrain3D's instancer has no collision, so trunks
+      need their own shapes), a movement proving ground (ramps, stairs, gaps).
 
 
-Playtest 9/26/2026s
+
+## Playtest 2026-09-26 (the author's notes)
+
+Done the same day: door facing, NPCs stop to talk, skill explanations, cameras in the
+world (low ones break, Electrical repair), tools in the hand, compass, drones clear of
+buildings and smooth. Open: door thresholds, map achievements (both above), recorded
+drone flights and redemption receipts (design sessions).
+
 - Exiting a zone (greenhouse for example) walking forwards, I should continue walking forwards out of the greenhouse. I think this might mean lining up directions with the doors / transitions between zones
 - Zone entry markers are too big, we need something nicer 
 - street light doesnt function as electric repair>???
