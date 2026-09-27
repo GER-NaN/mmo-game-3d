@@ -25,21 +25,27 @@ public static class WorkbenchUi
         return ScreenSteps.ClickAny("take the battery out", WorkbenchPanel.RemoveGroup, true);
     }
 
-    // The list puts the fullest first.
+    // The list puts the fullest first. After a battery comes out the bench asks the
+    // server again, so its buttons come a moment later: waited for, then none means
+    // there is nothing to put in.
     public static BotStep PutFullestIn()
     {
-        return new DoStep("put the fullest battery in", 4, (b, d) =>
+        double waited = 0;
+        return new DoStep("put the fullest battery in", 5, (b, d) =>
         {
             Button? first = b.Usable(WorkbenchPanel.InsertGroup);
 
             if (first == null)
             {
-                return StepResult.Done;
+                waited += d;
+                return waited < ButtonsWithin ? StepResult.Running : StepResult.Done;
             }
 
             return b.TryClick(first) ? StepResult.Done : StepResult.Running;
         });
     }
+
+    private const double ButtonsWithin = 3;
 
     public static BotStep PutAnyIn()
     {

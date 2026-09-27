@@ -177,6 +177,10 @@ public sealed class GoalChain : BotChain
     private Random _random = new Random();
     private int _rounds;
 
+    // Activities that finished without giving what they promise, by name: twice, and
+    // the goal stops asking for them.
+    private readonly Dictionary<string, int> _unkept = new Dictionary<string, int>();
+
     public GoalChain(string name, int weight, Func<BotBody, bool> canStart, Func<BotBody, List<BotFact>> wanted, int budget, double usualSeconds, params Func<BotBody, BotActivity>[] then)
         : base(name, weight, ChainKind.Goal)
     {
@@ -209,6 +213,7 @@ public sealed class GoalChain : BotChain
         _random = random;
         _rounds = 0;
         _thenNext = 0;
+        _unkept.Clear();
     }
 
     protected override BotActivity? NextAfter(BotBody body, BotActivity? last, BotEnd lastEnd)
@@ -216,6 +221,19 @@ public sealed class GoalChain : BotChain
         if (last != null)
         {
             _rounds++;
+
+            if (lastEnd == BotEnd.Finished && !Kept(body, last))
+            {
+                int times;
+                _unkept.TryGetValue(last.Name, out times);
+                _unkept[last.Name] = times + 1;
+
+                if (times + 1 >= 2)
+                {
+                    Why = "\"" + last.Name + "\" finished twice without giving what it promises";
+                    return null;
+                }
+            }
         }
 
         if (_rounds >= _budget)
@@ -250,5 +268,18 @@ public sealed class GoalChain : BotChain
         }
 
         return then;
+    }
+
+    private static bool Kept(BotBody body, BotActivity activity)
+    {
+        foreach (BotFact promise in activity.Gives)
+        {
+            if (promise.Kind != FactKind.MoneyAtLeast && !promise.IsTrue(body))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
