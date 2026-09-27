@@ -145,21 +145,57 @@ folder, complete on its own, so it can be reviewed without anyone having watched
 
 ## Adding to it
 
-- **An activity:** a `BotActivity` in `BotActivities.All`: a name, a weight, where it
-  can start, and its steps, built from the steps there are (`DoorStep`, `WalkToStep`,
-  `UseStep`, `PauseStep`, `CloseAllStep`, `DoStep` for a one-off). End back where
-  another can start, usually Old Town.
-- **A goal:** a `BotGoal` in `BotGoals.All`: its `Next` looks at what the bot has and
+**A game feature gets its bot behaviour from one file** under `game/dev/features/`: a
+class that implements `IBotFeature` and adds its activities and goals to the catalog.
+`BotCatalog` finds every such class when bots start, so nothing else needs editing.
+`BotWhoisFeature.cs` is the model:
+
+```csharp
+public sealed class BotWhoisFeature : IBotFeature
+{
+    public void AddTo(BotCatalog catalog)
+    {
+        catalog.Add(new BotActivity("edit my Whois page", 2, body => body.Has(ItemType.Phone), body =>
+            new BotPlan()
+                .Equip(ItemType.Phone)
+                .Phone()
+                .Click(TerminalScreen.AppGroupPrefix + TerminalApps.Whois)
+                .Click(TerminalScreen.WhoisMineGroup)
+                .Type(TerminalScreen.WhoisPlanGroup, "LFG substation repair")
+                .Click(TerminalScreen.WhoisShowSkillsGroup, "", true)
+                .Close()
+                .Steps));
+    }
+}
+```
+
+**`BotPlan`** writes a plan as it reads: `Door`, `WalkTo`, `Use`, `UseOnce`, `Click` (a
+group's button, or the one on the row naming an item), `Type`, `Press`, `Equip`,
+`Phone`, `Pause`, `Wander`, `Say`, `Close`, and `Do` or `Step` for anything else. Each
+adds one step with its time limit and its way out.
+
+**Try it** with one bot that does only that, again and again, in a window to watch:
+
+```
+.\scripts\bot-try.ps1 "edit my Whois page"
+```
+
+The same replays a finding: run the activity it names, with the persona it names.
+
+- **What a new screen needs:** its buttons and fields in a group (`AddToGroup`), so bots
+  find them as a person finds them by looking, and its panel type in
+  `BotBody.IsPanel` so bots can close it. Buttons whose label says Quit, Leave to main
+  menu or Delete are never pressed by the curious bot.
+- **A goal:** a `BotGoal` added the same way: its `Next` looks at what the bot has and
   names the next activity, or null when the goal is met (with `GiveUp` set when it
   cannot be). Give it a budget and its usual length, for the random drop.
 - **A persona:** a case in `BotPersonas.Get`: its factors on activities and goals
-  (`Likes`), its own activities (`Own`), its pace and chances; then add its name to the
+  (`Likes`), its own activities (`Own`), its pace and chances; then its name in the
   default mix in `scripts/bots-up.ps1`.
 - **A judge:** a class like `BotZoneJudge`, ticked from `BotDriver`, writing through
   `BotFindings.Write`. Keep the checks quick and the limits loose.
-- **What a new screen needs:** its buttons in a group (`AddToGroup`), so bots find them
-  as a person finds them by looking, and its panel type in `BotBody.IsPanel` so bots can
-  close it.
+- **A dev scenario** for the feature too (`testing.md`): the scenario checks the
+  feature in seconds; the bots play it for hours.
 
 ## Next
 
