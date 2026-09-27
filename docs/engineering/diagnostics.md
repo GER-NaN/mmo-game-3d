@@ -8,7 +8,8 @@ viewers read. They go to a JSON lines file, and by OTLP to Grafana running in Do
 
 1. Start the viewer once; it restarts with Docker:
    `docker compose -f docker/docker-compose.yml up -d`
-2. Open http://localhost:3000 (admin / admin), then **Explore**.
+2. Open http://localhost:3000, then **Explore**. No login is needed (anonymous access
+   is on in this image; admin / admin exists for settings).
 3. **Loki** holds the logs: `{service_name="mmo-server"}`, then filter on any
    attribute (`| scope_name="Net.Rpc"`, `| player_name="Diag"`, `| rpc_method="Login"`).
 4. **Tempo** holds the traces: search `{resource.service.name="mmo-server"}`, or open

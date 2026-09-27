@@ -24,7 +24,7 @@ services:
 
   # Grafana with Loki (logs), Tempo (traces) and Prometheus in one container, taking
   # OTLP from the server. For development, as the image says.
-  # Open http://localhost:3000 (admin / admin).
+  # Open http://localhost:3000; no login needed.
   lgtm:
     image: grafana/otel-lgtm:0.34.0
     container_name: mmo3d-lgtm
