@@ -45,53 +45,76 @@ machine's saved settings say (`--windowed`), and never change those settings.
 
 ## How a bot plays
 
-`game/dev/BotDriver.cs` is the brain. The one rule, kept from mmo-game: **a bot may
-look anything up, but it acts only through input** (keys, clicks, typing: the same
-events a keyboard and a mouse make), so everything past the input is the real game.
-`BotBody` is what it sees and does; what is open on the screen is always looked up,
-never remembered, so a bot that lost track of itself still sees the truth.
+The one rule, kept from mmo-game: **a bot may look anything up, but it acts only through
+input** (keys, clicks, typing: the same events a keyboard and a mouse make), so everything
+past the input is the real game. And **a bot judges only what its player could see**: where
+its body is, what is open on the screen, the prompt, its bag and money. It never asks the
+server; the server's side of a finding is attached afterwards, for the person reading it.
 
-**Activities** (`BotActivities.cs`) are the things it does, each a plan of **steps**
-(`BotSteps.cs`): visit the college means go through the door, wander, walk to the
-registrar, talk, work the panel, close it, emote, walk to the professor, talk, work the
-panel, close it, say something, walk out. Every step has a time limit and says when it
-is done; past the limit, or when it fails, the activity ends. A zone change that no step
-asked for (the party walking through a door) ends it too. Between activities the bot
-closes whatever is open, so its window shows the world.
+A bot is built in layers, each knowing one thing:
 
-The activities: walk around town, visit the college, go shopping, use a public
-terminal, use the phone, check the bag, ride a robo taxi, fix something, repair the
-street lights, tag the subway, go to the outskirts, make a house plant, walk the
-meadows, meet someone (friend, message, invite or give), leave the party, recycle, look
-at the map, look at skills and friends, and go back to town.
+| Layer | Knows | Code |
+| --- | --- | --- |
+| driver | what to do next: the persona, the picks, the interrupts | `BotDriver` |
+| router | where the zones are and how to get between them | `BotRouter`, `TravelActivity` |
+| activity | one task, its choices, where it happens, what it needs and gives | `BotActivity`, `game/dev/activities/` |
+| judge | whether that task worked, from the player's view | `BotActivityJudge` |
+| screen | how one screen is worked: its buttons, fields, drags | `game/dev/screens/` (`GardenUi`, `ChatUi`) |
+| body | the hands and senses: a click, a key, what is open | `BotBody` |
 
-**Goals** (`BotGoals.cs`) are what a bot wants, reached through activities it chooses by
-what it has, one after another:
+**Activities** are the things a bot does: make a house plant, emote, buy a battery, enroll
+in a career. Each says **where it happens** (its zone: the driver has the router take the
+bot there first, from anywhere), what it **needs** and what it **gives** (facts, below),
+and how it is picked: **chosen** by weight when the bot is free, or an **aside**. Most are
+a list of steps (`StepsActivity`, `BotSteps.cs`), each with a time limit; a step that fails
+or runs out ends the activity, as does a zone change no step asked for (a party pull).
 
-| Goal | How it gets there |
-| --- | --- |
-| fight drones | an EMP worn: equip one from the bag, or buy one ($10), or earn the money first; then hunt drones and bring two down |
-| charge the phone | below 20%: swap in a battery from the bag, or buy one ($8), or earn first |
-| explore this zone | walk to the parts of the map not discovered yet |
-| earn some money | recycle what is carried, pick up what lies about, or report drones on the Town cameras |
-| play Agent Defense | go online, open Defense Objectives, start a run, play every cue |
-| tidy the bag | drop something |
+**Chains** are activities one after another, for orders random picks would almost never
+reach. A **related** chain is written by hand around one piece of state (change career,
+then back, then again; buy, recycle, buy). A **random** chain draws three to six of the
+activities a bot may choose, with a seed of its own that the log names, so it can be drawn
+again exactly. A **goal** is a chain planned from facts: its next activity is worked out
+afresh after each one (below). A failed link does not end a chain: the next one must cope
+with what it left.
 
-A bot with no goal is in **wander mode**: it picks activities by weight. A quarter of
-goals are **dropped at a random moment**, wherever the bot is then, mid-purchase or
-mid-walk, without tidying up: the state a distracted player leaves behind. A goal is
-**solo**: the bot leaves its party first and turns invites down until the goal ends, so
-bots after different things do not drag each other through doors. Parties belong to
-wander mode, where a bot joins about a third of the invites it gets.
+**Goals and facts.** A fact is something a player can see about themselves: in a zone,
+money at least so much, an item in the bag or worn, the phone's charge, a career. A goal
+is the facts it wants; `BotResolver` works backward: for the first wanted fact that does
+not hold, an activity that gives it (one of those that do, at random, since variety tests
+more than the shortest way), and for that activity's first need that does not hold, the
+same again. "In a zone" is the router's. So "phone at 50%" from an empty wallet becomes:
+recycle something for money, then go to the shop and buy a battery, then swap it in, and
+the log says so: `plan for "charge the phone": phone at 50% or more <- swap the battery <-
+a Battery in the bag <- buy Battery <- $8 or more <- recycle for money`.
 
-Bots **say what they are doing** in public chat: `[bot] goal: fight drones`,
-`[bot] fight drones -> buy EMP Emitter`, `[bot] dropping fight drones (mid ...)`,
+**The driver's loop** is the same for every persona. When the bot is free it picks an
+activity, a chain or an aside, weighted by the persona; the **interrupt roller** then
+decides whether, and when, to **cancel** it (walk away mid-step, leaving everything as
+it is: the state a distracted player leaves) or to **lose the connection** in it; the log
+names the moment. Asides also fire on **their own timers**, pausing whatever runs and
+resuming it after: an emote mid-walk, chat over a terminal. Between runs the bot closes
+what is open, except after a cancel.
+
+**Judges for each activity** watch one run and judge how it ended, as a player would:
+the emote shows on the body (or, online, does not); the plant is made; a traveller that
+has not moved for a while and is not there yet is stuck. And every activity that
+finished must have kept its promises: a swap that finished with the phone still low is a
+`promise-broken` finding, whatever the reason.
+
+**Clicking** goes by what is on the screen: a button below the window or outside what its
+list shows is first brought in with the mouse wheel over the list, as a person scrolls;
+one no wheel brings in is an `off-screen` finding and is never clicked.
+
+Bots **say what they are doing** in public chat: `[bot] goal: charge the phone`,
+`[bot] charge the phone -> buy Battery`, `[bot] cancelling ... (mid ...)`,
 `[bot] wandering: meet someone`.
 
-**Personas** (`BotPersonas.cs`, `--persona`): who a bot is. A persona weighs the
-activities and goals (a factor on each, 0 to leave one out), adds its own
-(`BotExtraActivities.cs`), and sets its pace, how often it drops a goal, how readily
-it joins a party, and how often its connection drops. Several side by side play the game several ways at once:
+**Personas** (`BotPersonas.cs`, `--persona`): who a bot is, as numbers the driver reads.
+A persona weighs the activities and chains (a factor on each, 0 to leave one out), shares
+its free moments between activities, chains and asides, adds activities of its own
+(`BotExtraActivities.cs`), and sets its pace, how often asides come, how often it cancels
+what it does, how often its connection drops and how readily it joins a party. Several
+side by side play the game several ways at once:
 
 | Persona | What it does | Finds |
 | --- | --- | --- |
@@ -137,6 +160,10 @@ little off is never a finding:
 | | `zone-ping-pong` | back and forth between the same two zones 3 times running, each stay under 10 s |
 | `BotErrorJudge` | `client-error` | an error in the client's log (a C# exception, an engine error), with its stack; the same message at most every 5 minutes |
 | `BotDriver` | `cannot-close` | a panel or terminal still open after 10 s of Esc, Close, Back and Go Offline; the same screens at most every 5 minutes |
+| | `activity-failed` | an activity's own judge says it did not work (its reason in the detail) |
+| | `promise-broken` | an activity finished, and a fact it gives does not hold (a swap that left the phone low) |
+| | `chain-step-cannot-start` | a link of a related chain cannot start where the chain has brought the bot |
+| `BotBody` | `off-screen` | a button to click that no window or scroll shows, with where it is and the window's size |
 
 The same kind for the same bot is written at most once a minute. Each finding is a
 folder, complete on its own, so it can be reviewed without anyone having watched:
@@ -150,29 +177,71 @@ folder, complete on its own, so it can be reviewed without anyone having watched
 
 ## Adding to it
 
-**A game feature gets its bot behaviour from one file** under `game/dev/features/`: a
-class that implements `IBotFeature` and adds its activities and goals to the catalog.
-`BotCatalog` finds every such class when bots start, so nothing else needs editing.
-`BotWhoisFeature.cs` is the model:
+**An activity is a class** under `game/dev/activities/`, made from `StepsActivity`: its
+name and weight, where it happens (`Zone`), what it needs and gives (`Needs`, `Gives`),
+its steps (`Plan`), and its judge (`NewJudge`). `GreenhouseActivity` is the model:
 
 ```csharp
-public sealed class BotWhoisFeature : IBotFeature
+public sealed class GreenhouseActivity : StepsActivity
 {
-    public void AddTo(BotCatalog catalog)
+    public GreenhouseActivity() : base("make a house plant", 1) { }
+
+    public override string Zone { get { return ZoneIds.Greenhouse; } }
+
+    protected override List<BotStep> Plan(BotBody body)
     {
-        catalog.Add(new BotActivity("edit my Whois page", 2, body => body.Has(ItemType.Phone), body =>
-            new BotPlan()
-                .Equip(ItemType.Phone)
-                .Phone()
-                .Click(TerminalScreen.AppGroupPrefix + TerminalApps.Whois)
-                .Click(TerminalScreen.WhoisMineGroup)
-                .Type(TerminalScreen.WhoisPlanGroup, "LFG substation repair")
-                .Click(TerminalScreen.WhoisShowSkillsGroup, "", true)
-                .Close()
-                .Steps));
+        BotPlan plan = new BotPlan()
+            .WalkTo("Interactables/PottingTable")
+            .Use("house plant", b => GardenUi.IsOpen(b));
+
+        // How many pieces, which, where: chosen afresh each run.
+        for (int i = 0; i < 1 + body.Random.Next(PlantDesign.MaxPieces); i++)
+        {
+            plan = plan.Step(GardenUi.Place(body.Random.Next(64), x, z));
+        }
+
+        return plan.Step(GardenUi.Complete(name)).Step(GardenUi.WaitDone()).Close().Steps;
     }
+
+    public override BotActivityJudge? NewJudge() { return new GreenhouseJudge(); }
 }
 ```
+
+No door appears in it: the router takes the bot to the greenhouse from wherever it is.
+An **aside** is the same, with `Timing` set to `Aside` and `AsideEvery` its mean seconds
+between firings (`EmoteActivity`). An activity only chains and goals start has weight 0.
+
+**A screen** a bot works gets one class under `game/dev/screens/`, the only bot code
+that knows its groups and layout (`GardenUi.Place`, `GardenUi.Complete`, `ChatUi.Say`);
+activities call it, and a change to the screen changes one file. Each operation that
+takes more than a frame is a step.
+
+**A judge** watches one run as the player would (`BotActivityJudge`: `Before`, `Watch`,
+`After`), from what the client shows, never the server. Keep it coarse: the effect
+happened, or a refusal came.
+
+**A goal** is a `GoalChain`: when it may start, the facts it wants, a budget. The
+resolver does the rest, from the activities' `Needs` and `Gives`:
+
+```csharp
+Add(new GoalChain("charge the phone", 5, body => body.PhonePercent >= 0 && body.PhonePercent < 20,
+    body => new List<BotFact> { BotFact.PhoneAtLeast(50) }, 8, 240));
+```
+
+**A related chain** lists its links; each link makes its activity from the bot as it is
+when its turn comes:
+
+```csharp
+Add(new RelatedChain("change careers and back", 1,
+    body => new EnrollActivity(Other(body)),
+    body => new EnrollActivity(Other(body)),
+    body => new EnrollActivity(Other(body))));
+```
+
+These go in `BotCatalog`, or in a feature file under `game/dev/features/`: a class that
+implements `IBotFeature` and adds its activities and chains. `BotCatalog` finds every
+such class when bots start. `BotWhoisFeature.cs` still shows the short form, an activity
+written as a plan inline (`new StepsActivity(name, weight, canStart, body => plan)`).
 
 **`BotPlan`** writes a plan as it reads: `Door`, `WalkTo`, `Use`, `UseOnce`, `Click` (a
 group's button, or the one on the row naming an item), `Type`, `Press`, `Equip`,
@@ -182,27 +251,27 @@ adds one step with its time limit and its way out.
 **Try it** with one bot that does only that, again and again, in a window to watch:
 
 ```
-.\scripts\bot-try.ps1 "edit my Whois page"
+.\scripts\bot-try.ps1 "make a house plant"
+.\scripts\bot-try.ps1 "charge the phone"                 a goal
+.\scripts\bot-try.ps1 "change careers and back"          a chain
+.\scripts\bot-try.ps1 "ride a robo taxi,visit the college"   these, in turn
 ```
 
-The same replays a finding: run the activity it names, with the persona it names.
-Several names, comma-separated, replay a sequence: `"ride a robo taxi,visit the
-college"` starts each visit from the taxi drop-off.
+The same replays a finding: run the activity or chain it names, with the persona it
+names. A random chain's log line gives its seed.
 
-- **What a new screen needs:** its buttons and fields in a group (`AddToGroup`), so bots
-  find them as a person finds them by looking, and its panel type in
-  `BotBody.IsPanel` so bots can close it. Buttons whose label says Quit, Leave to main
-  menu or Delete are never pressed by the curious bot.
-- **A goal:** a `BotGoal` added the same way: its `Next` looks at what the bot has and
-  names the next activity, or null when the goal is met (with `GiveUp` set when it
-  cannot be). Give it a budget and its usual length, for the random drop.
-- **A persona:** a case in `BotPersonas.Get`: its factors on activities and goals
-  (`Likes`), its own activities (`Own`), its pace and chances; then its name in the
-  default mix in `scripts/bots-up.ps1`.
-- **A judge:** a class like `BotZoneJudge`, ticked from `BotDriver`, writing through
-  `BotFindings.Write`. Keep the checks quick and the limits loose.
+- **What a new screen needs in the game:** its buttons and fields in a group
+  (`AddToGroup`), so bots find them as a person finds them by looking, and its panel
+  type in `BotBody.IsPanel` so bots can close it. Buttons whose label says Quit, Leave to
+  main menu or Delete are never pressed by the curious bot.
+- **A persona:** a case in `BotPersonas.Get`: its factors (`Likes`), its shares between
+  activities, chains and asides, its own activities (`Own`), its pace and chances; then
+  its name in the default mix in `scripts/bots-up.ps1`.
 - **A dev scenario** for the feature too (`testing.md`): the scenario checks the
   feature in seconds; the bots play it for hours.
+- **Older parts** still run as they were until they move: the step-list activities in
+  `BotActivities.cs` (town ones now have the zone "town", so the router brings the bot)
+  and the hand-coded goals in `BotGoals.cs`, run as chains (`LegacyGoalChain`).
 
 ## Next
 
