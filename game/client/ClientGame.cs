@@ -364,6 +364,11 @@ public partial class ClientGame : Node
             case ZoneIds.Outskirts:
                 ambience = night ? "amb.night" : "amb.outskirts";
                 break;
+            case ZoneIds.Meadows:
+                // Open country like the outskirts, until it has sounds of its own.
+                music = "music.outskirts";
+                ambience = night ? "amb.night" : "amb.outskirts";
+                break;
         }
 
         _audio.Music(_terminal != null ? "music.terminal" : music);

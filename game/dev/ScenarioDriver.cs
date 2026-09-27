@@ -33,6 +33,8 @@ public partial class ScenarioDriver : Node
     private bool _plantMade;
     private bool _bought;
     private string _zone = "";
+    private double _zoneSince;
+    private float _lowest = float.MaxValue;
     private string _lastStatus = "";
     private int _guessesSeen = -1;
     private double _releaseIn = -1;
@@ -47,7 +49,11 @@ public partial class ScenarioDriver : Node
     {
         _networks.Session.NoticeReceived += text => _notices.Add(text);
         _networks.Subway.PageReceived += (page, pages, lines) => _pageSeen = true;
-        _networks.Session.ZoneChanged += zone => _zone = zone;
+        _networks.Session.ZoneChanged += zone =>
+        {
+            _zone = zone;
+            _zoneSince = _elapsed;
+        };
         _networks.Session.IntentAnswered += (id, refusal) => _bought = _bought || refusal.Length == 0;
         _networks.Garden.PlantMade += (id, name, reward) => _plantMade = true;
         _networks.Terminal.StatusReceived += lines => _lastStatus = lines.Length > 0 ? lines[0] : "";
@@ -99,6 +105,19 @@ public partial class ScenarioDriver : Node
                     return true;
                 });
                 break;
+            case "meadows":
+                Step("walk in at the door", () =>
+                {
+                    Input.ActionPress("move_forward");
+                    return _zone == "meadows";
+                });
+                Step("stop", () =>
+                {
+                    Input.ActionRelease("move_forward");
+                    return true;
+                });
+                Expect("standing on the terrain", StandingInMeadows);
+                break;
             case "lights":
                 Use("junction box");
                 Expect("the lights on", () => Noticed("Achievement: Lights on"));
@@ -143,6 +162,15 @@ public partial class ScenarioDriver : Node
         }
 
         _elapsed += delta;
+
+        // The lowest the player has been since arriving in the meadows: a fall through the
+        // ground and a snap back up would pass a check made only at the end.
+        Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+
+        if (_zone == "meadows" && me != null)
+        {
+            _lowest = Mathf.Min(_lowest, me.GlobalPosition.Y);
+        }
 
         if (_releaseIn >= 0)
         {
@@ -276,6 +304,14 @@ public partial class ScenarioDriver : Node
 
         _defensePressed = Math.Max(_defensePressed, clock);
         return false;
+    }
+
+    // On the ground, not falling through it: the terrain's collision works on both sides
+    // (the server corrects a client that it sees falling).
+    private bool StandingInMeadows()
+    {
+        Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+        return _zone == "meadows" && me != null && me.IsOnFloor() && _lowest > -0.5f && _elapsed > _zoneSince + 2.0;
     }
 
     private bool ClickDrone()

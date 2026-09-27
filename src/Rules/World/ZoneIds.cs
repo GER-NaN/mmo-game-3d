@@ -15,11 +15,12 @@ public static class ZoneIds
     public const string College = "college";
     public const string Greenhouse = "greenhouse";
     public const string Subway = "subway";
+    public const string Meadows = "meadows";
 
     public const string Start = Town;
 
     // Loaded at start. Instance scenes (the taxi) are not: they are made per use.
-    public static readonly string[] All = { Town, Outskirts, Shop, College, Greenhouse, Subway };
+    public static readonly string[] All = { Town, Outskirts, Shop, College, Greenhouse, Subway, Meadows };
 
     public static string Instance(string scene, int number)
     {
@@ -45,6 +46,8 @@ public static class ZoneIds
                 return "Greenhouse";
             case Subway:
                 return "Old Town subway";
+            case Meadows:
+                return "The meadows";
             default:
                 return zoneId;
         }

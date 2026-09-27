@@ -55,4 +55,36 @@ public partial class Zone : Node3D
     {
         return GetNodeOrNull<Node3D>("Arrivals/" + name);
     }
+
+    // Terrain3D's collision modes (Terrain3DCollision): it is a GDExtension, so C# reaches
+    // it by name, without generated types.
+    private const int TerrainCollisionFull = 3;
+
+    public override void _Ready()
+    {
+        Node? terrain = GetNodeOrNull("Terrain");
+
+        if (terrain == null || !terrain.IsClass("Terrain3D"))
+        {
+            return;
+        }
+
+        // The ground blocks players and the chase camera, as any wall does. Both sides build
+        // all of it as the zone loads, so it is there before a player is placed: built round
+        // the camera instead (the scene's default), a client's arriving player fell through
+        // ground that did not exist yet, and was snapped back up by the server.
+        GodotObject collision = terrain.Get("collision").AsGodotObject();
+        collision.Set("layer", PhysicsLayers.World | PhysicsLayers.CameraBlock);
+        collision.Set("mode", TerrainCollisionFull);
+
+        if (!Multiplayer.IsServer())
+        {
+            return;
+        }
+
+        // The server has no camera; Terrain3D stops its processing without one.
+        Camera3D stand = new Camera3D { Name = "TerrainCamera" };
+        AddChild(stand);
+        terrain.Call("set_camera", stand);
+    }
 }

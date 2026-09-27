@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
+[ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="2_door"]
+[ext_resource type="Terrain3DMaterial" path="res://game/terrain/ground_material.tres" id="3_material"]
+[ext_resource type="Terrain3DAssets" path="res://game/terrain/ground_assets.tres" id="4_assets"]
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeNorthSouth"]
+size = Vector3(3000, 200, 2)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeEastWest"]
+size = Vector3(2, 200, 3000)
+
+[node name="meadows" type="Node3D"]
+script = ExtResource("1_zone")
+ItemAreaSize = Vector2(10, 10)
+ItemStock = 0
+MapSize = Vector2(3000, 3000)
+Surface = "grass"
+
+[node name="Terrain" type="Terrain3D" parent="."]
+data_directory = "res://game/zones/meadows/terrain"
+material = ExtResource("3_material")
+assets = ExtResource("4_assets")
+
+[node name="Edges" type="Node3D" parent="."]
+
+[node name="North" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, -1501)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/North"]
+shape = SubResource("Shape_EdgeNorthSouth")
+
+[node name="South" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 1501)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/South"]
+shape = SubResource("Shape_EdgeNorthSouth")
+
+[node name="East" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1501, 50, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/East"]
+shape = SubResource("Shape_EdgeEastWest")
+
+[node name="West" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1501, 50, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/West"]
+shape = SubResource("Shape_EdgeEastWest")
+
+[node name="Interactables" type="Node3D" parent="."]
+
+[node name="Doors" type="Node3D" parent="."]
+
+[node name="ToTown" parent="Doors" instance=ExtResource("2_door")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -1490, 0, 0)
+TargetZone = "town"
+TargetArrival = "FromMeadows"
+
+[node name="Sign" type="Label3D" parent="Doors/ToTown"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+billboard = 1
+text = "OLD TOWN"
+modulate = Color(1, 0.85, 0.5, 1)
+outline_size = 10
+font_size = 64
+pixel_size = 0.01
+
+[node name="Arrivals" type="Node3D" parent="."]
+
+[node name="FromTown" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -1480, 0, 0)
+
+[node name="Spawn" type="Marker3D" parent="."]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -1480, 0, 0)
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/player/Player.tscn")
+spawn_path = NodePath("../Players")
+
+[node name="Items" type="Node3D" parent="."]
+
+[node name="ItemSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/items/GroundItem.tscn")
+spawn_path = NodePath("../Items")

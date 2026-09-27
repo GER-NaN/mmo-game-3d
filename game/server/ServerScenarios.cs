@@ -87,6 +87,11 @@ public class ServerScenarios
                 StandBy(record, ZoneIds.Town, "../Doors/ToCollege", new Vector3(0f, 0f, 3f));
                 record.Yaw = 0f;
                 break;
+            case "meadows":
+                // West of the door at the east end of Main Street, facing it (+x).
+                StandBy(record, ZoneIds.Town, "../Doors/ToMeadows", new Vector3(-3f, 0f, 0f));
+                record.Yaw = -Mathf.Pi / 2f;
+                break;
             case "lights":
                 StandBy(record, ZoneIds.Town, "JunctionBox", new Vector3(0f, 0f, 1.3f));
                 Town?.DevLightsJob(record.PlayerId);
