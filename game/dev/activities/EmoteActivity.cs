@@ -5,7 +5,6 @@ using MmoGame3d.BotJudging;
 using MmoGame3d.Dev.Screens;
 using MmoGame3d.Players;
 using MmoGame3d.Rules.Social;
-using MmoGame3d.Ui;
 
 /// <summary>
 /// An emote typed in chat (/wave, /cheer, /sit, /pushups): an aside, now and then while the
@@ -68,8 +67,8 @@ public sealed class EmoteActivity : StepsActivity
 /// <summary>
 /// An emote as its player sees it: with nothing in the way (not online, no screen open),
 /// the body does it within the two seconds after; online, where the server holds the body
-/// still, it does not. With a screen open the chat key may not reach the chat line, and on
-/// a private chat tab the line goes to one player as text, so neither is judged.
+/// still, it does not. With a screen open the chat key may not reach the chat line, so the
+/// outcome is only logged.
 /// </summary>
 public sealed class EmoteJudge : BotActivityJudge
 {
@@ -87,8 +86,7 @@ public sealed class EmoteJudge : BotActivityJudge
     public override void Before(BotBody body)
     {
         _online = body.IsOnline;
-        ChatBox? chat = body.Me?.GetTree().GetFirstNodeInGroup(ChatBox.Group) as ChatBox;
-        _clear = !_online && body.OpenPanels().Count == 0 && (chat == null || chat.OnAllTab);
+        _clear = !_online && body.OpenPanels().Count == 0;
         _seen = false;
         _zone = body.ZoneId;
     }

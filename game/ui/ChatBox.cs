@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Rules.Chat;
+using MmoGame3d.Rules.Social;
 
 /// <summary>
 /// The chat: the one place to talk (world.md). "All" shows every line; each private
@@ -39,15 +40,6 @@ public partial class ChatBox : VBoxContainer
     // (player id, text): a private message.
     public event Action<string, string>? DirectSubmitted;
 
-    // Bots find the chat by this group.
-    public const string Group = "chat_box";
-
-    // A line typed now goes to everyone; on a private tab it goes to one player, as text.
-    public bool OnAllTab
-    {
-        get { return _shown == AllTab; }
-    }
-
     public bool IsTyping
     {
         get { return _input.Visible; }
@@ -58,7 +50,6 @@ public partial class ChatBox : VBoxContainer
         _history = GetNode<RichTextLabel>("%History");
         _input = GetNode<LineEdit>("%Input");
         _tabRow = GetNode<HBoxContainer>("%Tabs");
-        AddToGroup(Group);
         _input.TextSubmitted += OnSubmitted;
         _input.GuiInput += OnInputGui;
         AddTab(AllTab, "All");
@@ -69,7 +60,7 @@ public partial class ChatBox : VBoxContainer
     {
         _input.PlaceholderText = _shown == AllTab
             ? "Say something. /p party, /wave /cheer /sit /pushups. Enter sends."
-            : "To " + _partnerNames[_shown] + ". Enter sends.";
+            : "To " + _partnerNames[_shown] + ". /wave /cheer /sit /pushups. Enter sends.";
         _input.Visible = true;
         _input.GrabFocus();
     }
@@ -215,7 +206,10 @@ public partial class ChatBox : VBoxContainer
     {
         if (text.Trim().Length > 0)
         {
-            if (_shown == AllTab)
+            // A command works on any tab: an emote plays, "/p " goes to the party.
+            bool command = Gestures.EmoteIn(text) != null || text.StartsWith("/p ", StringComparison.OrdinalIgnoreCase);
+
+            if (_shown == AllTab || command)
             {
                 Submitted?.Invoke(text);
             }

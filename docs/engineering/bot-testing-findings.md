@@ -332,7 +332,8 @@ this short.
 ### A slash emote on a private chat tab goes as text
 
 **Found** 2026-09-27, several bots (`activity-failed`, emote).
-**Status:** open, a design question for the author.
+**Status:** fixed: the author chose commands on any tab. An emote plays and "/p " goes
+to the party from a private tab; other text still goes to that player.
 
 With a private conversation's tab shown, "/wave" goes to that player as the text
 "/wave", and the body does not wave. The tab says whom the line goes to, and its hint
@@ -440,7 +441,8 @@ Fixed as found; kept here so the same thing is recognised next time.
   starts only with a spare battery, so no button now fails the step.
 - **An emote typed on a private tab judged as not done.** The emote judge called the
   chat clear when no screen was open, but a private tab sends the line to one player
-  as text. A private tab now counts as in the way (`ChatBox.OnAllTab`).
+  as text. It was made to count a private tab as in the way, then undone when the game
+  began reading emotes on every tab.
 
 ## Tooling
 
