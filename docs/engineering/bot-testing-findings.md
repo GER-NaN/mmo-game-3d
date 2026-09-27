@@ -134,6 +134,21 @@ back in (the gamer bot, greenhouse and outskirts, three times in a minute). The 
 do not mean to use (the doors are carved out of their navigation mesh), so this now
 shows only when a bot means it.
 
+### One lost walk packet leaves the server's body standing
+
+**Found** 2026-09-27, run 7, Soak6 and Soak7 (the position judge's thrashing, with its
+track). **Status:** fixed.
+
+Five seconds after logging in, both bots held only the forward key, and their bodies
+jumped back and forth by more than a metre, the client and the server up to 2.6 m
+apart. The server's log had no walk from Soak7 for 14 seconds while it walked. A walk
+goes to the server unreliably, and the client sent one only when the direction or the
+heading changed: walking straight sends one, and if that packet is lost (more likely
+at login, under the burst of everything else sent then), the server's body stands
+still. The client walks ahead on its own prediction, is snapped back past 3 m, and
+does it again. A person walking straight after logging in, or after any lost packet,
+would see it. Now an unchanged walk is sent again every 0.25 s.
+
 ### The phone's Go Offline button falls off a short window
 
 **Found** 2026-09-27, run 1, all bots. **Status:** open.
@@ -183,6 +198,13 @@ Fixed as found; kept here so the same thing is recognised next time.
   thrashing track now restarts on a zone change or a jump, and ping-pong counts only
   quick bounces. `tools/bot-watch/triage.py` groups findings, so noise shows as one big
   group rather than a long list.
+- **A wedged bot's jitter read as thrashing.** Turning in place in a gap, the wedger's
+  body jittered about 0.1 m a sample, and the check counted each as a move. A move now
+  counts from 1 m/s; real thrashing swings a metre or more a sample.
+- **Paths grazing doors.** A carve in the navigation mesh is not grown by the agent's
+  radius, so paths hugged the door boxes with about 5 cm to spare, and an earner
+  heading for the outskirts went into the shop three times in a minute. Doors are now
+  carved 1.5 m wider.
 
 ## Tooling
 
