@@ -91,6 +91,9 @@ _data = {
 }
 point_count = 5
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_gapfill"]
+size = Vector3(1.2, 8.25, 10)
+
 [node name="town" type="Node3D"]
 script = ExtResource("1_zone")
 ItemAreaSize = Vector2(90, 90)
@@ -562,3 +565,61 @@ script = ExtResource("100_mount")
 Target = Vector3(0, 1, 0)
 
 [node name="Model" parent="Cameras/CameraLampEast" instance=ExtResource("99_camera")]
+
+[node name="GapFills" type="Node3D" parent="."]
+
+[node name="NorthWest" type="StaticBody3D" parent="GapFills"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.5, 4.125, -13)
+collision_layer = 5
+
+[node name="Collision" type="CollisionShape3D" parent="GapFills/NorthWest"]
+shape = SubResource("BoxShape3D_gapfill")
+
+[node name="NorthMiddleWest" type="StaticBody3D" parent="GapFills"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 4.125, -13)
+collision_layer = 5
+
+[node name="Collision" type="CollisionShape3D" parent="GapFills/NorthMiddleWest"]
+shape = SubResource("BoxShape3D_gapfill")
+
+[node name="NorthMiddleEast" type="StaticBody3D" parent="GapFills"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.5, 4.125, -13)
+collision_layer = 5
+
+[node name="Collision" type="CollisionShape3D" parent="GapFills/NorthMiddleEast"]
+shape = SubResource("BoxShape3D_gapfill")
+
+[node name="NorthEast" type="StaticBody3D" parent="GapFills"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.5, 4.125, -13)
+collision_layer = 5
+
+[node name="Collision" type="CollisionShape3D" parent="GapFills/NorthEast"]
+shape = SubResource("BoxShape3D_gapfill")
+
+[node name="SouthWest" type="StaticBody3D" parent="GapFills"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.5, 4.125, 13)
+collision_layer = 5
+
+[node name="Collision" type="CollisionShape3D" parent="GapFills/SouthWest"]
+shape = SubResource("BoxShape3D_gapfill")
+
+[node name="SouthMiddleWest" type="StaticBody3D" parent="GapFills"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 4.125, 13)
+collision_layer = 5
+
+[node name="Collision" type="CollisionShape3D" parent="GapFills/SouthMiddleWest"]
+shape = SubResource("BoxShape3D_gapfill")
+
+[node name="SouthMiddleEast" type="StaticBody3D" parent="GapFills"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.5, 4.125, 13)
+collision_layer = 5
+
+[node name="Collision" type="CollisionShape3D" parent="GapFills/SouthMiddleEast"]
+shape = SubResource("BoxShape3D_gapfill")
+
+[node name="SouthEast" type="StaticBody3D" parent="GapFills"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.5, 4.125, 13)
+collision_layer = 5
+
+[node name="Collision" type="CollisionShape3D" parent="GapFills/SouthEast"]
+shape = SubResource("BoxShape3D_gapfill")

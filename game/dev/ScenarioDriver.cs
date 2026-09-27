@@ -165,6 +165,25 @@ public partial class ScenarioDriver : Node
                 });
                 Expect("still outside: not straight back into the shop", () => _zone == "town" && _elapsed > _zoneSince + 3);
                 break;
+            case "gap":
+                Step("push into the gap", () =>
+                {
+                    Input.ActionPress("move_forward");
+                    return _elapsed > _zoneSince + 4;
+                });
+                Step("back out", () =>
+                {
+                    Input.ActionRelease("move_forward");
+                    Input.ActionPress("move_back");
+                    return _elapsed > _zoneSince + 7;
+                });
+                Step("stop", () =>
+                {
+                    Input.ActionRelease("move_back");
+                    return true;
+                });
+                Expect("out behind the buildings again, not wedged between them", () => LocalZ() < -18.8f);
+                break;
             case "taxi-ride":
                 Use("Call a robo taxi");
                 Expect("the ride", () => _zone.StartsWith("taxi"));
@@ -478,6 +497,14 @@ public partial class ScenarioDriver : Node
     {
         Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
         return _zone == "meadows" && me != null && me.IsOnFloor() && _lowest > -0.5f && _elapsed > _zoneSince + 2.0;
+    }
+
+    // The body's z in its zone's own space, as the scene places things.
+    private float LocalZ()
+    {
+        Players.Player? me = GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) as Players.Player;
+        Zones.Zone? zone = me?.GetParent()?.GetParent() as Zones.Zone;
+        return me == null || zone == null ? float.NaN : zone.ToLocal(me.GlobalPosition).Z;
     }
 
     // In town, standing within a few metres of the drop-off marker.

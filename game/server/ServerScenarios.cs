@@ -141,6 +141,15 @@ public class ServerScenarios
                 StandBy(record, ZoneIds.Shop, "../Arrivals/FromTown", Vector3.Zero);
                 record.Yaw = Mathf.Pi;
                 break;
+            case "gap":
+                // Behind the north side's buildings, at the back of the 1 m gap between two
+                // of them, facing into it (+z) a little askew, as the wedger bot got in.
+                record.Zone = ZoneIds.Town;
+                record.PositionX = -20.2f;
+                record.PositionY = 0f;
+                record.PositionZ = -20f;
+                record.Yaw = Mathf.Pi - 0.3f;
+                break;
             case "garden":
                 StandBy(record, ZoneIds.Greenhouse, "PottingTable", new Vector3(0f, 0f, 1.5f));
                 break;
