@@ -175,8 +175,7 @@ public partial class ClientGame : Node
         _subwayNetwork.PageReceived += ShowBook;
         _main = main;
         _profile = new Profile(options.Profile);
-        _settings = ClientSettings.Load();
-        _settings.ReadOnly = options.LoadBot || options.Bot || options.Scenario != null;
+        _settings = ClientSettings.Load(options.LoadBot || options.Bot || options.Scenario != null);
 
         if (DisplayServer.GetName() != "headless")
         {

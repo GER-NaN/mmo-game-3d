@@ -436,8 +436,8 @@ public partial class ScenarioDriver : Node
         return panel != null && WheelAt(panel.GetGlobalRect().GetCenter());
     }
 
-    // The saved zoom is shared with the author's own game; at either end the wheel cannot
-    // move it, so a zoom check would fail or pass for nothing.
+    // Whatever zoom the client starts at, at either end the wheel cannot move it, so a
+    // zoom check would fail or pass for nothing.
     private bool CameraMidway()
     {
         Players.ChaseCamera? camera = GetViewport().GetCamera3D() as Players.ChaseCamera;
