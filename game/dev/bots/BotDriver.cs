@@ -154,7 +154,11 @@ public partial class BotDriver : Node
                 + ", nodes " + Performance.GetMonitor(Performance.Monitor.ObjectNodeCount)
                 + ", orphan nodes " + Performance.GetMonitor(Performance.Monitor.ObjectOrphanNodeCount)
                 + ", resources " + Performance.GetMonitor(Performance.Monitor.ObjectResourceCount)
-                + ", managed MB " + (GC.GetTotalMemory(false) / 1048576));
+                + ", managed MB " + (GC.GetTotalMemory(false) / 1048576)
+                + ", static MB " + (long)(Performance.GetMonitor(Performance.Monitor.MemoryStatic) / 1048576)
+                + ", video MB " + (long)(Performance.GetMonitor(Performance.Monitor.RenderVideoMemUsed) / 1048576)
+                + " (textures " + (long)(Performance.GetMonitor(Performance.Monitor.RenderTextureMemUsed) / 1048576)
+                + ", buffers " + (long)(Performance.GetMonitor(Performance.Monitor.RenderBufferMemUsed) / 1048576) + ")");
         }
 
         if (!_introduced)
