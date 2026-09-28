@@ -24,6 +24,12 @@ public partial class Main : Node
     {
         LaunchOptions options = Options ?? LaunchOptions.Parse(OS.GetCmdlineUserArgs());
 
+        if (options.CheckScenes)
+        {
+            GetTree().Quit(SceneCheck.Run("res://game") == 0 ? 0 : 1);
+            return;
+        }
+
         if (options.LoadTestBots > 0 && Options == null)
         {
             LoadTest host = new LoadTest { Name = "LoadTest" };

@@ -55,6 +55,8 @@ using MmoGame3d.Rules.Time;
 ///   --walk-test         the player walks circles and the client prints how smoothly it
 ///                       draws the walk (needs a window)
 ///   --watch-test        the same, standing still and measuring another player's walk
+///   --check-scenes      dev: report what an editor save would lose from each scene,
+///                       then quit (scripts/scene-check.ps1)
 /// </summary>
 public class LaunchOptions
 {
@@ -97,6 +99,7 @@ public class LaunchOptions
     public double StatsEverySeconds { get; private set; }
     public bool WalkTest { get; private set; }
     public bool WatchTest { get; private set; }
+    public bool CheckScenes { get; private set; }
 
     // One load-test bot: its own player, connecting at once, walking by itself.
     public LaunchOptions ForLoadBot(int number)
@@ -235,6 +238,9 @@ public class LaunchOptions
                     break;
                 case "--garden":
                     options.Garden = true;
+                    break;
+                case "--check-scenes":
+                    options.CheckScenes = true;
                     break;
                 case "--show-characters":
                     options.ShowCharacters = true;
