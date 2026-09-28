@@ -81,6 +81,7 @@ public sealed class BotCatalog
     {
         // Chosen when free, by weight.
         Add(new WalkAroundTownActivity());
+        Add(new TalkToTownspersonActivity());
         Add(new VisitCollegeActivity());
         Add(new GoShoppingActivity());
         Add(new UsePublicTerminalActivity());

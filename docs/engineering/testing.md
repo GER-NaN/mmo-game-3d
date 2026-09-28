@@ -44,7 +44,7 @@ takes 15 s.
   `FAIL` with the step it stopped at and the notices it saw, then quits with exit code 0
   or 1.
 - Scenarios: cracker, rootkit, defense, cameras, subway, book, workbench, college, lights,
-  taxi, fix, garden, shop, plant-card, unequip, repair-pack, settings.
+  taxi, fix, garden, shop, plant-card, unequip, repair-pack, settings, chatter.
 
 To add one: a `case` in `ServerScenarios.Apply` (the setup), a `case` in the driver's
 `_Ready` (the steps and what to expect), and the name in the script's list. Never let a

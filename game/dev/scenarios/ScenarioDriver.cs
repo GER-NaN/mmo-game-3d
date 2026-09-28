@@ -339,6 +339,10 @@ public partial class ScenarioDriver : Node
                 Step("open the repair pack", () => ClickGroup(InventoryPanel.RepairPackGroup));
                 Expect("the workbench, away from any bench", () => Showing<WorkbenchPanel>() != null);
                 break;
+            case "chatter":
+                Use("Talk to Wren");
+                Expect("a line of small talk", () => Noticed("Wren, out walking: "));
+                break;
             case "settings":
                 Step("press Esc for the game menu", () =>
                 {

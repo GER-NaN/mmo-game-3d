@@ -148,6 +148,12 @@ public class ServerScenarios
             case "unequip":
                 EquipPhone(session);
                 break;
+            case "chatter":
+                // Beside Wren, held there as if already talking, so she waits for the test.
+                StandBy(record, ZoneIds.Town, "Hiker", new Vector3(0f, 0f, 1.3f));
+                Zone town = _world.GetZone(ZoneIds.Town)!;
+                town.GetNode<Town.Townsperson>("Interactables/Hiker").Listen(town.ToGlobal(new Vector3(record.PositionX, 0f, record.PositionZ)));
+                break;
             case "repair-pack":
                 // A Mechanical Engineer, who carries the pack, with a phone to work on.
                 session.Progress.Career.Load(CareerId.MechanicalEngineer, 0, CareerRank.Apprentice, true, "");
