@@ -98,6 +98,9 @@ public partial class BotDriver : Node
     // again, or "" for all of them.
     public string Only { get; set; } = "";
 
+    // Every activity in turn, each to its end (--bot-everything; EverythingRun).
+    public bool Everything { get; set; }
+
     public override void _Ready()
     {
         // Logged, so a run's choices can be drawn again (the world will differ).
@@ -154,7 +157,11 @@ public partial class BotDriver : Node
                 + ", nodes " + Performance.GetMonitor(Performance.Monitor.ObjectNodeCount)
                 + ", orphan nodes " + Performance.GetMonitor(Performance.Monitor.ObjectOrphanNodeCount)
                 + ", resources " + Performance.GetMonitor(Performance.Monitor.ObjectResourceCount)
-                + ", managed MB " + (GC.GetTotalMemory(false) / 1048576));
+                + ", managed MB " + (GC.GetTotalMemory(false) / 1048576)
+                + ", static MB " + (long)(Performance.GetMonitor(Performance.Monitor.MemoryStatic) / 1048576)
+                + ", video MB " + (long)(Performance.GetMonitor(Performance.Monitor.RenderVideoMemUsed) / 1048576)
+                + " (textures " + (long)(Performance.GetMonitor(Performance.Monitor.RenderTextureMemUsed) / 1048576)
+                + ", buffers " + (long)(Performance.GetMonitor(Performance.Monitor.RenderBufferMemUsed) / 1048576) + ")");
         }
 
         if (!_introduced)
@@ -184,7 +191,8 @@ public partial class BotDriver : Node
             return;
         }
 
-        if (_aside == null)
+        // Nothing breaks into an activity in the everything run: asides take their turn.
+        if (_aside == null && !Everything)
         {
             TickAsideTimers(delta);
         }
@@ -232,6 +240,12 @@ public partial class BotDriver : Node
         {
             _failedWalks = 0;
             Escape();
+            return;
+        }
+
+        if (Everything)
+        {
+            PickEverything();
             return;
         }
 
@@ -304,6 +318,38 @@ public partial class BotDriver : Node
         {
             StartAside(Weighted(asides, a => Weight(a.Weight, a.Name)));
         }
+    }
+
+    // The next of every activity: at once when its needs are met, after a goal that meets
+    // them when not; skipped, with the reason, when it cannot start where it is done.
+    private void PickEverything()
+    {
+        BotActivity next = EverythingRun.Next(_random);
+        _choice = next.Name;
+        _choiceFor = 0;
+        _cancelAt = -1;
+        _cutAt = -1;
+        Announce("everything: " + next.Name);
+
+        if (!next.NeedsMet(_body))
+        {
+            GoalChain goal = new GoalChain("everything: " + next.Name, 1, b => true, b => new List<BotFact>(next.Needs), 12, next.UsualSeconds * 4, b => next);
+            _chain = goal;
+            goal.Begin(_body, _random);
+            GD.Print("Bot: goal chain \"" + goal.Name + "\" for its needs first");
+            StartInChain(goal.Next(_body, null, BotEnd.Finished));
+            return;
+        }
+
+        if (next.Zone.Length == 0 && !next.CanStart(_body))
+        {
+            GD.Print("Bot: \"" + next.Name + "\" cannot start here");
+            EverythingRun.NotStarted("cannot start in " + _body.ZoneId);
+            _pickIn = 0.5;
+            return;
+        }
+
+        StartActivity(next);
     }
 
     // Its own weight times the persona's liking; one named in --bot-only is picked even
@@ -507,6 +553,11 @@ public partial class BotDriver : Node
             }
         }
 
+        if (Everything && done == EverythingRun.Current)
+        {
+            EverythingRun.Ended(end == BotEnd.Finished, why);
+        }
+
         if (_chain != null)
         {
             // Tidied between links, then the next.
@@ -561,6 +612,12 @@ public partial class BotDriver : Node
         _choice = "";
         _cancelAt = -1;
         _cutAt = -1;
+
+        // A goal for an activity's needs that ended without getting to it.
+        if (Everything && EverythingRun.Current != null)
+        {
+            EverythingRun.Ended(false, "its needs were not met" + (chain != null && chain.Why.Length > 0 ? ": " + chain.Why : ""));
+        }
 
         if (chain != null)
         {

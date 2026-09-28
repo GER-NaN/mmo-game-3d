@@ -23,6 +23,14 @@ python tools/bot-watch/watch.py --every 120   a look every 2 minutes, until that
 python tools/bot-watch/triage.py --since 02:00   the findings since then, grouped into issues
 ```
 
+To try every activity there is, one bot does them all, shuffled, each to its end with
+nothing cancelling or breaking into it, and prints a tally after each round (finished,
+given up with the reason, could not start):
+
+```
+.\scripts\bot-everything.ps1                 one bot, profile everybot, the size of the screen
+```
+
 Open `%TEMP%\mmo-game-3d-bots\judge\report.html` in a browser to review the findings,
 or run `triage.py` first: a run's findings are usually a few issues many times over.
 
