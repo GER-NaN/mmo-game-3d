@@ -349,21 +349,21 @@ curve = SubResource("Curve3D_CrossStreet")
 
 [node name="Interactables" type="Node3D" parent="." unique_id=1118800592]
 
-[node name="Hiker" parent="Interactables" unique_id=353810894 instance=ExtResource("94_person")]
-RouteName = "SouthWestBlock"
+[node name="Hiker" parent="Interactables" unique_id=353810894 instance=ExtResource("94_person") node_paths=PackedStringArray("Route")]
+Route = NodePath("../../Routes/SouthWestBlock")
 PersonName = "Wren, out walking"
 ModelPath = "res://assets/kaykit/characters/Hiker.glb"
 Voice = "meghan"
 
-[node name="Farmer" parent="Interactables" unique_id=2084126690 instance=ExtResource("94_person")]
-RouteName = "SouthEastBlock"
+[node name="Farmer" parent="Interactables" unique_id=2084126690 instance=ExtResource("94_person") node_paths=PackedStringArray("Route")]
+Route = NodePath("../../Routes/SouthEastBlock")
 StartAt = 30
 PersonName = "Old Tomas"
 ModelPath = "res://assets/kaykit/characters/Farmer_A.glb"
 Voice = "ian"
 
-[node name="Driver" parent="Interactables" unique_id=1787451014 instance=ExtResource("94_person")]
-RouteName = "CrossStreet"
+[node name="Driver" parent="Interactables" unique_id=1787451014 instance=ExtResource("94_person") node_paths=PackedStringArray("Route")]
+Route = NodePath("../../Routes/CrossStreet")
 StartAt = 20
 PersonName = "Ines, a driver"
 ModelPath = "res://assets/kaykit/characters/Driver.glb"

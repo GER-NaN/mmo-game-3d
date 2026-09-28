@@ -22,9 +22,9 @@ public partial class Townsperson : Interactable
     private float _shown;
     private bool _placed;
 
-    // The name of the loop they walk, a Path3D under the zone's "Routes".
+    // The loop they walk, a Path3D in the zone.
     [Export]
-    public string RouteName { get; set; } = "";
+    public Path3D? Route { get; set; }
 
     // Where on the loop they start, in metres.
     [Export]
@@ -68,18 +68,13 @@ public partial class Townsperson : Interactable
         ListeningTo = speaker;
     }
 
-    private Path3D Route
-    {
-        get { return GetNode<Path3D>("../../Routes/" + RouteName); }
-    }
-
     public override void _Ready()
     {
         GetNode<Label3D>("NameLabel").Text = PersonName;
 
         if (Multiplayer.IsServer())
         {
-            _stroll = new Stroll(Route.Curve.GetBakedLength(), StartAt, new Random(PersonName.GetHashCode()));
+            _stroll = new Stroll(Route!.Curve.GetBakedLength(), StartAt, new Random(PersonName.GetHashCode()));
             Along = _stroll.Along;
         }
         else
@@ -91,7 +86,7 @@ public partial class Townsperson : Interactable
 
     public override void _Process(double delta)
     {
-        Path3D route = Route;
+        Path3D route = Route!;
         float length = route.Curve.GetBakedLength();
 
         if (_stroll != null)
