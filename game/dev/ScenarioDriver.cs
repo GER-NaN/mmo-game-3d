@@ -264,6 +264,7 @@ public partial class ScenarioDriver : Node
                 Expect("it fixed", () => Noticed("You fixed the traffic light."));
                 break;
             case "shop":
+                Step("camera between its nearest and farthest", CameraMidway);
                 Step("wheel over the world", () => WheelAt(GetViewport().GetVisibleRect().Size * new Vector2(0.5f, 0.3f)));
                 Expect("the camera zoomed", () => CameraDistance() != _distanceBefore);
                 Use("Talk to Dee");
@@ -273,6 +274,7 @@ public partial class ScenarioDriver : Node
                 Expect("the camera not zoomed", () => CameraDistance() == _distanceBefore);
                 break;
             case "registrar":
+                Step("camera between its nearest and farthest", CameraMidway);
                 Use("Talk to Mara");
                 Step("wheel over the registrar's panel", () => WheelOverPanel<CollegePanel>(CollegePanel.ClassGroup));
                 Expect("the camera not zoomed", () => CameraDistance() == _distanceBefore);
@@ -432,6 +434,21 @@ public partial class ScenarioDriver : Node
 
         Control? panel = node as Control;
         return panel != null && WheelAt(panel.GetGlobalRect().GetCenter());
+    }
+
+    // The saved zoom is shared with the author's own game; at either end the wheel cannot
+    // move it, so a zoom check would fail or pass for nothing.
+    private bool CameraMidway()
+    {
+        Players.ChaseCamera? camera = GetViewport().GetCamera3D() as Players.ChaseCamera;
+
+        if (camera == null)
+        {
+            return false;
+        }
+
+        camera.Distance = (Players.ChaseCamera.MinDistance + Players.ChaseCamera.MaxDistance) / 2f;
+        return true;
     }
 
     private float CameraDistance()
