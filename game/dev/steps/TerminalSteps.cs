@@ -3,10 +3,7 @@ namespace MmoGame3d.Dev;
 using System;
 using System.Collections.Generic;
 using Godot;
-using MmoGame3d.Players;
-using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Terminals;
-using MmoGame3d.Rules.World;
 using MmoGame3d.Ui;
 
 /// <summary>

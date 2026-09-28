@@ -12,7 +12,6 @@ using MmoGame3d.Rules.Players;
 using MmoGame3d.Rules.Shops;
 using MmoGame3d.Rules.Social;
 using MmoGame3d.Rules.Terminals;
-using MmoGame3d.Rules.Town;
 using MmoGame3d.Rules.World;
 using MmoGame3d.Ui;
 using MmoGame3d.Zones;

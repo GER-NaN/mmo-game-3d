@@ -6,7 +6,6 @@ using Godot;
 using MmoGame3d.Data;
 using MmoGame3d.Data.Social;
 using MmoGame3d.Networking;
-using MmoGame3d.Rules.Social;
 
 /// <summary>
 /// Friends and ignores. The lists live on the session, loaded with the player; each

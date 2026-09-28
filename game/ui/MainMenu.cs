@@ -2,7 +2,6 @@ namespace MmoGame3d.Ui;
 
 using System;
 using Godot;
-using MmoGame3d.Rules.Players;
 
 // The first screen: which server, and Play. The character is chosen after connecting.
 // It only reports what was pressed; ClientGame acts on it.
