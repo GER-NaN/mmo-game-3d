@@ -171,6 +171,10 @@ public class ServerScenarios
             case "garden":
                 StandBy(record, ZoneIds.Greenhouse, "PottingTable", new Vector3(0f, 0f, 1.5f));
                 break;
+            case "plant-card":
+                // Beside the first plant on display; there is one once anyone has made a plant.
+                StandBy(record, ZoneIds.Outskirts, "Spot0", new Vector3(0f, 0f, 1.2f));
+                break;
             case "load-phone":
             case "load-defense":
                 // Anywhere in town, spread out, with the phone equipped and charged.

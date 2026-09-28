@@ -279,6 +279,27 @@ public partial class ScenarioDriver : Node
                 Step("wheel over the registrar's panel", () => WheelOverPanel<CollegePanel>(CollegePanel.ClassGroup));
                 Expect("the camera not zoomed", () => CameraDistance() == _distanceBefore);
                 break;
+            case "plant-card":
+                Use("Inspect");
+                Expect("the card, with a title and a history", () =>
+                {
+                    Gardening.PlantCard? card = GetTree().GetFirstNodeInGroup(Gardening.PlantCard.Group) as Gardening.PlantCard;
+                    return card != null && card.GetNode<Label>("%Title").Text.Length > 0 && card.GetNode("%History").GetChildCount() > 0;
+                });
+                Step("close it with the X", () =>
+                {
+                    Gardening.PlantCard? card = GetTree().GetFirstNodeInGroup(Gardening.PlantCard.Group) as Gardening.PlantCard;
+
+                    if (card == null)
+                    {
+                        return false;
+                    }
+
+                    BotDriver.Click(card.GetNode<Button>("%Close").GetGlobalRect().GetCenter());
+                    return true;
+                });
+                Expect("the card closed", () => GetTree().GetFirstNodeInGroup(Gardening.PlantCard.Group) == null);
+                break;
             case "garden":
                 Use("Make a house plant");
                 Step("plant a piece", () => ClickGroup(Gardening.GardenScreen.PieceGroup));
