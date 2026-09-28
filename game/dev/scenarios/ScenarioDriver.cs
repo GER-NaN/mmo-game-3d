@@ -30,6 +30,9 @@ public partial class ScenarioDriver : Node
     private int _defensePressed = -1;
     private bool _done;
     private bool _pageSeen;
+    private int _firstPage = -1;
+    private int _lastPage = -1;
+    private int _pages;
     private bool _plantMade;
     private bool _bought;
     private string _zone = "";
@@ -62,7 +65,13 @@ public partial class ScenarioDriver : Node
     public override void _Ready()
     {
         _networks.Session.NoticeReceived += text => _notices.Add(text);
-        _networks.Subway.PageReceived += (page, pages, lines) => _pageSeen = true;
+        _networks.Subway.PageReceived += (page, pages, lines) =>
+        {
+            _pageSeen = true;
+            _firstPage = _firstPage < 0 ? page : _firstPage;
+            _lastPage = page;
+            _pages = pages;
+        };
         _networks.Session.ZoneChanged += zone =>
         {
             _zone = zone;
@@ -112,6 +121,10 @@ public partial class ScenarioDriver : Node
             case "book":
                 Use("visitor book");
                 Expect("a page of the book", () => _pageSeen);
+                Step("turn back a page", () => _pages <= 1 || ClickGroup(VisitorBookPanel.PreviousGroup));
+                Expect("an earlier page, or no way back from the only one", () => _pages <= 1
+                    ? (GetTree().GetFirstNodeInGroup(VisitorBookPanel.PreviousGroup) as Button)?.Disabled == true
+                    : _lastPage < _firstPage);
                 break;
             case "college":
                 Step("walk in at the door", () =>
