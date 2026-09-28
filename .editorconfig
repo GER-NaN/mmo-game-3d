@@ -1,0 +1,109 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+# --- Line endings / whitespace ---
+end_of_line = lf
+
+# --- Style preferences: keep classic C# syntax, don't nudge toward newer forms ---
+csharp_style_prefer_primary_constructors = false:silent
+csharp_style_prefer_switch_expression = false:silent
+csharp_style_prefer_pattern_matching = false:silent
+csharp_style_prefer_top_level_statements = false:silent
+csharp_prefer_simple_using_statement = false:silent
+csharp_style_var_elsewhere = false:silent
+csharp_style_var_when_type_is_apparent = false:silent
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_implicit_object_creation_when_type_is_apparent = false:silent
+csharp_style_prefer_index_operator = false:silent
+csharp_style_prefer_range_operator = false:silent
+dotnet_style_prefer_simplified_boolean_expressions = false:silent
+dotnet_style_object_initializer = true:silent
+dotnet_style_prefer_auto_properties = false:silent
+
+# Unused usings: the pre-commit hook removes them; the build stays quiet, since
+# reporting IDE0005 on build would need GenerateDocumentationFile and CS1591 off
+dotnet_diagnostic.IDE0005.severity = warning
+
+# --- Naming / unused member warnings: keep as info, not clutter ---
+dotnet_diagnostic.IDE0051.severity = suggestion
+dotnet_diagnostic.IDE0052.severity = suggestion
+
+# --- Build-time convention warnings ---
+# Namespace must match folder path
+dotnet_diagnostic.IDE0130.severity = warning
+
+# StyleCop: every category off, rules opted in one at a time
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.DocumentationRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.LayoutRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.MaintainabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.NamingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.OrderingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.ReadabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.SpacingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.SpecialRules.severity = none
+# No XML doc generation, so no XML doc analysis
+dotnet_diagnostic.SA0001.severity = none
+# One type per file
+dotnet_diagnostic.SA1402.severity = warning
+# File name must match type name
+dotnet_diagnostic.SA1649.severity = warning
+# No #region
+dotnet_diagnostic.SA1124.severity = warning
+
+# Project rules, one file each in Analyzers/
+# Switch statements, not switch expressions
+dotnet_diagnostic.GAME0001.severity = warning
+# No primary constructors
+dotnet_diagnostic.GAME0002.severity = warning
+# No async or await
+dotnet_diagnostic.GAME0003.severity = warning
+# No tuple deconstruction
+dotnet_diagnostic.GAME0004.severity = warning
+# No lock, off: no code here is marked as one-thread only yet
+dotnet_diagnostic.GAME0005.severity = none
+# No reflection outside the startup files exempt further down
+dotnet_diagnostic.GAME0006.severity = warning
+
+# --- Braces / newlines: classic Allman style (already used throughout the project) ---
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# Godot folders are snake_case (res:// paths) under game/, so the folder path is not a
+# namespace there. src/ and tests/ are PascalCase projects and keep the rule.
+[game/**.cs]
+dotnet_diagnostic.IDE0130.severity = none
+
+# Startup files: reflection allowed here, and only here (see BannedSymbols.txt)
+[{game/dev/BotCatalog.cs,src/Data/MigrationRunner.cs}]
+dotnet_diagnostic.RS0030.severity = none
+dotnet_diagnostic.GAME0006.severity = none
+
+# Tests may break a rule when the test is the reason: reflection walks types here on
+# purpose. Rules are listed as they come up, not turned off wholesale.
+[tests/**.cs]
+dotnet_diagnostic.GAME0006.severity = none
+
+# The analyzer project is never published, so no NuGet release tracking
+[src/Analyzers/**.cs]
+dotnet_diagnostic.RS2008.severity = none
+
+# SDK-generated assembly attributes. Source-generated code (Godot's) is not reached by
+# .editorconfig, so the banned list leaves out what it uses: Type.Assembly.
+[**/obj/**.cs]
+dotnet_diagnostic.RS0030.severity = none
+
+[*.json]
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_size = 2

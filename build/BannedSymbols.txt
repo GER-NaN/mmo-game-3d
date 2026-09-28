@@ -1,0 +1,11 @@
+T:System.Activator;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+T:System.Reflection.Assembly;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+T:System.Reflection.MethodBase;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+T:System.Reflection.MethodInfo;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+T:System.Reflection.ConstructorInfo;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+T:System.Reflection.PropertyInfo;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+T:System.Reflection.FieldInfo;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+T:System.Reflection.EventInfo;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+T:System.Reflection.ParameterInfo;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+T:System.Reflection.CustomAttributeExtensions;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig
+N:System.Reflection.Emit;Runtime reflection is banned. Do it at startup, in a file exempt in .editorconfig

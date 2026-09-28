@@ -1,0 +1,62 @@
+#!/bin/sh
+#
+# Formats the C# files in this commit, so a file written by an agent or a script looks
+# like a file written in the editor, where format-on-save already does this.
+#
+# Enable it once per clone:
+#
+#     git config core.hooksPath .githooks
+#
+# dotnet format loads the whole solution, so one run costs about six seconds whatever
+# the number of files. That is the price of a commit, not of a build.
+
+# The C# files added or changed in this commit. Deleted files are left out.
+staged_files=$(git diff --cached --name-only --diff-filter=ACM -- "*.cs")
+
+if [ -z "$staged_files" ]; then
+    exit 0
+fi
+
+# A file can hold staged changes and unstaged changes at the same time, for example
+# after "git add -p". Formatting such a file and staging it again would also commit the
+# part that was left out on purpose, so those files are reported and left alone.
+unstaged_files=$(git diff --name-only -- "*.cs")
+
+files_to_format=""
+
+for file in $staged_files; do
+    is_unstaged="no"
+
+    for unstaged_file in $unstaged_files; do
+        if [ "$file" = "$unstaged_file" ]; then
+            is_unstaged="yes"
+        fi
+    done
+
+    if [ "$is_unstaged" = "yes" ]; then
+        echo "pre-commit: $file has unstaged changes, so it was not formatted."
+    else
+        files_to_format="$files_to_format $file"
+    fi
+done
+
+if [ -z "$files_to_format" ]; then
+    exit 0
+fi
+
+echo "pre-commit: formatting the staged C# files."
+
+# The solution tells dotnet format which projects the files belong to. --include limits
+# the work to these files, so nothing else in the repository is touched.
+dotnet format mmo-game-3d.sln --include $files_to_format
+
+if [ $? -ne 0 ]; then
+    # A missing SDK or a broken build must not stop a commit. Say so and go on.
+    echo "pre-commit: dotnet format failed, so the files were committed unformatted."
+    exit 0
+fi
+
+# Stage what the formatter changed. Without this the commit keeps the old text.
+git add $files_to_format
+
+exit 0
