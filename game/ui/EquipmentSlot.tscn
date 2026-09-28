@@ -10,7 +10,9 @@ text = "Phone"
 [node name="SlotName" type="Label" parent="." unique_id=1451196006]
 layout_mode = 2
 text = "Device"
+horizontal_alignment = 1
 
 [node name="ItemName" type="Label" parent="." unique_id=2139699481]
 layout_mode = 2
 text = "Phone 43%"
+horizontal_alignment = 1
