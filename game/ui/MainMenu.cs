@@ -11,6 +11,7 @@ public partial class MainMenu : Control
 
     // Bots find the Play button by this group.
     public const string PlayGroup = "main_menu_play";
+    public const string CreditsGroup = "main_menu_credits";
 
     // (address).
     public event Action<string>? PlayPressed;
@@ -32,6 +33,7 @@ public partial class MainMenu : Control
         _address.TextSubmitted += _ => OnPlay();
         GetNode<Button>("%Settings").Pressed += () => SettingsPressed?.Invoke();
         GetNode<Button>("%Credits").Pressed += ShowCredits;
+        GetNode<Button>("%Credits").AddToGroup(CreditsGroup);
         GetNode<Button>("%Quit").Pressed += () => QuitPressed?.Invoke();
     }
 

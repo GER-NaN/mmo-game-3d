@@ -10,10 +10,14 @@ using Godot;
 /// </summary>
 public partial class CreditsPanel : Control
 {
+    // Bots find the Back button by this group.
+    public const string BackGroup = "credits_back";
+
     public event Action? Closed;
 
     public override void _Ready()
     {
+        GetNode<Button>("%Back").AddToGroup(BackGroup);
         GetNode<Button>("%Back").Pressed += () => Closed?.Invoke();
     }
 }

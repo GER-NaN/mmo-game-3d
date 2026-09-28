@@ -43,6 +43,9 @@ public partial class BotKeeper : Node
     private int _creatorStage;
     private bool _leftWorld;
 
+    // On the way through the main menu, the credits are read once a switch.
+    private bool _creditsRead;
+
     // The Leave click may never land (the activity then fails): the switch is off.
     private const double LeaveWithin = 10;
 
@@ -57,6 +60,7 @@ public partial class BotKeeper : Node
         _switchActIn = 0;
         _creatorStage = 0;
         _leftWorld = false;
+        _creditsRead = false;
         GD.Print("Bot: switching characters from " + from);
     }
 
@@ -82,7 +86,11 @@ public partial class BotKeeper : Node
         {
             _onMenuFor += delta;
 
-            if (_onMenuFor >= (Switching ? SwitchMenuWait : MenuWait))
+            if (Switching && !_creditsRead)
+            {
+                ReadCredits();
+            }
+            else if (_onMenuFor >= (Switching ? SwitchMenuWait : MenuWait))
             {
                 _onMenuFor = 0;
                 GD.Print("Bot: back at the main menu; clicking Play");
@@ -123,6 +131,33 @@ public partial class BotKeeper : Node
         {
             _shotCheckIn = ShotCheckEvery;
             TakeShotIfAsked();
+        }
+    }
+
+    // Credits, a moment's look, Back; then the menu goes on to Play.
+    private void ReadCredits()
+    {
+        Button? back = GetTree().GetFirstNodeInGroup(CreditsPanel.BackGroup) as Button;
+
+        if (back == null)
+        {
+            Button? credits = GetTree().GetFirstNodeInGroup(MainMenu.CreditsGroup) as Button;
+
+            if (credits != null && _onMenuFor >= 1)
+            {
+                _onMenuFor = 0;
+                BotDriver.Click(credits.GetGlobalRect().GetCenter());
+            }
+
+            return;
+        }
+
+        if (_onMenuFor >= 2)
+        {
+            _onMenuFor = 0;
+            _creditsRead = true;
+            GD.Print("Bot: read the credits");
+            BotDriver.Click(back.GetGlobalRect().GetCenter());
         }
     }
 
