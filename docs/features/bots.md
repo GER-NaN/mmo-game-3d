@@ -1275,11 +1275,76 @@ the docs taken out in 5a15cd3 (`docs/engineering/bot-testing.md`,
 - **Dev scenarios and the load test:** fast single-feature checks with server-side setup,
   and a performance test with hundreds of headless bots. Neither is in this design.
 
+### The old features, taken into this design
+
+> Answer (2026-09-28): Pick best ideas and options, I kind of like all the features but
+> what I did not like was the code
+>
+> Consequence noted: the author keeps the old features and delegates the choice of form.
+> Each one below is fitted to the agreed Outcome with the fewest new concepts; where an
+> earlier decision already covers a feature, it is named. Numbered R1 to R11 for
+> tracing. Decision (2026-09-28): delegated to the model by the author's answer above.
+>
+> - **R1. Interrupts.** Two kinds. *Walk away:* a bot may abandon a `BotActivity` at a
+>   random step and leave everything as it is; the next activity must cope. *Connection
+>   drop:* the Overseer kills the client at a random moment and starts it again with the
+>   same profile; the new execution's judge checks the login back into what was left.
+>   The Overseer already kills and starts clients [F1a, T4], so no new part. The kill
+>   prints "Internal CLR error" (CLAUDE.local.md, Testing); the Overseer ignores it for
+>   a kill it made.
+> - **R2. Asides.** A `BotActivity` can be marked short enough to run between two steps of
+>   another (an emote mid-walk). A random bot may slip one in; the interrupted activity
+>   then goes on. No timers of their own: the chance is per step.
+> - **R3. Personas.** A persona is a named part of the run's configuration [F4b]: weights
+>   over the registry's activities, the pace, and the chances of R1 and R2. The old
+>   special bots become activities or modes, not personas with code of their own:
+>   *curious* is a `BotActivity` that clicks every control of the open screen, which the
+>   screens' constants make easy [T1]; *masher* is a `BotActivity` that presses random
+>   actions; *escaper* and *wedger* are the rudimentary walking mode aimed at the zone's
+>   edge or at a gap [T3c]; *shadow* is the helper's follow mode [F6].
+> - **R4. Seeds.** One seed per execution drives every random choice, written first in the
+>   events file. The Overseer can start an execution again with the same seed to replay
+>   it. Hand-written orders (the old related chains) are the author's fluent chains
+>   [Developer thoughts], so no chain concept is needed.
+> - **R5. Planning prerequisites.** A `BotActivity` says what it needs and what it gives,
+>   as simple facts a player can see ($500 or more, a Battery in the bag, in the college).
+>   Before an activity, a small resolver finds, for each missing need, an activity in the
+>   registry that gives it, chosen at random among those that do, and runs that first.
+>   This is how [F2a] works. After an activity, a fact it gives that does not hold is a
+>   finding (the old "promise broken").
+> - **R6. Recovery.** Part of every bot, not an activity: at the main menu it presses
+>   Play; before an activity it closes every open screen through the open-screens list
+>   [T1]; it retries a refused login while the server still holds the old session.
+> - **R7. More judge kinds.** Added to the common checks every judge runs [F1d]: footing
+>   (standing on what a player should not), floating, out of bounds, thrashing, zone
+>   churn and ping-pong, a screen that does not close, and a control to click that lies
+>   outside the window (a real click there fails, as it would for a player [T1]).
+>   Thresholds are placeholders, generous so a bot a little off is not a finding.
+> - **R8. Finding hygiene.** A judge records the same kind of finding at most once a
+>   minute per bot. Each finding carries the network link's state (round trip, loss) and
+>   the server's log lines around its moment. The Overseer's summary groups findings of
+>   the same kind and place across executions into issues.
+> - **R9. Client hygiene.** Bots run with no sound (Godot's `--audio-driver Dummy`, an
+>   engine option), windowed (`--windowed`, built), and must not save the machine's
+>   settings. The last needs a launch option in the game that is not about bots (for
+>   example, "do not save settings"), so game code still does not know bots [F7]. The
+>   Overseer lays out windows; large windows by default, since small ones push controls
+>   off the screen.
+> - **R10. Authoring.** The run script can run one `BotActivity`, or one fluent chain,
+>   again and again in a window, to watch it while writing it.
+> - **R11. Dev scenarios and the load test.** Server-side setup is the same idea as
+>   seeding, which stays deferred [F2c]. The load test measures the server, not the
+>   game's behaviour; it stays out of this design and is designed on its own when needed.
+>   Bots announcing themselves in chat stays rejected [T5a].
+
 ## Consequences
 
-- `CLAUDE.local.md`: "No bots or dev scenarios for now" is replaced when the build
-  starts. Two exceptions to record for bot code only: no unit tests [T4], and reflection
-  allowed where it helps [Outcome]. The author's file; changed only on the author's word.
+- `CLAUDE.local.md`: "No bots or dev scenarios for now" replaced (2026-09-28) by a
+  pointer to this file, with the two exceptions for bot code only: no unit tests [T4],
+  and reflection allowed where it helps [Outcome]. Agents still write no bot code unless
+  the author asks.
+- A game launch option that keeps a client from saving the machine's settings, named for
+  what it does, not for bots [R9].
 - Game code, before or with the first bot: one list of open screens in place of
   `ClientGame`'s private panel fields, constants for each screen's controls, controls
   built from data that carry their data's identity (the shop's rows first), and the
