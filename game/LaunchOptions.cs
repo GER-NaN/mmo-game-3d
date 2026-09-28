@@ -1,5 +1,6 @@
 namespace MmoGame3d;
 
+using MmoGame3d.Client;
 using MmoGame3d.Data;
 using MmoGame3d.Rules.Time;
 
@@ -29,6 +30,9 @@ using MmoGame3d.Rules.Time;
 ///   --autoconnect       skip the main menu and connect at once
 ///   --windowed          stay in a window whatever the saved settings say, without
 ///                       changing them
+///   --settings-file x   where the menus' settings are read and saved (default
+///                       user://settings.cfg), so a client can keep its own apart from
+///                       the machine's
 ///   --report-every 2    print what the client sees every 2 seconds
 ///   --screenshot x.png  save the window to a PNG a few seconds in, then quit
 ///   --overview          with --screenshot: look down on the whole zone
@@ -62,6 +66,7 @@ public class LaunchOptions
     public string? Address { get; private set; }
     public bool AutoConnect { get; private set; }
     public bool Windowed { get; private set; }
+    public string SettingsFile { get; private set; } = ClientSettings.DefaultPath;
     public double ReportEverySeconds { get; private set; }
     public string? ScreenshotPath { get; private set; }
     public bool Overview { get; private set; }
@@ -137,6 +142,10 @@ public class LaunchOptions
                     break;
                 case "--windowed":
                     options.Windowed = true;
+                    break;
+                case "--settings-file":
+                    options.SettingsFile = next;
+                    i++;
                     break;
                 case "--screenshot":
                     options.ScreenshotPath = next;

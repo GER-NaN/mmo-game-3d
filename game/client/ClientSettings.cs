@@ -4,12 +4,13 @@ using System.Collections.Generic;
 using Godot;
 
 /// <summary>
-/// What the player set in the menus, kept between launches in user://settings.cfg.
-/// Shared by every profile on the machine, except the name, which is per profile.
+/// What the player set in the menus, kept between launches in user://settings.cfg (or
+/// the file --settings-file names). Shared by every profile on the machine, except the
+/// name, which is per profile.
 /// </summary>
 public class ClientSettings
 {
-    private const string Path = "user://settings.cfg";
+    public const string DefaultPath = "user://settings.cfg";
 
     public const float MinSensitivity = 0.25f;
     public const float MaxSensitivity = 3f;
@@ -23,6 +24,7 @@ public class ClientSettings
     };
 
     private readonly ConfigFile _file = new ConfigFile();
+    private string _path = DefaultPath;
 
     public bool Fullscreen { get; set; }
     public string Address { get; set; } = "127.0.0.1";
@@ -43,12 +45,13 @@ public class ClientSettings
     // Only the keys the player moved; the rest are the defaults in project.godot.
     private readonly Dictionary<string, Key> _keys = new Dictionary<string, Key>();
 
-    public static ClientSettings Load()
+    public static ClientSettings Load(string path)
     {
         ClientSettings settings = new ClientSettings();
+        settings._path = path;
 
         // A missing file is a first launch, not an error.
-        if (settings._file.Load(Path) == Error.Ok)
+        if (settings._file.Load(path) == Error.Ok)
         {
             settings.Fullscreen = (bool)settings._file.GetValue("display", "fullscreen", false);
             settings.Address = (string)settings._file.GetValue("network", "address", "127.0.0.1");
@@ -182,7 +185,7 @@ public class ClientSettings
             _file.SetValue("keys", binding.Key, (long)binding.Value);
         }
 
-        _file.Save(Path);
+        _file.Save(_path);
     }
 
     // Each bus at its volume; all the way down mutes it.

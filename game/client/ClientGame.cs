@@ -146,7 +146,7 @@ public partial class ClientGame : Node
         _subwayNetwork.PageReceived += ShowBook;
         _main = main;
         _profile = new Profile(options.Profile);
-        _settings = ClientSettings.Load();
+        _settings = ClientSettings.Load(options.SettingsFile);
 
         if (DisplayServer.GetName() != "headless" && !options.Windowed)
         {
