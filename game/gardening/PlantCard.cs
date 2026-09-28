@@ -10,6 +10,8 @@ using MmoGame3d.Rules.Gardening;
 /// </summary>
 public partial class PlantCard : PanelContainer
 {
+    private static readonly PackedScene CloseScene = GD.Load<PackedScene>("res://game/ui/CloseButton.tscn");
+
     public event Action? Closed;
 
     public void ShowPlant(long plantId, string name, string creator, string madeOn, string design, string[] history)
@@ -36,9 +38,14 @@ public partial class PlantCard : PanelContainer
         rows.AddThemeConstantOverride("separation", 6);
         margin.AddChild(rows);
 
-        Label title = new Label { Text = name.Length > 0 ? name : "House plant #" + plantId };
+        HBoxContainer titleRow = new HBoxContainer();
+        Label title = new Label { Text = name.Length > 0 ? name : "House plant #" + plantId, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         title.AddThemeFontSizeOverride("font_size", 22);
-        rows.AddChild(title);
+        titleRow.AddChild(title);
+        Button close = CloseScene.Instantiate<Button>();
+        close.Pressed += () => Closed?.Invoke();
+        titleRow.AddChild(close);
+        rows.AddChild(titleRow);
         rows.AddChild(new Label { Text = "House plant #" + plantId + ", one of a kind" });
         rows.AddChild(new Label { Text = "Created by: " + creator });
         rows.AddChild(new Label { Text = "Made on: " + madeOn });
@@ -62,10 +69,6 @@ public partial class PlantCard : PanelContainer
         {
             rows.AddChild(Dim(line));
         }
-
-        Button close = new Button { Text = "Close", FocusMode = FocusModeEnum.None };
-        close.Pressed += () => Closed?.Invoke();
-        rows.AddChild(close);
     }
 
     private static Label Heading(string text)

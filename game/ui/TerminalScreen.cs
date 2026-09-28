@@ -198,9 +198,9 @@ public partial class TerminalScreen : Control
 
         GetNode<Control>("Margin").AddThemeConstantOverride("margin_left", 16);
         GetNode<Control>("Margin").AddThemeConstantOverride("margin_right", 16);
-        GetNode<Control>("%Apps").CustomMinimumSize = new Vector2(130f, 0f);
-        GetNode<Control>("%Apps").SizeFlagsStretchRatio = 0.6f;
-        GetNode<Control>("%Apps").SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        GetNode<Control>("%AppsScroll").CustomMinimumSize = new Vector2(130f, 0f);
+        GetNode<Control>("%AppsScroll").SizeFlagsStretchRatio = 0.6f;
+        GetNode<Control>("%AppsScroll").SizeFlagsHorizontal = SizeFlags.ExpandFill;
 
         // The world around the phone takes no clicks while you are on it.
         MouseFilter = MouseFilterEnum.Stop;

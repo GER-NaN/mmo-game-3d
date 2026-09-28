@@ -48,6 +48,45 @@ public partial class InventoryPanel : PanelContainer
     }
     public event Action<Guid>? UnequipPressed;
 
+    public event Action? Closed;
+
+    // What each equipment slot holds now, for its button; empty when nothing.
+    private readonly Dictionary<SlotType, Guid> _worn = new Dictionary<SlotType, Guid>();
+
+    // The equipment slots are laid out in the scene, each named for its slot (Device,
+    // Tool, Drone); a click on a full one unequips it.
+    public override void _Ready()
+    {
+        GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
+
+        foreach (SlotType slot in Belongings.PlayerSlots)
+        {
+            Button? frame = GetNodeOrNull<Button>(SlotPath(slot) + "/Frame");
+
+            if (frame == null)
+            {
+                continue;
+            }
+
+            SlotType pressed = slot;
+            frame.FocusMode = FocusModeEnum.None;
+            frame.Pressed += () =>
+            {
+                Guid id;
+
+                if (_worn.TryGetValue(pressed, out id))
+                {
+                    UnequipPressed?.Invoke(id);
+                }
+            };
+        }
+    }
+
+    private static string SlotPath(SlotType slot)
+    {
+        return "Margin/Rows/Equipment/" + slot;
+    }
+
     // (type, tier, quantity): the whole stack.
     public event Action<ItemType, ItemTier, int>? DropPressed;
 
@@ -109,6 +148,37 @@ public partial class InventoryPanel : PanelContainer
         return text;
     }
 
+    // Until items have icons, a full slot shows the item's name on its button.
+    private void ShowEquipment(Belongings mine)
+    {
+        _worn.Clear();
+
+        foreach (SlotType slot in Belongings.PlayerSlots)
+        {
+            Control? card = GetNodeOrNull<Control>(SlotPath(slot));
+
+            if (card == null)
+            {
+                continue;
+            }
+
+            ItemInstance? worn = mine.Equipped(slot);
+            Button frame = card.GetNode<Button>("Frame");
+            frame.Text = worn == null ? "" : ItemCatalog.Get(worn.Type).Name;
+            frame.Disabled = worn == null;
+            frame.TooltipText = worn == null ? "" : "Click to unequip";
+            card.GetNode<Label>("SlotName").Text = slot.ToString();
+            Label item = card.GetNode<Label>("ItemName");
+            item.Text = worn == null ? "empty" : Describe(mine, worn);
+            item.Modulate = worn == null ? new Color(1f, 1f, 1f, 0.5f) : Colors.White;
+
+            if (worn != null)
+            {
+                _worn[slot] = worn.Id;
+            }
+        }
+    }
+
     private void ShowThings(Belongings mine)
     {
         VBoxContainer things = GetNode<VBoxContainer>("%Things");
@@ -118,27 +188,7 @@ public partial class InventoryPanel : PanelContainer
             old.QueueFree();
         }
 
-        Label equippedTitle = new Label { Text = "Equipped" };
-        equippedTitle.AddThemeFontSizeOverride("font_size", 16);
-        things.AddChild(equippedTitle);
-
-        foreach (SlotType slot in Belongings.PlayerSlots)
-        {
-            ItemInstance? worn = mine.Equipped(slot);
-            HBoxContainer slotRow = new HBoxContainer();
-            string slotText = slot + ":  " + (worn == null ? "empty" : Describe(mine, worn));
-            slotRow.AddChild(new Label { Text = slotText, SizeFlagsHorizontal = SizeFlags.ExpandFill, Modulate = worn == null ? new Color(1f, 1f, 1f, 0.5f) : Colors.White });
-
-            if (worn != null)
-            {
-                Guid wornId = worn.Id;
-                Button unequip = new Button { Text = "Unequip", FocusMode = FocusModeEnum.None };
-                unequip.Pressed += () => UnequipPressed?.Invoke(wornId);
-                slotRow.AddChild(unequip);
-            }
-
-            things.AddChild(slotRow);
-        }
+        ShowEquipment(mine);
 
         Label bagTitle = new Label { Text = "In the bag" };
         bagTitle.AddThemeFontSizeOverride("font_size", 16);

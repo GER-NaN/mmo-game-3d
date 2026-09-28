@@ -175,8 +175,7 @@ public partial class ClientGame : Node
         _subwayNetwork.PageReceived += ShowBook;
         _main = main;
         _profile = new Profile(options.Profile);
-        _settings = ClientSettings.Load();
-        _settings.ReadOnly = options.LoadBot || options.Bot || options.Scenario != null;
+        _settings = ClientSettings.Load(options.LoadBot || options.Bot || options.Scenario != null);
 
         if (DisplayServer.GetName() != "headless")
         {
@@ -1425,6 +1424,7 @@ public partial class ClientGame : Node
             _intents?.Start("drop", id => _itemNetwork.SendDrop(id, (int)type, (int)tier, quantity));
         _inventoryPanel.UnequipPressed += id => _itemNetwork.SendUnequip(id.ToString());
         _inventoryPanel.RepairPackPressed += _itemNetwork.SendOpenRepairPack;
+        _inventoryPanel.Closed += CloseInventory;
         _inventoryPanel.ShowRepairPack(_career == (int)Rules.Skills.CareerId.MechanicalEngineer);
     }
 
@@ -1470,6 +1470,7 @@ public partial class ClientGame : Node
         _college.ClassPressed += _progressNetwork.SendTakeClass;
         _college.EnrollPressed += _progressNetwork.SendEnroll;
         _college.RankUpPressed += _progressNetwork.SendRankUp;
+        _college.Closed += CloseCollege;
     }
 
     private void CloseCollege()
@@ -1495,6 +1496,7 @@ public partial class ClientGame : Node
         _ui.AddChild(_skills);
         _skills.ShowProgress(_skillIds, _skillXp, _career, _careerXp, _careerRank, _classTaken, _level);
         _skills.ShowAchievements(_achievements);
+        _skills.Closed += CloseSkills;
     }
 
     private void CloseSkills()
@@ -1530,6 +1532,7 @@ public partial class ClientGame : Node
         _social.ShowContacts(_contacts[0], _contacts[1], _contacts[2], _contacts[3], _contacts[4]);
         _social.RemovePressed += _socialNetwork.SendRemove;
         _social.MessagePressed += (id, name) => _chat?.OpenDirect(id, name);
+        _social.Closed += CloseSocial;
     }
 
     private void ToggleMap()
@@ -1554,6 +1557,7 @@ public partial class ClientGame : Node
         _map = MapScene.Instantiate<MapPanel>();
         _ui.AddChild(_map);
         _map.Open(ZoneIds.DisplayName(_zoneId), zone.MapSize, cells);
+        _map.Closed += CloseMap;
     }
 
     // One panel at a time: opening one closes whichever was open.

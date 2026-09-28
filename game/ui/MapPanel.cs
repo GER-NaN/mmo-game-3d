@@ -1,5 +1,6 @@
 namespace MmoGame3d.Ui;
 
+using System;
 using Godot;
 using MmoGame3d.Rules.Maps;
 
@@ -20,6 +21,13 @@ public partial class MapPanel : Control
 
     private Discovery _discovery = null!;
     private Control _fog = null!;
+
+    public event Action? Closed;
+
+    public override void _Ready()
+    {
+        GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
+    }
 
     public void Open(string title, Vector2 mapSize, byte[]? cells)
     {

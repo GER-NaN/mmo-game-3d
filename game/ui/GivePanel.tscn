@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://game/ui/GivePanel.cs" id="1_give"]
+[ext_resource type="PackedScene" path="res://game/ui/CloseButton.tscn" id="2_close"]
 
 [node name="GivePanel" type="PanelContainer"]
 custom_minimum_size = Vector2(380, 0)
@@ -25,10 +26,18 @@ theme_override_constants/margin_bottom = 12
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Margin/Rows"]
+[node name="TitleRow" type="HBoxContainer" parent="Margin/Rows"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Rows/TitleRow"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
+
+[node name="Close" parent="Margin/Rows/TitleRow" instance=ExtResource("2_close")]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="Stacks" type="VBoxContainer" parent="Margin/Rows"]
 unique_name_in_owner = true
@@ -56,9 +65,3 @@ unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
 text = "Give"
-
-[node name="Close" type="Button" parent="Margin/Rows"]
-unique_name_in_owner = true
-layout_mode = 2
-focus_mode = 0
-text = "Close"

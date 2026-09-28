@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[node name="Close" type="Button"]
+custom_minimum_size = Vector2(32, 32)
+size_flags_horizontal = 8
+size_flags_vertical = 0
+focus_mode = 0
+tooltip_text = "Close"
+text = "X"

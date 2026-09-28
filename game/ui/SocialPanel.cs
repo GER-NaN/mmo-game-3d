@@ -16,6 +16,13 @@ public partial class SocialPanel : PanelContainer
     // (player id, name): opens a private conversation in the chat.
     public event Action<string, string>? MessagePressed;
 
+    public event Action? Closed;
+
+    public override void _Ready()
+    {
+        GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
+    }
+
     public void ShowContacts(string[] friendIds, string[] friendNames, string[] friendZones, string[] ignoredIds, string[] ignoredNames)
     {
         VBoxContainer friends = GetNode<VBoxContainer>("%Friends");
