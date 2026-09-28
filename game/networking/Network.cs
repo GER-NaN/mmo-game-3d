@@ -32,28 +32,6 @@ public partial class Network : NetworkNode
     // titles) and a problem to show, or "".
     public event Action<string[], string[], string[], int[], string[], string>? CharactersReceived;
 
-    // Server side: (peer, scenario name), dev tests only.
-    public event Action<long, string>? ScenarioRequested;
-
-    public void SendScenario(string name)
-    {
-        RpcId(1, MethodName.Scenario, name);
-    }
-
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void Scenario(string name)
-    {
-        if (Multiplayer.IsServer())
-        {
-            long sender = Multiplayer.GetRemoteSenderId();
-
-            using (Activity? span = Received(MethodName.Scenario, sender, name))
-            {
-                ScenarioRequested?.Invoke(sender, name);
-            }
-        }
-    }
-
     public void SendHello(int protocol, string licenseKey)
     {
         RpcId(1, MethodName.Hello, protocol, licenseKey);

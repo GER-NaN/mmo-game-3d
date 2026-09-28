@@ -111,45 +111,15 @@ public partial class ClientGame : Node
     private ClientIntents? _intents;
     private int _dollars;
     private readonly List<ChatLine> _chatLog = new List<ChatLine>();
-    private BotDriver? _bot;
 
     // What the server last said this player carries.
     private List<ItemStack> _stacks = new List<ItemStack>();
 
-    // For bots (game/dev), which may look things up but act only through input: what
-    // this client knows of its player.
-    public int Dollars
-    {
-        get { return _dollars; }
-    }
-
-    // The career (Rules.Skills.CareerId), or -1 with none yet.
-    public int Career
-    {
-        get { return _career; }
-    }
-
-    public IReadOnlyList<ItemStack> Stacks
-    {
-        get { return _stacks; }
-    }
-
-    public IReadOnlyList<ItemInstance> Instances
-    {
-        get { return _instances; }
-    }
-
-    public byte[]? MapCells(string zoneId)
-    {
-        byte[]? cells;
-        return _maps.TryGetValue(zoneId, out cells) ? cells : null;
-    }
-
     private CharacterSelect? _select;
     private CharacterCreator? _creator;
 
-    // Bots and --autoconnect choose by themselves: make a character if there is none,
-    // then play the first. Once each.
+    // --autoconnect chooses by itself: make a character if there is none, then play the
+    // first. Once each.
     private bool _autoCreated;
     private bool _autoPlayed;
     private string _zoneId = "";
@@ -176,33 +146,18 @@ public partial class ClientGame : Node
         _subwayNetwork.PageReceived += ShowBook;
         _main = main;
         _profile = new Profile(options.Profile);
-        _settings = ClientSettings.Load(options.LoadBot || options.Bot || options.Scenario != null);
+        _settings = ClientSettings.Load();
 
-        if (DisplayServer.GetName() != "headless")
+        if (DisplayServer.GetName() != "headless" && !options.Windowed)
         {
-            if (!options.Windowed)
-            {
-                _settings.Apply();
-            }
-        }
-        else
-        {
-            // A headless client's window is 64 by 64 pixels, so centred panels hang off
-            // its edges and a bot's click lands beside the button. Give it a real size.
-            GetTree().Root.Size = new Vector2I(1280, 720);
+            _settings.Apply();
         }
 
         _ui = new CanvasLayer { Name = "Ui" };
         AddChild(_ui);
-
-        // For the whole run, not only in the world: it brings a bot back from the menus.
-        if (options.Bot)
-        {
-            AddChild(new Dev.BotKeeper { Name = "BotKeeper", Profile = options.Profile });
-        }
         _settings.ApplyVolumes();
 
-        // A headless client (a bot, a test) has nobody to hear it.
+        // A headless client has nobody to hear it.
         if (DisplayServer.GetName() != "headless")
         {
             _audio = new Audio.AudioDirector { Name = "Audio" };
@@ -644,12 +599,6 @@ public partial class ClientGame : Node
         ENetPacketPeer? server = (Multiplayer.MultiplayerPeer as ENetMultiplayerPeer)?.GetPeer(1);
         server?.ThrottleConfigure(5000, 2, 0);
 
-        // Before the hello, so it is set when the player is loaded.
-        if (_options.Scenario != null)
-        {
-            _network.SendScenario(_options.Scenario);
-        }
-
         _network.SendHello(GameVersion.Protocol, _profile.LicenseKey().ToString());
     }
 
@@ -666,15 +615,13 @@ public partial class ClientGame : Node
         ShowMainMenu("The connection to the server was lost.");
     }
 
-    // The account's characters: the screen to choose one, or, for bots, a choice made.
+    // The account's characters: the screen to choose one, or, with --autoconnect, a choice
+    // made.
     private void OnCharactersReceived(string[] ids, string[] names, string[] looks, int[] levels, string[] titles, string message)
     {
         GD.Print("Characters: " + string.Join(", ", names) + (message.Length > 0 ? " (" + message + ")" : ""));
 
-        // A bot switching characters chooses on the screen, as a player does.
-        Dev.BotKeeper? keeper = GetNodeOrNull<Dev.BotKeeper>("BotKeeper");
-
-        if (_options.AutoConnect && !_options.ShowCharacters && (keeper == null || !keeper.Switching))
+        if (_options.AutoConnect && !_options.ShowCharacters)
         {
             if (ids.Length == 0 && !_autoCreated)
             {
@@ -882,29 +829,6 @@ public partial class ClientGame : Node
             Screenshot shot = new Screenshot { Name = "Screenshot" };
             AddChild(shot);
             shot.Start(_options.ScreenshotPath, _options.Overview, _options.ScreenshotAfterSeconds);
-        }
-
-        if (_options.WalkTest)
-        {
-            AddChild(new WalkTest { Name = "WalkTest", Watch = _options.WatchTest });
-        }
-
-        if (_options.LoadBot)
-        {
-            LoadBot legs = new LoadBot(Name.GetHashCode() ^ _options.Profile.GetHashCode()) { Name = "LoadBot", Say = _network.SendChat, Scenario = _options.Scenario, Networks = _networks };
-            AddChild(legs);
-        }
-
-        if (_options.Bot)
-        {
-            _bot = new BotDriver { Name = "Bot", Profile = _options.Profile, PersonaName = _options.Persona, Only = _options.BotOnly, Everything = _options.BotEverything, CutConnection = OnServerDisconnected };
-            AddChild(_bot);
-        }
-
-        // A load bot asks for its scenario too, but keeps doing it rather than testing it.
-        if (_options.Scenario != null && !_options.LoadBot && GetNodeOrNull("Scenario") == null)
-        {
-            AddChild(new ScenarioDriver(_options.Scenario, _networks) { Name = "Scenario" });
         }
     }
 
@@ -1685,12 +1609,6 @@ public partial class ClientGame : Node
 
         // The wheel zoom is kept for next time.
         _settings.Save();
-
-        if (_bot != null)
-        {
-            _bot.QueueFree();
-            _bot = null;
-        }
 
         if (_hud != null)
         {

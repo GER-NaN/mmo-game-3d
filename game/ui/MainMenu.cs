@@ -9,10 +9,6 @@ public partial class MainMenu : Control
 {
     private static readonly PackedScene CreditsScene = GD.Load<PackedScene>("res://game/ui/CreditsPanel.tscn");
 
-    // Bots find the Play button by this group.
-    public const string PlayGroup = "main_menu_play";
-    public const string CreditsGroup = "main_menu_credits";
-
     // (address).
     public event Action<string>? PlayPressed;
     public event Action? SettingsPressed;
@@ -29,11 +25,9 @@ public partial class MainMenu : Control
         _play = GetNode<Button>("%Play");
 
         _play.Pressed += OnPlay;
-        _play.AddToGroup(PlayGroup);
         _address.TextSubmitted += _ => OnPlay();
         GetNode<Button>("%Settings").Pressed += () => SettingsPressed?.Invoke();
         GetNode<Button>("%Credits").Pressed += ShowCredits;
-        GetNode<Button>("%Credits").AddToGroup(CreditsGroup);
         GetNode<Button>("%Quit").Pressed += () => QuitPressed?.Invoke();
     }
 

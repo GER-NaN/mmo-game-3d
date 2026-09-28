@@ -14,14 +14,6 @@ using MmoGame3d.Rules.Players;
 /// </summary>
 public partial class CharacterCreator : Control
 {
-    // Bots find the creator's buttons by these groups: each row's < and >, Random,
-    // Done (Create or Save) and Cancel.
-    public const string StepGroup = "creator_step";
-    public const string RandomGroup = "creator_random";
-    public const string DoneGroup = "creator_done";
-    public const string CancelGroup = "creator_cancel";
-    public const string NameGroup = "creator_name";
-
     private const float TurnRadiansPerSecond = 0.6f;
 
     private readonly Random _random = new Random();
@@ -91,10 +83,6 @@ public partial class CharacterCreator : Control
         GetNode<Button>("%Random").Pressed += Randomize;
         GetNode<Button>("%Done").Pressed += () => DonePressed?.Invoke(_naming ? GetNode<LineEdit>("%Name").Text.Trim() : "", _appearance.Format());
         GetNode<Button>("%Cancel").Pressed += () => CancelPressed?.Invoke();
-        GetNode<Button>("%Random").AddToGroup(RandomGroup);
-        GetNode<Button>("%Done").AddToGroup(DoneGroup);
-        GetNode<LineEdit>("%Name").AddToGroup(NameGroup);
-        GetNode<Button>("%Cancel").AddToGroup(CancelGroup);
         Changed();
     }
 
@@ -121,8 +109,6 @@ public partial class CharacterCreator : Control
         box.AddChild(back);
         box.AddChild(swatch);
         box.AddChild(next);
-        back.AddToGroup(StepGroup);
-        next.AddToGroup(StepGroup);
 
         Action show = () =>
         {

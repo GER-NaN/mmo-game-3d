@@ -87,7 +87,6 @@ public partial class ServerGame : Node
     private ServerGarden _garden = null!;
     private ServerAchievements _achievements = null!;
     private ServerDefense? _defense;
-    private ServerScenarios _scenarios = null!;
     private readonly TickProfile _profile = new TickProfile();
     private readonly Queue<long> _saveTurns = new Queue<long>();
     private double _saveBudget;
@@ -305,8 +304,6 @@ public partial class ServerGame : Node
         defense.Achieved = _achievements.Grant;
         defense.SendBoard = _hacking.SendBoard;
         _defense = defense;
-        _scenarios = new ServerScenarios(options.DevScenarios, world) { Town = _town, Defense = defense, Drones = _drones, Rides = _rides, Events = _events };
-        network.ScenarioRequested += _scenarios.Ask;
         networks.Terminal.DefenseStartRequested += peer => WithSession(peer, session => defense.Start(session));
         networks.Terminal.DefenseFinishRequested += (peer, presses) => WithSession(peer, session => defense.Finish(session, presses));
         networks.Terminal.CrackGuessRequested += (peer, guess) => WithSession(peer, session => _hacking.Guess(session, guess));
@@ -574,7 +571,6 @@ public partial class ServerGame : Node
 
         _sessions.Remove(peer);
         _chat.Forget(peer);
-        _scenarios.Forget(peer);
         _diagnostics?.Forget(peer);
 
         if (session.HasEnteredWorld)
@@ -824,7 +820,6 @@ public partial class ServerGame : Node
         }
 
         session.Instances = record.Instances;
-        _scenarios.Apply(session, record);
 
         // A ride's cabin is made for one ride and gone after it, and its number comes round
         // again after a restart: a player saved in one comes back at the drop-off, not in a
@@ -1115,7 +1110,7 @@ public partial class ServerGame : Node
         _network.SendNotice(session.PeerId, "Picked up " + item.Quantity + " " + ItemCatalog.Describe(item.Type, item.Tier));
     }
 
-    // One line for load tests: who is here, how long a frame takes, and the traffic.
+    // One line for --stats-every: who is here, how long a frame takes, and the traffic.
     // ENet counts bytes since the last time it was asked, so each line is its own span.
     private void PrintStats(double seconds)
     {

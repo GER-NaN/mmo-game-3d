@@ -16,25 +16,13 @@ public partial class Main : Node
 {
     private static readonly PackedScene WorldScene = GD.Load<PackedScene>("res://game/zones/World.tscn");
 
-    // Set by the load test on each bot's Main before it enters the tree; otherwise the
-    // options come from the command line.
-    public LaunchOptions? Options { get; set; }
-
     public override void _Ready()
     {
-        LaunchOptions options = Options ?? LaunchOptions.Parse(OS.GetCmdlineUserArgs());
+        LaunchOptions options = LaunchOptions.Parse(OS.GetCmdlineUserArgs());
 
         if (options.CheckScenes)
         {
             GetTree().Quit(SceneCheck.Run("res://game") == 0 ? 0 : 1);
-            return;
-        }
-
-        if (options.LoadTestBots > 0 && Options == null)
-        {
-            LoadTest host = new LoadTest { Name = "LoadTest" };
-            AddChild(host);
-            host.Start(options);
             return;
         }
 

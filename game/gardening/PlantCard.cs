@@ -10,16 +10,12 @@ using MmoGame3d.Rules.Gardening;
 /// </summary>
 public partial class PlantCard : PanelContainer
 {
-    // Scenarios find the card by this group.
-    public const string Group = "plant_card";
-
     public event Action? Closed;
 
     // The card sits top right, under the HUD's name line, and grows down, so a long
     // history stays on screen (PlantCard.tscn).
     public override void _Ready()
     {
-        AddToGroup(Group);
         GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
     }
 

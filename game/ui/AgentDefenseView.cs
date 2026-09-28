@@ -19,9 +19,6 @@ public partial class AgentDefenseView : Control
     // takes the keys while it is open.
     public static readonly string[] LaneActions = { "defense_lane_1", "defense_lane_2", "defense_lane_3", "defense_lane_4" };
 
-    // Dev scenarios find the view by this group.
-    public const string Group = "agent_defense_view";
-
     // Placeholders: how far ahead cues show, and the count-in before the first.
     private const int AheadMs = 1800;
     private const int CountInMs = 3000;
@@ -47,20 +44,8 @@ public partial class AgentDefenseView : Control
         get { return _playing; }
     }
 
-    // For bots, which read the chart as a person reads the screen: the cues and the clock.
-    public IReadOnlyList<DefenseCue> Cues
-    {
-        get { return _chart; }
-    }
-
-    public int Clock
-    {
-        get { return Now(); }
-    }
-
     public override void _Ready()
     {
-        AddToGroup(Group);
         MouseFilter = MouseFilterEnum.Stop;
         FocusMode = FocusModeEnum.All;
         ClipContents = true;

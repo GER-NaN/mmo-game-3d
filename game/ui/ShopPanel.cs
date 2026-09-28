@@ -13,9 +13,6 @@ using MmoGame3d.Rules.Shops;
 /// </summary>
 public partial class ShopPanel : PanelContainer
 {
-    // Bots find the Buy buttons by this group, then click them like a person.
-    public const string BuyGroup = "shop_buy";
-
     private static readonly Color TooDear = new Color(1f, 0.55f, 0.5f);
 
     private string _shopId = "";
@@ -62,7 +59,6 @@ public partial class ShopPanel : PanelContainer
             }
 
             Button buy = new Button { Text = "Buy", FocusMode = FocusModeEnum.None };
-            buy.AddToGroup(BuyGroup);
             int index = i;
             buy.Pressed += () => BuyPressed?.Invoke(index);
 

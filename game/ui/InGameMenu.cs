@@ -7,12 +7,6 @@ using Godot;
 // there is no pause. Walking stops because the menu holds the keyboard focus.
 public partial class InGameMenu : Control
 {
-    // Bots find the Settings, Resume and Wardrobe buttons by these groups.
-    public const string SettingsGroup = "menu_settings";
-    public const string ResumeGroup = "menu_resume";
-    public const string WardrobeGroup = "menu_wardrobe";
-    public const string LeaveGroup = "menu_leave";
-
     public event Action? ResumePressed;
     public event Action? SettingsPressed;
     public event Action? WardrobePressed;
@@ -22,13 +16,9 @@ public partial class InGameMenu : Control
     public override void _Ready()
     {
         GetNode<Button>("%Resume").Pressed += () => ResumePressed?.Invoke();
-        GetNode<Button>("%Resume").AddToGroup(ResumeGroup);
         GetNode<Button>("%Settings").Pressed += () => SettingsPressed?.Invoke();
-        GetNode<Button>("%Settings").AddToGroup(SettingsGroup);
         GetNode<Button>("%Wardrobe").Pressed += () => WardrobePressed?.Invoke();
-        GetNode<Button>("%Wardrobe").AddToGroup(WardrobeGroup);
         GetNode<Button>("%Leave").Pressed += () => LeavePressed?.Invoke();
-        GetNode<Button>("%Leave").AddToGroup(LeaveGroup);
         GetNode<Button>("%Quit").Pressed += () => QuitPressed?.Invoke();
         GetNode<Button>("%Resume").GrabFocus();
     }

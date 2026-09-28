@@ -43,13 +43,12 @@ public class ClientSettings
     // Only the keys the player moved; the rest are the defaults in project.godot.
     private readonly Dictionary<string, Key> _keys = new Dictionary<string, Key>();
 
-    public static ClientSettings Load(bool tool)
+    public static ClientSettings Load()
     {
         ClientSettings settings = new ClientSettings();
-        settings.ReadOnly = tool;
 
         // A missing file is a first launch, not an error.
-        if (!tool && settings._file.Load(Path) == Error.Ok)
+        if (settings._file.Load(Path) == Error.Ok)
         {
             settings.Fullscreen = (bool)settings._file.GetValue("display", "fullscreen", false);
             settings.Address = (string)settings._file.GetValue("network", "address", "127.0.0.1");
@@ -103,7 +102,7 @@ public class ClientSettings
             return "-";
         }
 
-        // A headless client (a bot) has no keyboard layout to ask; the physical key's own
+        // A headless client has no keyboard layout to ask; the physical key's own
         // name is the US one.
         if (DisplayServer.GetName() == "headless")
         {
@@ -161,18 +160,8 @@ public class ClientSettings
         _file.SetValue("names", profile, name);
     }
 
-    // A client run by a tool (load bots, --bot, --scenario) neither reads nor writes the
-    // file: it is the machine's, shared with the person who plays. A hundred load bots
-    // writing it at once left it broken, and the player's zoom and keys reached tests.
-    public bool ReadOnly { get; private set; }
-
     public void Save()
     {
-        if (ReadOnly)
-        {
-            return;
-        }
-
         _file.SetValue("display", "fullscreen", Fullscreen);
         _file.SetValue("network", "address", Address);
         _file.SetValue("controls", "mouse_sensitivity", MouseSensitivity);

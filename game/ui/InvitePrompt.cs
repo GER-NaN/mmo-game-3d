@@ -8,10 +8,6 @@ using MmoGame3d.Rules.Parties;
 // the server anyway, so an old prompt never offers an invite that is gone.
 public partial class InvitePrompt : PanelContainer
 {
-    // Bots find the Join button by this group, then click it like a person.
-    public const string JoinGroup = "invite_join";
-    public const string NoGroup = "invite_no";
-
     private double _secondsLeft = PartyRoster.InviteLifetimeSeconds;
 
     // true to join, false to decline.
@@ -19,10 +15,8 @@ public partial class InvitePrompt : PanelContainer
 
     public override void _Ready()
     {
-        GetNode<Button>("%Join").AddToGroup(JoinGroup);
         GetNode<Button>("%Join").Pressed += () => Answer(true);
         GetNode<Button>("%No").Pressed += () => Answer(false);
-        GetNode<Button>("%No").AddToGroup(NoGroup);
     }
 
     public void ShowInvite(string inviterName)

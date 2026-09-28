@@ -27,22 +27,9 @@ using MmoGame3d.Rules.Time;
 ///   --look b            the look for a new player (see Looks)
 ///   --address 1.2.3.4   the server to connect to
 ///   --autoconnect       skip the main menu and connect at once
-///   --bot               the client plays by itself (implies --autoconnect)
-///   --persona curious   with --bot: who the bot is (game/dev/bots/BotPersonas.cs)
-///   --bot-only "x"      with --bot: only the activity or goal named x, again and
-///                       again (scripts/bot-try.ps1), to replay or try one thing
-///   --bot-everything    the client plays every activity in turn, shuffled, each to its
-///                       end, and prints a tally each round (scripts/bot-everything.ps1)
 ///   --windowed          stay in a window whatever the saved settings say, without
-///                       changing them (scripts/bots-up.ps1 tiles its bots)
+///                       changing them
 ///   --report-every 2    print what the client sees every 2 seconds
-///   --scenario defense  dev: ask the server to set this player up for a test and run
-///                       that test (see ServerScenarios, ScenarioDriver); implies
-///                       --autoconnect
-///   --dev-scenarios     server: allow clients to ask for dev scenarios (off by default)
-///   --load-scenario x   with --load-test: every bot asks for dev scenario x and keeps
-///                       doing it (see LoadBot): load-phone, load-defense, load-taxi,
-///                       load-chat
 ///   --screenshot x.png  save the window to a PNG a few seconds in, then quit
 ///   --overview          with --screenshot: look down on the whole zone
 ///   --creator           dev: open the character creator at start (with --look), for
@@ -51,12 +38,7 @@ using MmoGame3d.Rules.Time;
 ///   --show-characters   dev: connect at once, then stop at the character screen (for
 ///                       --screenshot)
 ///   --screenshot-after 4  seconds in the world before the screenshot (default 4)
-///   --load-test 50      run 50 bot clients in this one process (profiles load-0...)
-///   --load-first 0      the first load bot's number, so processes do not share bots
 ///   --stats-every 10    the server prints players, frame times and traffic this often
-///   --walk-test         the player walks circles and the client prints how smoothly it
-///                       draws the walk (needs a window)
-///   --watch-test        the same, standing still and measuring another player's walk
 ///   --check-scenes      dev: report what an editor save would lose from each scene,
 ///                       then quit (scripts/scene-check.ps1)
 /// </summary>
@@ -79,16 +61,7 @@ public class LaunchOptions
     public string Look { get; private set; } = Rules.Players.Looks.Default;
     public string? Address { get; private set; }
     public bool AutoConnect { get; private set; }
-    public bool Bot { get; private set; }
     public bool Windowed { get; private set; }
-    public string Persona { get; private set; } = "wanderer";
-    public string BotOnly { get; private set; } = "";
-    public bool BotEverything { get; private set; }
-    public string? Scenario { get; private set; }
-
-    // Load tests: the dev scenario every load bot asks for and then keeps doing.
-    public string? LoadScenario { get; private set; }
-    public bool DevScenarios { get; private set; }
     public double ReportEverySeconds { get; private set; }
     public string? ScreenshotPath { get; private set; }
     public bool Overview { get; private set; }
@@ -96,28 +69,8 @@ public class LaunchOptions
     public bool ShowCharacters { get; private set; }
     public bool Garden { get; private set; }
     public double ScreenshotAfterSeconds { get; private set; } = 4;
-    public int LoadTestBots { get; private set; }
-    public int LoadFirst { get; private set; }
-    public bool LoadBot { get; private set; }
     public double StatsEverySeconds { get; private set; }
-    public bool WalkTest { get; private set; }
-    public bool WatchTest { get; private set; }
     public bool CheckScenes { get; private set; }
-
-    // One load-test bot: its own player, connecting at once, walking by itself.
-    public LaunchOptions ForLoadBot(int number)
-    {
-        return new LaunchOptions
-        {
-            Port = Port,
-            Address = Address,
-            Profile = "load-" + number,
-            DisplayName = "Load" + number,
-            AutoConnect = true,
-            LoadBot = true,
-            Scenario = LoadScenario,
-        };
-    }
 
     public static LaunchOptions Parse(string[] args)
     {
@@ -182,37 +135,8 @@ public class LaunchOptions
                 case "--autoconnect":
                     options.AutoConnect = true;
                     break;
-                case "--bot":
-                    options.Bot = true;
-                    options.AutoConnect = true;
-                    break;
-                case "--bot-everything":
-                    options.Bot = true;
-                    options.AutoConnect = true;
-                    options.BotEverything = true;
-                    break;
-                case "--bot-only":
-                    options.BotOnly = next;
-                    i++;
-                    break;
-                case "--persona":
-                    options.Persona = next;
-                    i++;
-                    break;
                 case "--windowed":
                     options.Windowed = true;
-                    break;
-                case "--scenario":
-                    options.Scenario = next;
-                    options.AutoConnect = true;
-                    i++;
-                    break;
-                case "--load-scenario":
-                    options.LoadScenario = next;
-                    i++;
-                    break;
-                case "--dev-scenarios":
-                    options.DevScenarios = true;
                     break;
                 case "--screenshot":
                     options.ScreenshotPath = next;
@@ -223,26 +147,9 @@ public class LaunchOptions
                     options.ScreenshotAfterSeconds = double.Parse(next, System.Globalization.CultureInfo.InvariantCulture);
                     i++;
                     break;
-                case "--load-test":
-                    options.LoadTestBots = int.Parse(next);
-                    i++;
-                    break;
-                case "--load-first":
-                    options.LoadFirst = int.Parse(next);
-                    i++;
-                    break;
                 case "--stats-every":
                     options.StatsEverySeconds = double.Parse(next, System.Globalization.CultureInfo.InvariantCulture);
                     i++;
-                    break;
-                case "--watch-test":
-                    options.WatchTest = true;
-                    options.WalkTest = true;
-                    options.AutoConnect = true;
-                    break;
-                case "--walk-test":
-                    options.WalkTest = true;
-                    options.AutoConnect = true;
                     break;
                 case "--garden":
                     options.Garden = true;

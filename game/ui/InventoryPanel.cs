@@ -10,11 +10,6 @@ using MmoGame3d.Rules.Items;
 // takes keyboard focus, so walking goes on while it is open.
 public partial class InventoryPanel : PanelContainer
 {
-    // Bots find the Equip and Drop buttons by these groups, then click them like a person.
-    public const string EquipGroup = "inventory_equip";
-    public const string DropGroup = "inventory_drop";
-    public const string SlotGroup = "inventory_slot";
-
     private static readonly Color[] TierColors =
     {
         new Color(0.85f, 0.85f, 0.85f),
@@ -26,9 +21,6 @@ public partial class InventoryPanel : PanelContainer
     public event Action<Guid>? EquipPressed;
     public event Action? RepairPackPressed;
 
-    // Bots find the repair pack button by this group.
-    public const string RepairPackGroup = "inventory_repair_pack";
-
     // A Mechanical Engineer carries a repair pack: workbench work anywhere.
     public void ShowRepairPack(bool engineer)
     {
@@ -37,7 +29,6 @@ public partial class InventoryPanel : PanelContainer
         if (engineer && pack == null)
         {
             pack = new Button { Name = "RepairPack", Text = "Open repair pack", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
-            pack.AddToGroup(RepairPackGroup);
             pack.Pressed += () => RepairPackPressed?.Invoke();
             GetNode<VBoxContainer>("%Rows").AddChild(pack);
             GetNode<VBoxContainer>("%Rows").MoveChild(pack, 2);
@@ -71,7 +62,6 @@ public partial class InventoryPanel : PanelContainer
 
             SlotType pressed = slot;
             frame.FocusMode = FocusModeEnum.None;
-            frame.AddToGroup(SlotGroup);
             frame.Pressed += () =>
             {
                 Guid id;
@@ -120,7 +110,6 @@ public partial class InventoryPanel : PanelContainer
             ItemTier tier = stack.Tier;
             int quantity = stack.Quantity;
             Button drop = new Button { Text = "Drop", FocusMode = FocusModeEnum.None };
-            drop.AddToGroup(DropGroup);
             drop.Pressed += () => DropPressed?.Invoke(type, tier, quantity);
             row.AddChild(drop);
             list.AddChild(row);
@@ -216,7 +205,6 @@ public partial class InventoryPanel : PanelContainer
 
                 if (item.Slot == null)
                 {
-                    button.AddToGroup(EquipGroup);
                     button.Pressed += () => EquipPressed?.Invoke(id);
                 }
                 else

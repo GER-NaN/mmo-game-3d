@@ -29,7 +29,6 @@ public class ServerDefense
     private readonly Dictionary<Session, int> _seeds = new Dictionary<Session, int>();
     private readonly Dictionary<Session, DateTime> _started = new Dictionary<Session, DateTime>();
     private readonly Dictionary<Session, int> _lengths = new Dictionary<Session, int>();
-    private readonly Dictionary<Session, int> _shortRuns = new Dictionary<Session, int>();
     private readonly Random _random = new Random();
 
     public ServerDefense(TerminalNetwork network, Network session, ServerProgress progress, PersistenceWorker worker, ScoreStore scores, Action<Session> bagChanged)
@@ -59,12 +58,7 @@ public class ServerDefense
         }
 
         int seed = _random.Next();
-        int length;
-
-        if (!_shortRuns.TryGetValue(session, out length))
-        {
-            length = AgentDefense.LengthMs;
-        }
+        int length = AgentDefense.LengthMs;
 
         _seeds[session] = seed;
         _started[session] = DateTime.UtcNow;
@@ -105,11 +99,6 @@ public class ServerDefense
         Achieved?.Invoke(session, Rules.Achievements.Achievements.AgentDefense);
         Post?.Invoke(session.Record!.DisplayName + " held the grid in Agent Defense: " + result.Points + " points.");
 
-        if (IsShort(session))
-        {
-            return;
-        }
-
         Guid playerId = session.Record!.PlayerId;
         string name = session.Record.DisplayName;
         int points = result.Points;
@@ -128,18 +117,5 @@ public class ServerDefense
         _seeds.Remove(session);
         _started.Remove(session);
         _lengths.Remove(session);
-        _shortRuns.Remove(session);
-    }
-
-    // Dev test scenarios only: this player's runs last lengthMs, and a short run's score
-    // stays off the board.
-    public void UseShortRuns(Session session, int lengthMs)
-    {
-        _shortRuns[session] = lengthMs;
-    }
-
-    private bool IsShort(Session session)
-    {
-        return _shortRuns.ContainsKey(session);
     }
 }

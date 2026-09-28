@@ -10,9 +10,6 @@ using MmoGame3d.Players;
 // Changes apply at once and are saved on Back, so what you see is what is kept.
 public partial class SettingsPanel : Control
 {
-    // Bots find the Back button by this group.
-    public const string BackGroup = "settings_back";
-
     private static readonly Dictionary<string, string> ActionNames = new Dictionary<string, string>
     {
         { "move_forward", "Walk forward" },
@@ -96,7 +93,6 @@ public partial class SettingsPanel : Control
         GetNode<Button>("%ResetKeys").Pressed += OnResetKeys;
         Button back = GetNode<Button>("%Back");
         back.Pressed += OnBack;
-        back.AddToGroup(BackGroup);
         ShowValues();
     }
 

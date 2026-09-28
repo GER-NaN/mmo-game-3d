@@ -25,7 +25,7 @@ public partial class World : Node3D
 
     // Every zone scene once loaded, kept for the whole run: a zone a client comes back to
     // is made from the kept scene, not loaded again. Tried against "Handle is not
-    // initialized", which a client hit loading Old Town again (bot-testing-findings.md).
+    // initialized", which a client hit loading Old Town again.
     private readonly Dictionary<string, PackedScene> _scenes = new Dictionary<string, PackedScene>();
 
     public Zone LoadZone(string zoneId)

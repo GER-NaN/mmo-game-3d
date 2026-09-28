@@ -157,7 +157,7 @@ public class ServerDrones
         GD.Print("No open air for drones this time");
     }
 
-    // Two drones circling a spot. Also used by dev test scenarios, which want them at once.
+    // Two drones circling a spot.
     public void SpawnPair(Vector3 center)
     {
         Node3D drones = _zone.GetNode<Node3D>("Drones");

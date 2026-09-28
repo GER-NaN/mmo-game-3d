@@ -12,9 +12,6 @@ using MmoGame3d.Rules.Items;
 /// </summary>
 public partial class RecyclerPanel : PanelContainer
 {
-    // Bots find the Recycle buttons by this group.
-    public const string RecycleGroup = "recycler_recycle";
-
     // (type, tier) of a stack, one of it.
     public event Action<ItemType, ItemTier>? RecycleOnePressed;
 
@@ -88,7 +85,6 @@ public partial class RecyclerPanel : PanelContainer
         row.AddChild(new Label { Text = text, SizeFlagsHorizontal = SizeFlags.ExpandFill });
         row.AddChild(new Label { Text = "$" + value });
         Button button = new Button { Text = action, FocusMode = FocusModeEnum.None };
-        button.AddToGroup(RecycleGroup);
         button.Pressed += pressed;
         row.AddChild(button);
         rows.AddChild(row);

@@ -28,8 +28,8 @@ public partial class InteractionFinder : Node
     public override void _Process(double delta)
     {
         // Polled, and the press found as up-then-down here rather than by "just pressed",
-        // so a bot's pressed action counts the same as a key whatever order nodes run in.
-        // Not while a text field has the keys.
+        // so a press counts whatever order nodes run in. Not while a text field has the
+        // keys.
         bool pressed = Input.IsActionPressed("interact");
 
         if (pressed && !_wasPressed && !Paused && _nearest != null && IsInstanceValid(_nearest) && GetViewport().GuiGetFocusOwner() == null)
