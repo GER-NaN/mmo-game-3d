@@ -13,6 +13,8 @@ public partial class VisitorBookPanel : PanelContainer
     public const string PreviousGroup = "book_previous";
     public const string NextGroup = "book_next";
 
+    private static readonly PackedScene CloseScene = GD.Load<PackedScene>("res://game/ui/CloseButton.tscn");
+
     public event Action<int>? PagePressed;
     public event Action? Closed;
 
@@ -43,9 +45,14 @@ public partial class VisitorBookPanel : PanelContainer
         rows.AddThemeConstantOverride("separation", 6);
         margin.AddChild(rows);
 
-        Label title = new Label { Text = "Visitor book" };
+        HBoxContainer titleRow = new HBoxContainer();
+        Label title = new Label { Text = "Visitor book", SizeFlagsHorizontal = SizeFlags.ExpandFill };
         title.AddThemeFontSizeOverride("font_size", 22);
-        rows.AddChild(title);
+        titleRow.AddChild(title);
+        Button close = CloseScene.Instantiate<Button>();
+        close.Pressed += () => Closed?.Invoke();
+        titleRow.AddChild(close);
+        rows.AddChild(titleRow);
         rows.AddChild(new Label { Text = "Every name sprayed on the wall, in order.", Modulate = new Color(1f, 1f, 1f, 0.7f) });
 
         _names = new VBoxContainer();
@@ -64,10 +71,6 @@ public partial class VisitorBookPanel : PanelContainer
         turn.AddChild(_page);
         turn.AddChild(_next);
         rows.AddChild(turn);
-
-        Button close = new Button { Text = "Close", FocusMode = FocusModeEnum.None };
-        close.Pressed += () => Closed?.Invoke();
-        rows.AddChild(close);
     }
 
     public void ShowPage(int page, int pages, string[] lines)

@@ -1,5 +1,6 @@
 namespace MmoGame3d.Ui;
 
+using System;
 using System.Globalization;
 using System.Collections.Generic;
 using Godot;
@@ -16,6 +17,13 @@ public partial class SkillsPanel : PanelContainer
     // a time, so the panel stays short.
     private SkillId _selected = SkillId.Agility;
     private Label? _detail;
+
+    public event Action? Closed;
+
+    public override void _Ready()
+    {
+        GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
+    }
 
     public void ShowProgress(int[] skills, long[] xp, int career, long careerXp, int rank, bool classTaken, int level)
     {

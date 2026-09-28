@@ -48,6 +48,8 @@ public partial class InventoryPanel : PanelContainer
     }
     public event Action<Guid>? UnequipPressed;
 
+    public event Action? Closed;
+
     // What each equipment slot holds now, for its button; empty when nothing.
     private readonly Dictionary<SlotType, Guid> _worn = new Dictionary<SlotType, Guid>();
 
@@ -55,6 +57,8 @@ public partial class InventoryPanel : PanelContainer
     // Tool, Drone); a click on a full one unequips it.
     public override void _Ready()
     {
+        GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
+
         foreach (SlotType slot in Belongings.PlayerSlots)
         {
             Button? frame = GetNodeOrNull<Button>(SlotPath(slot) + "/Frame");

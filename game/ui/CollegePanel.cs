@@ -36,6 +36,13 @@ public partial class CollegePanel : PanelContainer
     public event Action<int>? EnrollPressed;
     public event Action? RankUpPressed;
 
+    public event Action? Closed;
+
+    public override void _Ready()
+    {
+        GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
+    }
+
     public void Open(string role)
     {
         _role = role;

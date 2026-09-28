@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://b2ynfehv04dtm" path="res://game/ui/InventoryPanel.cs" id="1_inventory"]
 [ext_resource type="PackedScene" uid="uid://jhhjpambdwx2" path="res://game/ui/EquipmentSlot.tscn" id="2_lo77r"]
+[ext_resource type="PackedScene" path="res://game/ui/CloseButton.tscn" id="3_close"]
 
 [node name="InventoryPanel" type="PanelContainer" unique_id=439209230]
 anchors_preset = -1
@@ -23,10 +24,18 @@ theme_override_constants/margin_bottom = 12
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Margin/Rows" unique_id=541170587]
+[node name="TitleRow" type="HBoxContainer" parent="Margin/Rows" unique_id=1290467315]
 layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Rows/TitleRow" unique_id=541170587]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
 text = "Inventory"
+
+[node name="Close" parent="Margin/Rows/TitleRow" unique_id=877254310 instance=ExtResource("3_close")]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="Equipment" type="HBoxContainer" parent="Margin/Rows" unique_id=1525856680]
 layout_mode = 2

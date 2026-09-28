@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://game/ui/RecyclerPanel.cs" id="1_recycler"]
+[ext_resource type="PackedScene" path="res://game/ui/CloseButton.tscn" id="2_close"]
 
 [node name="RecyclerPanel" type="PanelContainer"]
 custom_minimum_size = Vector2(380, 0)
@@ -28,10 +29,18 @@ theme_override_constants/margin_bottom = 12
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Margin/Column"]
+[node name="TitleRow" type="HBoxContainer" parent="Margin/Column"]
 layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Column/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
 text = "Recycler"
+
+[node name="Close" parent="Margin/Column/TitleRow" instance=ExtResource("2_close")]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="Wallet" type="Label" parent="Margin/Column"]
 unique_name_in_owner = true
@@ -40,8 +49,3 @@ layout_mode = 2
 [node name="Rows" type="VBoxContainer" parent="Margin/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-
-[node name="Close" type="Button" parent="Margin/Column"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Close"
