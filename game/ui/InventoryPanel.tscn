@@ -4,13 +4,10 @@
 [ext_resource type="PackedScene" uid="uid://jhhjpambdwx2" path="res://game/ui/EquipmentSlot.tscn" id="2_lo77r"]
 
 [node name="InventoryPanel" type="PanelContainer" unique_id=439209230]
-custom_minimum_size = Vector2(360, 360)
-anchors_preset = 13
-anchor_left = 0.5
-anchor_right = 0.5
+anchors_preset = -1
+anchor_left = 0.125
+anchor_right = 0.875
 anchor_bottom = 1.0
-offset_left = -203.5
-offset_right = 203.5
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_inventory")
@@ -52,15 +49,25 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Things" type="VBoxContainer" parent="Margin/Rows" unique_id=139064654]
+[node name="Scroll" type="ScrollContainer" parent="Margin/Rows" unique_id=1873402951]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="List" type="VBoxContainer" parent="Margin/Rows/Scroll" unique_id=702915384]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Things" type="VBoxContainer" parent="Margin/Rows/Scroll/List" unique_id=139064654]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Items" type="VBoxContainer" parent="Margin/Rows" unique_id=988008242]
+[node name="Items" type="VBoxContainer" parent="Margin/Rows/Scroll/List" unique_id=988008242]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Empty" type="Label" parent="Margin/Rows" unique_id=40550618]
+[node name="Empty" type="Label" parent="Margin/Rows/Scroll/List" unique_id=40550618]
 unique_name_in_owner = true
 modulate = Color(1, 1, 1, 0.6)
 layout_mode = 2

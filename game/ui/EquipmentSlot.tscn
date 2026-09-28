@@ -1,18 +1,23 @@
 [gd_scene format=3 uid="uid://jhhjpambdwx2"]
 
 [node name="EquipmentSlot" type="VBoxContainer" unique_id=238106588]
+custom_minimum_size = Vector2(96, 0)
 
 [node name="Frame" type="Button" parent="." unique_id=466031023]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
+size_flags_horizontal = 4
 text = "Phone"
+clip_text = true
 
 [node name="SlotName" type="Label" parent="." unique_id=1451196006]
 layout_mode = 2
 text = "Device"
 horizontal_alignment = 1
+text_overrun_behavior = 3
 
 [node name="ItemName" type="Label" parent="." unique_id=2139699481]
 layout_mode = 2
 text = "Phone 43%"
 horizontal_alignment = 1
+autowrap_mode = 3
