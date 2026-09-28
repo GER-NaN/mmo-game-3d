@@ -8,6 +8,10 @@ using MmoGame3d.Rules.World;
 // walking goes on after a click.
 public partial class SocialPanel : PanelContainer
 {
+    // Bots find the Remove and Unignore buttons, and Message, by these groups.
+    public const string RemoveGroup = "social_remove";
+    public const string MessageGroup = "social_message";
+
     private static readonly Color Offline = new Color(1f, 1f, 1f, 0.5f);
 
     // (player id) for both Remove and Unignore: either takes them off their list.
@@ -40,6 +44,7 @@ public partial class SocialPanel : PanelContainer
                 string id = friendIds[i];
                 string name = friendNames[i];
                 Button message = new Button { Text = "Message", FocusMode = FocusModeEnum.None };
+                message.AddToGroup(MessageGroup);
                 message.Pressed += () => MessagePressed?.Invoke(id, name);
                 row.AddChild(message);
                 row.MoveChild(message, row.GetChildCount() - 2);
@@ -69,6 +74,7 @@ public partial class SocialPanel : PanelContainer
         row.AddChild(new Label { Text = name, SizeFlagsHorizontal = SizeFlags.ExpandFill, Modulate = bright ? Colors.White : Offline });
         row.AddChild(new Label { Text = where, Modulate = bright ? Colors.White : Offline });
         Button button = new Button { Text = action, FocusMode = FocusModeEnum.None };
+        button.AddToGroup(RemoveGroup);
         button.Pressed += () => RemovePressed?.Invoke(id);
         row.AddChild(button);
         list.AddChild(row);

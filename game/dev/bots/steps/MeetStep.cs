@@ -131,7 +131,7 @@ public sealed class MeetStep : BotStep
     private StepResult Act(BotBody body)
     {
         List<Button> choices = new List<Button>();
-        string[] groups = { TargetFrame.FriendGroup, TargetFrame.MessageGroup, TargetFrame.InviteGroup, TargetFrame.GiveGroup };
+        string[] groups = { TargetFrame.FriendGroup, TargetFrame.MessageGroup, TargetFrame.InviteGroup, TargetFrame.GiveGroup, TargetFrame.IgnoreGroup };
 
         foreach (string group in groups)
         {
