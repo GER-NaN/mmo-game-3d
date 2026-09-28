@@ -28,7 +28,7 @@ using MmoGame3d.Rules.Time;
 ///   --address 1.2.3.4   the server to connect to
 ///   --autoconnect       skip the main menu and connect at once
 ///   --bot               the client plays by itself (implies --autoconnect)
-///   --persona curious   with --bot: who the bot is (game/dev/BotPersonas.cs)
+///   --persona curious   with --bot: who the bot is (game/dev/bots/BotPersonas.cs)
 ///   --bot-only "x"      with --bot: only the activity or goal named x, again and
 ///                       again (scripts/bot-try.ps1), to replay or try one thing
 ///   --windowed          stay in a window whatever the saved settings say, without
@@ -55,6 +55,8 @@ using MmoGame3d.Rules.Time;
 ///   --walk-test         the player walks circles and the client prints how smoothly it
 ///                       draws the walk (needs a window)
 ///   --watch-test        the same, standing still and measuring another player's walk
+///   --check-scenes      dev: report what an editor save would lose from each scene,
+///                       then quit (scripts/scene-check.ps1)
 /// </summary>
 public class LaunchOptions
 {
@@ -97,6 +99,7 @@ public class LaunchOptions
     public double StatsEverySeconds { get; private set; }
     public bool WalkTest { get; private set; }
     public bool WatchTest { get; private set; }
+    public bool CheckScenes { get; private set; }
 
     // One load-test bot: its own player, connecting at once, walking by itself.
     public LaunchOptions ForLoadBot(int number)
@@ -235,6 +238,9 @@ public class LaunchOptions
                     break;
                 case "--garden":
                     options.Garden = true;
+                    break;
+                case "--check-scenes":
+                    options.CheckScenes = true;
                     break;
                 case "--show-characters":
                     options.ShowCharacters = true;

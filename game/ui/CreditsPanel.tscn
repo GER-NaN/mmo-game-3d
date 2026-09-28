@@ -1,0 +1,182 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://bhuhhians13xr" path="res://game/ui/CreditsPanel.cs" id="1_credits"]
+
+[node name="CreditsPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_credits")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Rows" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Credits"
+
+[node name="Art" type="Label" parent="Center/Panel/Margin/Rows"]
+modulate = Color(1, 0.85, 0.5, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Art"
+
+[node name="Kaykit" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/Kaykit"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "KayKit"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/Kaykit"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Kay Lousberg, www.kaylousberg.com (CC0)"
+
+[node name="TinyTreats" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/TinyTreats"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Tiny Treats"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/TinyTreats"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Isa Lousberg, www.isalousberg.com (CC0)"
+
+[node name="Sound" type="Label" parent="Center/Panel/Margin/Rows"]
+modulate = Color(1, 0.85, 0.5, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Sound"
+
+[node name="SurrealDronesWeatherElements" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/SurrealDronesWeatherElements"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Surreal Drones, Weather Elements"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/SurrealDronesWeatherElements"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Helton Yan (CC BY 4.0)"
+
+[node name="UniversalUiSoundEffects" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/UniversalUiSoundEffects"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Universal UI Sound Effects"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/UniversalUiSoundEffects"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Nathan Gibson (CC BY 4.0)"
+
+[node name="TroubadeckMusicLoops" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/TroubadeckMusicLoops"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Troubadeck music loops"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/TroubadeckMusicLoops"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Abstraction (CC0)"
+
+[node name="InterfaceBleeps" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/InterfaceBleeps"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Interface Bleeps"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/InterfaceBleeps"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Bleeoop"
+
+[node name="8BitAnd16BitSoundEffects" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/8BitAnd16BitSoundEffects"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "8-bit and 16-bit sound effects"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/8BitAnd16BitSoundEffects"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "jdwasabi"
+
+[node name="SoundEssentials" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/SoundEssentials"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Sound Essentials"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/SoundEssentials"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Nox Sound (CC0)"
+
+[node name="SuperDialogueAudioPack" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/SuperDialogueAudioPack"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Super Dialogue Audio Pack"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/SuperDialogueAudioPack"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Dillon Becker (CC BY 4.0)"
+
+[node name="Back" type="Button" parent="Center/Panel/Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"

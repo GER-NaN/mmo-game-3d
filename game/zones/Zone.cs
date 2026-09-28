@@ -37,6 +37,28 @@ public partial class Zone : Node3D
     [Export]
     public string Surface { get; set; } = "rock";
 
+    // The robo taxis' route, for the cars spawned under Vehicles.
+    [Export]
+    public Path3D? TaxiRoute { get; set; }
+
+    // The first node of the group in this zone: for the one-of-a-kind things code looks
+    // for (a junction box, a subway wall), wherever they are put in the scene.
+    public T? InGroup<T>(string group)
+        where T : Node
+    {
+        foreach (Node node in GetTree().GetNodesInGroup(group))
+        {
+            T? found = node as T;
+
+            if (found != null && IsAncestorOf(found))
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
     // Set by World when it loads the zone; the node itself is always named "Zone".
     public string ZoneId { get; set; } = "";
 

@@ -98,7 +98,7 @@ public partial class Drone : Node3D
             }
         }
 
-        GetNode<OmniLight3D>("Eye/Light").Visible = !Down;
+        GetNode<OmniLight3D>("%Light").Visible = !Down;
         GetNode<Node3D>("Eye").Visible = !Down;
 
         // A downed drone goes quiet.

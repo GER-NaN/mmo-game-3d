@@ -48,11 +48,3 @@ public class ScoreStore
         return lowerIsBetter ? "score asc, seconds asc" : "score desc, seconds asc";
     }
 }
-
-public class ScoreRecord
-{
-    public Guid PlayerId { get; set; }
-    public string PlayerName { get; set; } = "";
-    public int Score { get; set; }
-    public double Seconds { get; set; }
-}

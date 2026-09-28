@@ -3,17 +3,21 @@ namespace MmoGame3d.Ui;
 using System;
 using System.Collections.Generic;
 using Godot;
+using MmoGame3d.Client;
 using MmoGame3d.Rules.Terminals;
 
 /// <summary>
 /// Agent Defense as it is played: four lanes, cues coming down, a line to hit them on,
-/// keys D F J K. It plays the chart of the seed the server sent, keeps every press, and
-/// hands them over at the end; the server scores them (AgentDefense.Score). The score
-/// shown while playing is the same sum, worked out here as a preview.
+/// the defense_lane actions (D F J K). It plays the chart of the seed the server sent,
+/// keeps every press, and hands them over at the end; the server scores them
+/// (AgentDefense.Score). The score shown while playing is the same sum, worked out here
+/// as a preview.
 /// </summary>
 public partial class AgentDefenseView : Control
 {
-    public static readonly Key[] LaneKeys = { Key.D, Key.F, Key.J, Key.K };
+    // Input actions in project.godot (D F J K), shared with the world's keys: the terminal
+    // takes the keys while it is open.
+    public static readonly string[] LaneActions = { "defense_lane_1", "defense_lane_2", "defense_lane_3", "defense_lane_4" };
 
     // Dev scenarios find the view by this group.
     public const string Group = "agent_defense_view";
@@ -104,14 +108,20 @@ public partial class AgentDefenseView : Control
 
     public override void _Input(InputEvent @event)
     {
-        InputEventKey? key = @event as InputEventKey;
-
-        if (!_playing || key == null || !key.Pressed || key.Echo)
+        if (!_playing || !@event.IsPressed() || @event.IsEcho())
         {
             return;
         }
 
-        int lane = Array.IndexOf(LaneKeys, key.PhysicalKeycode);
+        int lane = -1;
+
+        for (int i = 0; i < LaneActions.Length; i++)
+        {
+            if (@event.IsAction(LaneActions[i]))
+            {
+                lane = i;
+            }
+        }
 
         if (lane < 0)
         {
@@ -144,7 +154,7 @@ public partial class AgentDefenseView : Control
             float x = lane * laneWidth;
             DrawRect(new Rect2(x, 0, laneWidth, Size.Y), new Color(Cue, (float)(_flash[lane] * 2.5)));
             DrawLine(new Vector2(x, 0), new Vector2(x, Size.Y), LaneLine, 1f);
-            DrawString(ThemeDB.FallbackFont, new Vector2(x + (laneWidth / 2f) - 6f, Size.Y - 20f), LaneKeys[lane].ToString(), HorizontalAlignment.Left, -1, 20, HitLine);
+            DrawString(ThemeDB.FallbackFont, new Vector2(x + (laneWidth / 2f) - 6f, Size.Y - 20f), ClientSettings.KeyName(LaneActions[lane]), HorizontalAlignment.Left, -1, 20, HitLine);
         }
 
         DrawLine(new Vector2(0, hitY), new Vector2(Size.X, hitY), HitLine, 3f);

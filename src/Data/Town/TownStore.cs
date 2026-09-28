@@ -47,9 +47,3 @@ public class TownStore
             new { zone, count }).AsList();
     }
 }
-
-public class TownLogEntry
-{
-    public string Entry { get; set; } = "";
-    public DateTime At { get; set; }
-}

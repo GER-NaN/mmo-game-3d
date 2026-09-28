@@ -12,7 +12,6 @@ using MmoGame3d.Rules.Players;
 using MmoGame3d.Rules.Shops;
 using MmoGame3d.Rules.Social;
 using MmoGame3d.Rules.Terminals;
-using MmoGame3d.Rules.Town;
 using MmoGame3d.Rules.World;
 using MmoGame3d.Ui;
 using MmoGame3d.Zones;
@@ -29,6 +28,8 @@ public partial class ClientGame : Node
     private static readonly PackedScene InGameMenuScene = GD.Load<PackedScene>("res://game/ui/InGameMenu.tscn");
     private static readonly PackedScene HudScene = GD.Load<PackedScene>("res://game/ui/Hud.tscn");
     private static readonly PackedScene InventoryScene = GD.Load<PackedScene>("res://game/ui/InventoryPanel.tscn");
+    private static readonly PackedScene BookScene = GD.Load<PackedScene>("res://game/ui/VisitorBookPanel.tscn");
+    private static readonly PackedScene PlantCardScene = GD.Load<PackedScene>("res://game/gardening/PlantCard.tscn");
     private static readonly PackedScene ChatScene = GD.Load<PackedScene>("res://game/ui/ChatBox.tscn");
     private static readonly PackedScene TerminalScene = GD.Load<PackedScene>("res://game/ui/TerminalScreen.tscn");
     private static readonly PackedScene ShopScene = GD.Load<PackedScene>("res://game/ui/ShopPanel.tscn");
@@ -449,7 +450,7 @@ public partial class ClientGame : Node
         }
 
         string text = "Job: repair the junction box on Main Street, west of the crossing (a RAM stick as the part)";
-        Node3D? box = _world?.GetZone(_zoneId)?.GetNodeOrNull<Node3D>("Interactables/JunctionBox");
+        Node3D? box = _world?.GetZone(_zoneId)?.InGroup<Town.JunctionBox>(Town.JunctionBox.Group);
         Camera3D? camera = GetViewport().GetCamera3D();
 
         if (box != null && self != null && camera != null)
@@ -969,7 +970,7 @@ public partial class ClientGame : Node
         ClosePanels();
         GD.Print("Plant card: #" + plantId + ", created by " + creator + ", " + history.Length + " history lines");
         _panelOpenedAt = SelfPosition();
-        _plantCard = new PlantCard();
+        _plantCard = PlantCardScene.Instantiate<PlantCard>();
         _ui.AddChild(_plantCard);
         _plantCard.ShowPlant(plantId, name, creator, madeOn, design, history);
         _plantCard.Closed += ClosePlantCard;
@@ -1585,7 +1586,7 @@ public partial class ClientGame : Node
         {
             ClosePanels();
             _panelOpenedAt = SelfPosition();
-            _book = new VisitorBookPanel();
+            _book = BookScene.Instantiate<VisitorBookPanel>();
             _ui.AddChild(_book);
             _book.PagePressed += _subwayNetwork.SendReadBook;
             _book.Closed += CloseBook;

@@ -6,6 +6,29 @@ own findings, each with its picture, client log and server records, are in its r
 (`tools/bot-watch`); the ones worth keeping are written up here. Pictures are in
 `docs/engineering/bot-shots/`, shown in the local wiki and not kept in git.
 
+## The afternoon of 2026-09-28
+
+Fourteen bots (one of each persona, four twice) in full-screen windows from 15:05 to
+15:40, against a server of the `ger/code-cleanup` branch, restarted once after two
+fixes. Stopped at 35 minutes: the bots and the server took about 18 GB, and the machine
+ran low on memory (3 GB of 32 free). About ten bots is the most this machine holds for
+a long run. After the restart the bots finished 1,139 activities in 23 minutes, with no
+C# error in any log.
+
+- **Fixed bot problems:** navigation asked before the map's first synchronization;
+  a plant on display freed under a bot walking to it (below).
+- **Known, seen again:** robo taxis drive through players (`in-vehicle`, 3 times); the
+  pocket by the street kiosk (stuck walking to the library terminal, 3 times); the
+  subway entrance from the side (2 times).
+- **New, not understood:** a bot leaving the shop for the greenhouse went back in
+  through the shop door, three times (`zone-ping-pong` between shop and town).
+- **Memory:** a client grows from about 1.2 GB to about 2 GB private in its first 20
+  minutes and levels off there, as in the earlier hour-long runs; the server stays near
+  330 MB. No sign of a leak.
+- **Busy terminals:** a bot waits at a terminal another player is on, then gives up.
+  With 14 bots that was 46 of the activities given up; it is the one-player-a-terminal
+  rule working, not a lock left behind (a disconnect frees the terminal).
+
 ## The night of 2026-09-27
 
 Eight, then nine bots (one of each persona) ran from about 02:30 to the morning,
@@ -265,6 +288,10 @@ later, so a jump over a low wall can land on one side for one and the other side
 the other. The `door-ignored` judge now uses the server's position, so it flags only a
 door that really did not take someone.
 
+Seen again 2026-09-28: two bots walking to the door from the east side were judged
+stuck (`walk-failed`, `stuck` at "go through ToSubway"), one of them on the far side of
+the entrance at x 32, z 6.9.
+
 ### The workbench runs off the screen with a few phones and batteries
 
 **Found** 2026-09-27, the first run of the layered bots, Soak1 and Soak3 (`off-screen`).
@@ -355,6 +382,12 @@ other.
 
 Fixed as found; kept here so the same thing is recognised next time.
 
+- **Navigation asked too early.** In the first moments in a zone, before the navigation
+  map's first synchronization, every path query printed an engine error, and the judges
+  reported client errors. Until the map has synchronized, it counts as pending.
+- **A plant freed under a walking bot.** The outskirts activity kept the plant it picked;
+  a new plant replaced it on its spot and freed the node, and the walk hit
+  ObjectDisposedException. The spot is now looked up by name each time.
 - **Seven bots on Town repairs.** The phone came out every 20 seconds and always opened
   Town repairs. Now every 1 to 3 minutes, with a random app.
 - **One bot at the code cracker without end.** After going offline it stood at the
@@ -363,7 +396,7 @@ Fixed as found; kept here so the same thing is recognised next time.
 - **Bots back at the main menu.** The give step pressed Esc to close a give panel that
   had not opened (the other player was too far), which opened the game menu; a later
   blind click hit Leave to main menu. Now Esc only closes a panel that is open, and a
-  keeper (`game/dev/BotKeeper.cs`) brings a bot back from the main menu and closes a
+  keeper (`game/dev/bots/BotKeeper.cs`) brings a bot back from the main menu and closes a
   game menu left open.
 - **Refused logins after a quick restart.** Restarted within seconds, the new bots
   logged in while the server still had the old sessions, and were refused. Wait about

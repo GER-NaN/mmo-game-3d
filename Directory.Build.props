@@ -1,0 +1,27 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Run .editorconfig style rules during build -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- The compiler reminds each project to generate doc files so IDE0005 can run on
+         build. IDE0005 is on for the pre-commit hook, not for the build, so the reminder
+         is noise: turning doc files on would report CS1591 for every public member. -->
+    <NoWarn>$(NoWarn);EnableGenerateDocumentationFile</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Prerelease: 1.1.118 predates records and file-scoped namespaces -->
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="all" />
+    <!-- Which type kinds count for one type per file -->
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)build\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Analyzers'">
+    <!-- The project's own rules, loaded by the compiler, not referenced as code -->
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src\Analyzers\Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <!-- No runtime reflection: the list is in BannedSymbols.txt, exemptions in .editorconfig -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)build\BannedSymbols.txt" />
+  </ItemGroup>
+
+</Project>

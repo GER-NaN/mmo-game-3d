@@ -12,6 +12,7 @@ public partial class TargetFrame : PanelContainer
     public const string GiveGroup = "target_give";
     public const string FriendGroup = "target_friend";
     public const string MessageGroup = "target_message";
+    public const string IgnoreGroup = "target_ignore";
 
     public event Action? InvitePressed;
     public event Action? GivePressed;
@@ -27,6 +28,7 @@ public partial class TargetFrame : PanelContainer
         GetNode<Button>("%Give").Pressed += () => GivePressed?.Invoke();
         GetNode<Button>("%Friend").AddToGroup(FriendGroup);
         GetNode<Button>("%Friend").Pressed += () => FriendPressed?.Invoke();
+        GetNode<Button>("%Ignore").AddToGroup(IgnoreGroup);
         GetNode<Button>("%Ignore").Pressed += () => IgnorePressed?.Invoke();
         GetNode<Button>("%Message").AddToGroup(MessageGroup);
         GetNode<Button>("%Message").Pressed += () => MessagePressed?.Invoke();

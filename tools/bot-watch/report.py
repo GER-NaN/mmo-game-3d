@@ -4,7 +4,7 @@ one page to review them all.
     python tools/bot-watch/report.py
 
 For every finding folder under %TEMP%/mmo-game-3d-bots/judge/ (written by the bots'
-judges, game/dev/BotFindings.cs) that has no server side yet, it adds:
+judges, game/dev/bots/BotFindings.cs) that has no server side yet, it adds:
 
 - server.jsonl: every record in the server's diagnostics about that player, in the
   minute either side of the finding, as the server wrote it;

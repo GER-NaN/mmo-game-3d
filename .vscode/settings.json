@@ -1,0 +1,12 @@
+{
+    "[csharp]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp",
+        "editor.formatOnSave": true
+    },
+    "editor.formatOnSave": true,
+    // Show analyzer warnings for all files, not only open ones
+    "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.eol": "\n"
+}

@@ -7,11 +7,11 @@ cores), the server and the bot clients on the same machine, diagnostics on.
 
 - `scripts/load-test.ps1 -Bots 100 -Seconds 60 -StatsEvery 10` runs a server and
   wandering bots. `-Scenario load-phone | load-defense | load-taxi | load-chat` makes
-  every bot keep doing one thing instead (game/dev/LoadBot.cs; the server sets each up
+  every bot keep doing one thing instead (game/dev/load/LoadBot.cs; the server sets each up
   through its dev scenarios).
 - The server's `Stats:` line has the frame rate, the engine's frame and physics times,
   traffic, the worst frame, the .NET collector's pauses, and the five parts of the
-  server's own tick that took the most (game/server/TickProfile.cs).
+  server's own tick that took the most (game/server/core/TickProfile.cs).
 - `python tools/diag-query/query.py --durations` ranks every span (RPC handlers,
   database calls and their queue waits) by total time.
 

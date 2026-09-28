@@ -13,6 +13,13 @@ using MmoGame3d.Rules.Town;
 /// </summary>
 public partial class SubwayWallNode : Interactable
 {
+    public const string Group = "subway_walls";
+
+    public override void _EnterTree()
+    {
+        AddToGroup(Group);
+    }
+
     // The paintable face, centred on the node, facing +Z. Placeholders.
     private const float Width = 13f;
     private const float Low = 0.7f;

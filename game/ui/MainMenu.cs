@@ -2,14 +2,16 @@ namespace MmoGame3d.Ui;
 
 using System;
 using Godot;
-using MmoGame3d.Rules.Players;
 
 // The first screen: which server, and Play. The character is chosen after connecting.
 // It only reports what was pressed; ClientGame acts on it.
 public partial class MainMenu : Control
 {
+    private static readonly PackedScene CreditsScene = GD.Load<PackedScene>("res://game/ui/CreditsPanel.tscn");
+
     // Bots find the Play button by this group.
     public const string PlayGroup = "main_menu_play";
+    public const string CreditsGroup = "main_menu_credits";
 
     // (address).
     public event Action<string>? PlayPressed;
@@ -31,6 +33,7 @@ public partial class MainMenu : Control
         _address.TextSubmitted += _ => OnPlay();
         GetNode<Button>("%Settings").Pressed += () => SettingsPressed?.Invoke();
         GetNode<Button>("%Credits").Pressed += ShowCredits;
+        GetNode<Button>("%Credits").AddToGroup(CreditsGroup);
         GetNode<Button>("%Quit").Pressed += () => QuitPressed?.Invoke();
     }
 
@@ -61,7 +64,7 @@ public partial class MainMenu : Control
 
     private void ShowCredits()
     {
-        CreditsPanel credits = new CreditsPanel();
+        CreditsPanel credits = CreditsScene.Instantiate<CreditsPanel>();
         AddChild(credits);
         credits.Closed += credits.QueueFree;
     }

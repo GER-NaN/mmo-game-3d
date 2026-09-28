@@ -28,10 +28,20 @@ public partial class RoboTaxi : Node3D
         get { return GetNode<MultiplayerSynchronizer>("Synchronizer"); }
     }
 
-    // The route lives in the zone scene, next to the Vehicles node this car is under.
+    // The route is set on the zone this car is spawned in.
     public Path3D Route
     {
-        get { return GetNode<Path3D>("../../TaxiRoute"); }
+        get
+        {
+            Node? node = GetParent();
+
+            while (node != null && !(node is Zones.Zone))
+            {
+                node = node.GetParent();
+            }
+
+            return ((Zones.Zone)node!).TaxiRoute!;
+        }
     }
 
     public float RouteLength

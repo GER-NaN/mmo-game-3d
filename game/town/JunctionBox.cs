@@ -9,12 +9,19 @@ using MmoGame3d.Interact;
 /// </summary>
 public partial class JunctionBox : Interactable
 {
+    public const string Group = "junction_boxes";
+
     // Client only: true while this player has the job, so a marker bobs over the box,
     // seen through buildings.
     public static bool Marked { get; set; }
 
     private MeshInstance3D? _marker;
     private double _bob;
+
+    public override void _EnterTree()
+    {
+        AddToGroup(Group);
+    }
 
     public override void _Ready()
     {

@@ -735,7 +735,7 @@ public partial class TerminalScreen : Control
     // The HUD's notices are under the terminal: a refusal shows here too.
     public void ShowNotice(string text)
     {
-        HBoxContainer header = GetNode<HBoxContainer>("Margin/Rows/Header");
+        HBoxContainer header = GetNode<HBoxContainer>("%Header");
         Label? notice = header.GetNodeOrNull<Label>("Notice");
 
         if (notice == null)
@@ -757,7 +757,8 @@ public partial class TerminalScreen : Control
     private void ShowDefense(VBoxContainer content)
     {
         AddLine(content, "Agent Defense", Text, 18);
-        AddLine(content, "The AI is on the grid. Cut its lines as they cross yours: press D F J K as each cue reaches the yellow line. About a minute.", Dim, 15);
+        string keys = string.Join(" ", Array.ConvertAll(AgentDefenseView.LaneActions, ClientSettings.KeyName));
+        AddLine(content, "The AI is on the grid. Cut its lines as they cross yours: press " + keys + " as each cue reaches the yellow line. About a minute.", Dim, 15);
         _defense = new AgentDefenseView { SizeFlagsVertical = SizeFlags.ExpandFill, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(360, 300) };
         _defense.Finished += presses => DefenseFinished?.Invoke(presses);
         content.AddChild(_defense);

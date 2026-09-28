@@ -57,9 +57,9 @@ A bot is built in layers, each knowing one thing:
 | --- | --- | --- |
 | driver | what to do next: the persona, the picks, the interrupts | `BotDriver` |
 | router | where the zones are and how to get between them | `BotRouter`, `TravelActivity` |
-| activity | one task, its choices, where it happens, what it needs and gives | `BotActivity`, `game/dev/activities/` |
+| activity | one task, its choices, where it happens, what it needs and gives | `BotActivity`, `game/dev/bots/activities/` |
 | judge | whether that task worked, from the player's view | `BotActivityJudge` |
-| screen | how one screen is worked: its buttons, fields, drags | `game/dev/screens/` (`GardenUi`, `ChatUi`) |
+| screen | how one screen is worked: its buttons, fields, drags | `game/dev/bots/screens/` (`GardenUi`, `ChatUi`) |
 | body | the hands and senses: a click, a key, what is open | `BotBody` |
 
 **Activities** are the things a bot does: make a house plant, emote, buy a battery, enroll
@@ -191,7 +191,7 @@ folder, complete on its own, so it can be reviewed without anyone having watched
 
 ## Adding to it
 
-**An activity is a class** under `game/dev/activities/`, made from `StepsActivity`: its
+**An activity is a class** under `game/dev/bots/activities/`, made from `StepsActivity`: its
 name and weight, where it happens (`Zone`), what it needs and gives (`Needs`, `Gives`),
 its steps (`Plan`), and its judge (`NewJudge`). `GreenhouseActivity` is the model:
 
@@ -225,7 +225,7 @@ No door appears in it: the router takes the bot to the greenhouse from wherever 
 An **aside** is the same, with `Timing` set to `Aside` and `AsideEvery` its mean seconds
 between firings (`EmoteActivity`). An activity only chains and goals start has weight 0.
 
-**A screen** a bot works gets one class under `game/dev/screens/`, the only bot code
+**A screen** a bot works gets one class under `game/dev/bots/screens/`, the only bot code
 that knows its groups and layout (`GardenUi.Place`, `GardenUi.Complete`, `ChatUi.Say`);
 activities call it, and a change to the screen changes one file. Each operation that
 takes more than a frame is a step.
@@ -252,7 +252,7 @@ Add(new RelatedChain("change careers and back", 1,
     body => new EnrollActivity(Other(body))));
 ```
 
-These go in `BotCatalog`, or in a feature file under `game/dev/features/`: a class that
+These go in `BotCatalog`, or in a feature file under `game/dev/bots/features/`: a class that
 implements `IBotFeature` and adds its activities and chains. `BotCatalog` finds every
 such class when bots start. `BotWhoisFeature.cs` still shows the short form, an activity
 written as a plan inline (`new StepsActivity(name, weight, canStart, body => plan)`).
@@ -283,12 +283,11 @@ names. A random chain's log line gives its seed.
   its name in the default mix in `scripts/bots-up.ps1`.
 - **A dev scenario** for the feature too (`testing.md`): the scenario checks the
   feature in seconds; the bots play it for hours.
-- **Where things are:** activities in `game/dev/activities/` (by place and kind:
-  `PlaceActivities`, `TerminalActivities`, `ShopActivities`, `CollegeActivities`,
-  `BagActivities`, `SocialActivities`, `DroneActivities`, `PersonaActivities`, and the
-  models `GreenhouseActivity` and `EmoteActivity`); screens in `game/dev/screens/`;
-  steps that several activities share in `game/dev/steps/`; goals and chains in
-  `BotCatalog`.
+- **Where things are:** activities in `game/dev/bots/activities/`, one class per file
+  (the models are `GreenhouseActivity` and `EmoteActivity`); screens in
+  `game/dev/bots/screens/`; steps that several activities share in
+  `game/dev/bots/steps/`; chains in `game/dev/bots/chains/`; goals and the list of
+  chains in `BotCatalog`.
 
 ## Next
 

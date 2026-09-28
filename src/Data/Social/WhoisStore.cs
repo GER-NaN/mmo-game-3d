@@ -94,27 +94,3 @@ public class WhoisStore
         public long Xp { get; set; }
     }
 }
-
-public class WhoisRow
-{
-    public Guid PlayerId { get; set; }
-    public string DisplayName { get; set; } = "";
-    public string Zone { get; set; } = "";
-    public DateTime SavedAt { get; set; }
-    public int? Career { get; set; }
-    public long CareerXp { get; set; }
-    public int CareerRank { get; set; }
-    public double SecondsPlayed { get; set; }
-    public long Missions { get; set; }
-    public long SkillXp { get; set; }
-}
-
-public class WhoisProfile
-{
-    public WhoisRow Row { get; set; } = new WhoisRow();
-    public WhoisSettings Settings { get; set; } = new WhoisSettings();
-    public Dictionary<int, long> Skills { get; } = new Dictionary<int, long>();
-    public int Props { get; set; }
-    public bool GavePropsToo { get; set; }
-    public int Friends { get; set; }
-}

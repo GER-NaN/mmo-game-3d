@@ -159,7 +159,7 @@ The pattern, in full in example-tree-chopping.md:
 1. The rules in `src/Rules` (skills, items, numbers), with tests where there is logic.
 2. The thing in the world: a class deriving `Interactable` with its `Prompt` and any
    synced state, and its scene with a `Synchronizer` (editor).
-3. A server part, `game/server/Server<Thing>.cs`: what using it does.
+3. A server part, `game/server/<area>/Server<Thing>.cs`: what using it does.
 4. The hook-up: a `case` in `ServerInteractions.Use`, the part built in
    `ServerGame.Start`, ticked in `ServerGame`'s tick if it has timers.
 5. Placed in zones under `Interactables` (editor), each with a unique name.

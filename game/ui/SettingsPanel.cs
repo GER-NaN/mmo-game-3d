@@ -62,7 +62,7 @@ public partial class SettingsPanel : Control
         distance.ValueChanged += OnDistanceChanged;
 
         // Sound: a slider a bus, applied as it moves.
-        VBoxContainer general = GetNode<VBoxContainer>("Center/Panel/Margin/Rows/Columns/General");
+        VBoxContainer general = GetNode<VBoxContainer>("%General");
         general.AddChild(new Label { Text = "Sound" });
 
         foreach (string bus in ClientSettings.VolumeBuses)

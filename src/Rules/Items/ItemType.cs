@@ -17,12 +17,3 @@ public enum ItemType
     PottedYucca,
     PottedZzPlant,
 }
-
-// Quality, low to high. Placeholder names.
-public enum ItemTier
-{
-    Standard,
-    Enhanced,
-    Advanced,
-    Elite,
-}

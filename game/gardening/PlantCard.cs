@@ -10,72 +10,47 @@ using MmoGame3d.Rules.Gardening;
 /// </summary>
 public partial class PlantCard : PanelContainer
 {
-    private static readonly PackedScene CloseScene = GD.Load<PackedScene>("res://game/ui/CloseButton.tscn");
+    // Scenarios find the card by this group.
+    public const string Group = "plant_card";
 
     public event Action? Closed;
 
+    // The card sits top right, under the HUD's name line, and grows down, so a long
+    // history stays on screen (PlantCard.tscn).
+    public override void _Ready()
+    {
+        AddToGroup(Group);
+        GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
+    }
+
     public void ShowPlant(long plantId, string name, string creator, string madeOn, string design, string[] history)
     {
-        CustomMinimumSize = new Vector2(380, 0);
-        // Top right, under the HUD's name line, growing down: a long history stays on
-        // screen.
-        SetAnchorsPreset(LayoutPreset.TopRight);
-        GrowHorizontal = GrowDirection.Begin;
-        GrowVertical = GrowDirection.End;
-        OffsetLeft = -400;
-        OffsetRight = -20;
-        OffsetTop = 60;
-
-        MarginContainer margin = new MarginContainer();
-
-        foreach (string side in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
-        {
-            margin.AddThemeConstantOverride(side, 14);
-        }
-
-        AddChild(margin);
-        VBoxContainer rows = new VBoxContainer();
-        rows.AddThemeConstantOverride("separation", 6);
-        margin.AddChild(rows);
-
-        HBoxContainer titleRow = new HBoxContainer();
-        Label title = new Label { Text = name.Length > 0 ? name : "House plant #" + plantId, SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        title.AddThemeFontSizeOverride("font_size", 22);
-        titleRow.AddChild(title);
-        Button close = CloseScene.Instantiate<Button>();
-        close.Pressed += () => Closed?.Invoke();
-        titleRow.AddChild(close);
-        rows.AddChild(titleRow);
-        rows.AddChild(new Label { Text = "House plant #" + plantId + ", one of a kind" });
-        rows.AddChild(new Label { Text = "Created by: " + creator });
-        rows.AddChild(new Label { Text = "Made on: " + madeOn });
+        GetNode<Label>("%Title").Text = name.Length > 0 ? name : "House plant #" + plantId;
+        GetNode<Label>("%Number").Text = "House plant #" + plantId + ", one of a kind";
+        GetNode<Label>("%Creator").Text = "Created by: " + creator;
+        GetNode<Label>("%MadeOn").Text = "Made on: " + madeOn;
 
         PlantDesign? parsed = PlantDesign.Parse(design);
+        VBoxContainer parts = GetNode<VBoxContainer>("%Parts");
+        GetNode<Label>("%MadeOfTitle").Visible = parsed != null;
+        parts.Visible = parsed != null;
 
         if (parsed != null)
         {
-            rows.AddChild(Heading("Made of"));
-            rows.AddChild(Dim(PlantParts.Describe(parsed.Pot)));
+            parts.AddChild(Dim(PlantParts.Describe(parsed.Pot)));
 
             foreach (PlantPiece piece in parsed.Pieces)
             {
-                rows.AddChild(Dim(PlantParts.Describe(piece.Id)));
+                parts.AddChild(Dim(PlantParts.Describe(piece.Id)));
             }
         }
 
-        rows.AddChild(Heading("History"));
+        VBoxContainer lines = GetNode<VBoxContainer>("%History");
 
         foreach (string line in history)
         {
-            rows.AddChild(Dim(line));
+            lines.AddChild(Dim(line));
         }
-    }
-
-    private static Label Heading(string text)
-    {
-        Label label = new Label { Text = text };
-        label.AddThemeFontSizeOverride("font_size", 16);
-        return label;
     }
 
     private static Label Dim(string text)

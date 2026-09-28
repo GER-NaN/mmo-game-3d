@@ -23,6 +23,15 @@ public partial class DayNight : Node
     private static readonly Color WarmLight = new Color(1f, 0.62f, 0.38f);
     private static readonly Color MoonLight = new Color(0.6f, 0.7f, 1f);
 
+    [Export]
+    public DirectionalLight3D? Sun { get; set; }
+
+    [Export]
+    public DirectionalLight3D? Moon { get; set; }
+
+    [Export]
+    public WorldEnvironment? WorldEnvironment { get; set; }
+
     private DirectionalLight3D _sun = null!;
     private DirectionalLight3D _moon = null!;
     private Environment _environment = null!;
@@ -32,9 +41,9 @@ public partial class DayNight : Node
 
     public override void _Ready()
     {
-        _sun = GetNode<DirectionalLight3D>("../Sun");
-        _moon = GetNode<DirectionalLight3D>("../Moon");
-        _environment = GetNode<WorldEnvironment>("../Environment").Environment;
+        _sun = Sun!;
+        _moon = Moon!;
+        _environment = WorldEnvironment!.Environment;
     }
 
     // Dark enough that the street lamps are on: night music and night sounds.
