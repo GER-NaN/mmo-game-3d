@@ -34,7 +34,10 @@ public sealed class OutskirtsActivity : StepsActivity
 
         if (plant != null)
         {
-            steps.Add(new WalkToStep("walk to a plant on display", b => plant));
+            // By its spot, looked up each time: a new plant takes the spot, and the old
+            // node is freed.
+            string spot = Interact.Interactable.ParentName + "/" + plant.Name;
+            steps.Add(new WalkToStep("walk to a plant on display", b => b.Zone?.GetNodeOrNull<DisplayPlant>(spot)));
             steps.Add(new UseStep("Inspect", b => false, 4, false, true));
             steps.Add(new PauseStep(2));
             steps.Add(new CloseAllStep());
