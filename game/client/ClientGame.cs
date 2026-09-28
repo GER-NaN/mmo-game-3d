@@ -930,6 +930,30 @@ public partial class ClientGame : Node
         }
     }
 
+    // A snapshot of the player's state as this client knows it. Copies, so a reader
+    // cannot change what the client holds.
+    public ClientView View
+    {
+        get
+        {
+            Inventory stacks = new Inventory();
+
+            foreach (ItemStack stack in _stacks)
+            {
+                stacks.Add(stack.Type, stack.Tier, stack.Quantity);
+            }
+
+            List<ItemInstance> instances = new List<ItemInstance>();
+
+            foreach (ItemInstance item in _instances)
+            {
+                instances.Add(new ItemInstance(item.Id, item.Type, item.Tier) { ParentId = item.ParentId, Slot = item.Slot, Charge = item.Charge });
+            }
+
+            return new ClientView(_zoneId, _dollars, new Belongings(stacks, instances));
+        }
+    }
+
     private void ShowBattery()
     {
         Belongings mine = new Belongings(new Inventory(), _instances);
