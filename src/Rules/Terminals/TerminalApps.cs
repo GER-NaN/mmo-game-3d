@@ -1,48 +1,5 @@
 namespace MmoGame3d.Rules.Terminals;
 
-// A door into the terminal world. These are different access points, not ranks:
-// nothing reads one as better than another.
-public enum TerminalType
-{
-    Public,
-    Phone,
-    Laptop,
-    GamingRig,
-    Supercomputer,
-    DataCentre,
-}
-
-// Whether an app can be opened, and if not, why.
-public enum AppState
-{
-    Open,
-
-    // In the game, not reachable yet: shown with a locked notice, so a player sees what
-    // exists before they can use it.
-    Locked,
-}
-
-public class TerminalApp
-{
-    public TerminalApp(string id, string name, string lockedNotice)
-    {
-        Id = id;
-        Name = name;
-        LockedNotice = lockedNotice;
-    }
-
-    public string Id { get; }
-    public string Name { get; }
-
-    // Empty for an app that opens.
-    public string LockedNotice { get; }
-
-    public AppState State
-    {
-        get { return LockedNotice.Length == 0 ? AppState.Open : AppState.Locked; }
-    }
-}
-
 /// <summary>
 /// The terminal OS's apps, from world.md section 4: every feature of the game is an
 /// app, and the locked ones still show, so a player sees the whole game from a

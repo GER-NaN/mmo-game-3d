@@ -3,18 +3,6 @@ namespace MmoGame3d.Dev;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Rules.Skills;
 
-public enum FactKind
-{
-    InZone,
-    MoneyAtLeast,
-    Has,
-    Wears,
-    PhoneAtLeast,
-    Career,
-    HasSomethingToSell,
-    Offline,
-}
-
 /// <summary>
 /// Something true or not about the bot, as its player would see it: where it is, its money,
 /// what is in its bag or worn, its phone's charge, its career. Activities need facts and give

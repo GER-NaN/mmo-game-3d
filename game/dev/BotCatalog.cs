@@ -8,16 +8,6 @@ using MmoGame3d.Rules.Skills;
 using MmoGame3d.Rules.World;
 
 /// <summary>
-/// A game feature's part in bot testing, in one file: the activities and chains that play
-/// it. Every class that implements this is found when bots start (BotCatalog) and adds
-/// its own; nothing else needs changing. See game/dev/features/.
-/// </summary>
-public interface IBotFeature
-{
-    void AddTo(BotCatalog catalog);
-}
-
-/// <summary>
 /// Everything a bot can do: activities (chosen by weight, or asides on a timer) and chains
 /// (related, random, and goals), from the activity classes and every IBotFeature.
 /// Activities with weight 0 are only started by chains and goals.

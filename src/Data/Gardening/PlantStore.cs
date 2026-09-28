@@ -60,20 +60,3 @@ public class PlantStore
     private const string Select =
         "select id as Id, created_by as CreatedBy, creator_name as CreatorName, name as Name, design as Design, created_at as CreatedAt from plants";
 }
-
-public class PlantRecord
-{
-    public long Id { get; set; }
-    public Guid CreatedBy { get; set; }
-    public string CreatorName { get; set; } = "";
-    public string Name { get; set; } = "";
-    public string Design { get; set; } = "";
-    public DateTime CreatedAt { get; set; }
-    public List<PlantEvent> History { get; set; } = new List<PlantEvent>();
-}
-
-public class PlantEvent
-{
-    public DateTime At { get; set; }
-    public string Text { get; set; } = "";
-}
