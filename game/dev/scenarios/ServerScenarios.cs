@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Data.Players;
 using MmoGame3d.Rules.Items;
+using MmoGame3d.Rules.Skills;
 using MmoGame3d.Rules.World;
 using MmoGame3d.Zones;
 
@@ -145,6 +146,11 @@ public class ServerScenarios
                 EquipPhone(session, 0f);
                 break;
             case "unequip":
+                EquipPhone(session);
+                break;
+            case "repair-pack":
+                // A Mechanical Engineer, who carries the pack, with a phone to work on.
+                session.Progress.Career.Load(CareerId.MechanicalEngineer, 0, CareerRank.Apprentice, true, "");
                 EquipPhone(session);
                 break;
             case "drop-wall":

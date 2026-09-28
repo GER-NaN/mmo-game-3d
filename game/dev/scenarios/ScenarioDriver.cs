@@ -329,6 +329,27 @@ public partial class ScenarioDriver : Node
                     return slots.Count > 0;
                 });
                 break;
+            case "repair-pack":
+                Step("open the bag", () =>
+                {
+                    Input.ParseInputEvent(new InputEventAction { Action = "inventory", Pressed = true });
+                    Input.ParseInputEvent(new InputEventAction { Action = "inventory", Pressed = false });
+                    return true;
+                });
+                Step("open the repair pack", () => ClickGroup(InventoryPanel.RepairPackGroup));
+                Expect("the workbench, away from any bench", () =>
+                {
+                    foreach (Node node in GetTree().Root.FindChildren("*", "PanelContainer", true, false))
+                    {
+                        if (node is WorkbenchPanel)
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
+                break;
             case "plant-card":
                 Use("Inspect");
                 Expect("the card, with a title and a history", () =>
