@@ -11,6 +11,10 @@ public partial class TaxiState : Node
     [Export]
     public float SecondsLeft { get; set; }
 
+    // The cabin's arrival sign.
+    [Export]
+    public Label3D? Display { get; set; }
+
     public MultiplayerSynchronizer Synchronizer
     {
         get { return GetNode<MultiplayerSynchronizer>("Synchronizer"); }
@@ -23,7 +27,7 @@ public partial class TaxiState : Node
             return;
         }
 
-        Label3D? display = GetNodeOrNull<Label3D>("../Cabin/Display");
+        Label3D? display = Display;
 
         if (display != null)
         {

@@ -202,8 +202,9 @@ mesh = SubResource("Mesh_Road")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 script = ExtResource("3_view")
 
-[node name="TaxiState" type="Node" parent="."]
+[node name="TaxiState" type="Node" parent="." node_paths=PackedStringArray("Display")]
 script = ExtResource("2_state")
+Display = NodePath("../Cabin/Display")
 
 [node name="Synchronizer" type="MultiplayerSynchronizer" parent="TaxiState"]
 replication_interval = 0.5

@@ -735,7 +735,7 @@ public partial class TerminalScreen : Control
     // The HUD's notices are under the terminal: a refusal shows here too.
     public void ShowNotice(string text)
     {
-        HBoxContainer header = GetNode<HBoxContainer>("Margin/Rows/Header");
+        HBoxContainer header = GetNode<HBoxContainer>("%Header");
         Label? notice = header.GetNodeOrNull<Label>("Notice");
 
         if (notice == null)

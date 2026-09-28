@@ -31,15 +31,15 @@ public partial class InventoryPanel : PanelContainer
     // A Mechanical Engineer carries a repair pack: workbench work anywhere.
     public void ShowRepairPack(bool engineer)
     {
-        Button? pack = GetNodeOrNull<Button>("Margin/Rows/RepairPack");
+        Button? pack = GetNodeOrNull<Button>("%Rows/RepairPack");
 
         if (engineer && pack == null)
         {
             pack = new Button { Name = "RepairPack", Text = "Open repair pack", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
             pack.AddToGroup(RepairPackGroup);
             pack.Pressed += () => RepairPackPressed?.Invoke();
-            GetNode<VBoxContainer>("Margin/Rows").AddChild(pack);
-            GetNode<VBoxContainer>("Margin/Rows").MoveChild(pack, 2);
+            GetNode<VBoxContainer>("%Rows").AddChild(pack);
+            GetNode<VBoxContainer>("%Rows").MoveChild(pack, 2);
         }
         else if (!engineer && pack != null)
         {
@@ -84,7 +84,7 @@ public partial class InventoryPanel : PanelContainer
 
     private static string SlotPath(SlotType slot)
     {
-        return "Margin/Rows/Equipment/" + slot;
+        return "%Equipment/" + slot;
     }
 
     // (type, tier, quantity): the whole stack.

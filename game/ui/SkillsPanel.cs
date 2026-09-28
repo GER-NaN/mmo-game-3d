@@ -107,7 +107,7 @@ public partial class SkillsPanel : PanelContainer
     // Below the career: every achievement, earned ones bright, the rest dim; hover for how.
     public void ShowAchievements(string[] earned)
     {
-        VBoxContainer rows = GetNode<VBoxContainer>("Margin/Rows");
+        VBoxContainer rows = GetNode<VBoxContainer>("%Rows");
         GridContainer? grid = rows.GetNodeOrNull<GridContainer>("Achievements");
 
         if (grid == null)

@@ -28,8 +28,11 @@ shadow_enabled = true
 [node name="Moon" type="DirectionalLight3D" parent="."]
 light_energy = 0.0
 
-[node name="DayNight" type="Node" parent="."]
+[node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("Sun", "Moon", "WorldEnvironment")]
 script = ExtResource("3_daynight")
+Sun = NodePath("../Sun")
+Moon = NodePath("../Moon")
+WorldEnvironment = NodePath("../Environment")
 
 [node name="Camera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 8, 8)

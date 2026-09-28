@@ -44,7 +44,7 @@ public class ServerSubway
 
     private SubwayWallNode Wall
     {
-        get { return _zone.GetNode<SubwayWallNode>("Interactables/SubwayWall"); }
+        get { return _zone.InGroup<SubwayWallNode>(SubwayWallNode.Group)!; }
     }
 
     public void Load()

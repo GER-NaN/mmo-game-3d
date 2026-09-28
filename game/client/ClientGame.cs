@@ -448,7 +448,7 @@ public partial class ClientGame : Node
         }
 
         string text = "Job: repair the junction box on Main Street, west of the crossing (a RAM stick as the part)";
-        Node3D? box = _world?.GetZone(_zoneId)?.GetNodeOrNull<Node3D>("Interactables/JunctionBox");
+        Node3D? box = _world?.GetZone(_zoneId)?.InGroup<Town.JunctionBox>(Town.JunctionBox.Group);
         Camera3D? camera = GetViewport().GetCamera3D();
 
         if (box != null && self != null && camera != null)
