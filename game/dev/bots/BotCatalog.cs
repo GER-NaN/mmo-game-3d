@@ -41,6 +41,11 @@ public sealed class BotCatalog
                     {
                         ((IBotFeature)Activator.CreateInstance(type)!).AddTo(_all);
                     }
+
+                    if (typeof(BotFeature).IsAssignableFrom(type) && !type.IsAbstract)
+                    {
+                        _all.Add((BotFeature)Activator.CreateInstance(type)!);
+                    }
                 }
             }
 

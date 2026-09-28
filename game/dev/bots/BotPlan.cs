@@ -28,6 +28,12 @@ public sealed class BotPlan
         return this;
     }
 
+    // To another zone, door by door from wherever the bot is.
+    public BotPlan Travel(string zoneId)
+    {
+        return Step(new TravelStep(zoneId));
+    }
+
     // Through a door of the current zone (by its node name under Doors).
     public BotPlan Door(string door)
     {
