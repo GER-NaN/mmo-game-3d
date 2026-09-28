@@ -148,6 +148,11 @@ public class ServerScenarios
             case "unequip":
                 EquipPhone(session);
                 break;
+            case "rank-up":
+                // An Apprentice with the experience for Graduate, at their own college.
+                session.Progress.Career.Load(CareerId.MechanicalEngineer, CareerCatalog.XpForRank(CareerRank.Graduate), CareerRank.Apprentice, true, ZoneIds.College);
+                StandBy(record, ZoneIds.College, "Professor", new Vector3(0f, 0f, 1.3f));
+                break;
             case "chatter":
                 // Beside Wren, held there as if already talking, so she waits for the test.
                 StandBy(record, ZoneIds.Town, "Hiker", new Vector3(0f, 0f, 1.3f));

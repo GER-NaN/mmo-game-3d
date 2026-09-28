@@ -339,6 +339,11 @@ public partial class ScenarioDriver : Node
                 Step("open the repair pack", () => ClickGroup(InventoryPanel.RepairPackGroup));
                 Expect("the workbench, away from any bench", () => Showing<WorkbenchPanel>() != null);
                 break;
+            case "rank-up":
+                Use("Talk to Professor");
+                Step("ask to rank up", () => ClickGroup(CollegePanel.RankUpGroup));
+                Expect("signed off as a Graduate", () => Noticed("Your professor signs it off"));
+                break;
             case "chatter":
                 Use("Talk to Wren");
                 Expect("a line of small talk", () => Noticed("Wren, out walking: "));
