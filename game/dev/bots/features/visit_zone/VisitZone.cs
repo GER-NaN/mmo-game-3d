@@ -9,8 +9,7 @@ using MmoGame3d.Rules.World;
 /// </summary>
 public sealed class VisitZone : BotFeature
 {
-    public VisitZone()
-        : base("visit a zone", 3)
+    public VisitZone() : base("visit a zone", 3)
     {
     }
 
