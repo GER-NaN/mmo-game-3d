@@ -13,8 +13,6 @@ public partial class VisitorBookPanel : PanelContainer
     public const string PreviousGroup = "book_previous";
     public const string NextGroup = "book_next";
 
-    private static readonly PackedScene CloseScene = GD.Load<PackedScene>("res://game/ui/CloseButton.tscn");
-
     public event Action<int>? PagePressed;
     public event Action? Closed;
 
@@ -26,51 +24,15 @@ public partial class VisitorBookPanel : PanelContainer
 
     public override void _Ready()
     {
-        CustomMinimumSize = new Vector2(360, 0);
-        SetAnchorsPreset(LayoutPreset.CenterRight);
-        GrowHorizontal = GrowDirection.Begin;
-        GrowVertical = GrowDirection.Both;
-        OffsetRight = -24;
-        OffsetLeft = -384;
-
-        MarginContainer margin = new MarginContainer();
-
-        foreach (string side in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
-        {
-            margin.AddThemeConstantOverride(side, 14);
-        }
-
-        AddChild(margin);
-        VBoxContainer rows = new VBoxContainer();
-        rows.AddThemeConstantOverride("separation", 6);
-        margin.AddChild(rows);
-
-        HBoxContainer titleRow = new HBoxContainer();
-        Label title = new Label { Text = "Visitor book", SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        title.AddThemeFontSizeOverride("font_size", 22);
-        titleRow.AddChild(title);
-        Button close = CloseScene.Instantiate<Button>();
-        close.Pressed += () => Closed?.Invoke();
-        titleRow.AddChild(close);
-        rows.AddChild(titleRow);
-        rows.AddChild(new Label { Text = "Every name sprayed on the wall, in order.", Modulate = new Color(1f, 1f, 1f, 0.7f) });
-
-        _names = new VBoxContainer();
-        rows.AddChild(_names);
-
-        HBoxContainer turn = new HBoxContainer();
-        turn.AddThemeConstantOverride("separation", 8);
-        _previous = new Button { Text = "<", FocusMode = FocusModeEnum.None };
+        _names = GetNode<VBoxContainer>("%Names");
+        _page = GetNode<Label>("%Page");
+        _previous = GetNode<Button>("%Previous");
+        _next = GetNode<Button>("%Next");
         _previous.AddToGroup(PreviousGroup);
-        _previous.Pressed += () => PagePressed?.Invoke(_shown - 1);
-        _page = new Label { SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalAlignment = HorizontalAlignment.Center };
-        _next = new Button { Text = ">", FocusMode = FocusModeEnum.None };
         _next.AddToGroup(NextGroup);
+        _previous.Pressed += () => PagePressed?.Invoke(_shown - 1);
         _next.Pressed += () => PagePressed?.Invoke(_shown + 1);
-        turn.AddChild(_previous);
-        turn.AddChild(_page);
-        turn.AddChild(_next);
-        rows.AddChild(turn);
+        GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
     }
 
     public void ShowPage(int page, int pages, string[] lines)
