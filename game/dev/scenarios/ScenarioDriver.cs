@@ -579,9 +579,9 @@ public partial class ScenarioDriver : Node
         {
             if (cue.AtMs > _defensePressed && cue.AtMs <= clock)
             {
-                Key key = AgentDefenseView.LaneKeys[cue.Lane];
-                Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = key, Keycode = key, Pressed = true });
-                Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = key, Keycode = key, Pressed = false });
+                string lane = AgentDefenseView.LaneActions[cue.Lane];
+                Input.ParseInputEvent(new InputEventAction { Action = lane, Pressed = true });
+                Input.ParseInputEvent(new InputEventAction { Action = lane, Pressed = false });
             }
         }
 
