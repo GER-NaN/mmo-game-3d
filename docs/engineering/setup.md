@@ -74,5 +74,5 @@ editor, run the non-console exe and open `project.godot`.
 ## 5. Optional
 
 - The native packet log: `.\scripts\native-build.ps1` (see `native/README.md`).
-- `.\scripts\scenario-test.ps1`: all 13 should pass on a working setup
-  (docs/engineering/testing.md).
+- `dotnet test tests/Tests` and `.\scripts\scene-check.ps1` should pass on a working
+  setup (docs/engineering/testing.md).

@@ -7,8 +7,7 @@
 | `scripts/server-up.ps1` | builds, then the headless server in its own console window (port 7070) |
 | `scripts/server-stop.ps1 [-Port 7071]` | asks the server to save everyone and quit; use it rather than closing the window |
 | `scripts/client-up.ps1 [-Profile name] [-AutoConnect]` | builds, then the game |
-| `scripts/scenario-test.ps1` | the dev scenario tests on their own server (port 7071) |
-| `scripts/load-test.ps1` | a server and bot clients, with numbers (docs/engineering/load-test.md) |
+| `scripts/scene-check.ps1` | what an editor save would lose from each scene (testing.md) |
 | `scripts/native-build.ps1` | the C++ packet log (native/README.md) |
 
 Ctrl+C or closing the server's window is a hard stop: players online are not saved.
@@ -31,12 +30,10 @@ ones used most:
 | `--time-offset 6` | server | shift the world's hour, to see night by day |
 | `--diagnostics off` | server | no logs and traces |
 | `--log-packets` | server | also every packet (needs the native build) |
-| `--dev-scenarios` | server | allow dev scenario setups (never on a real server) |
 | `--profile name` | client | which player; `fresh` is a new one each launch |
 | `--name Gerald` | client | the name a new player gets |
 | `--autoconnect`, `--address 1.2.3.4` | client | skip the menu; connect elsewhere |
-| `--bot`, `--report-every 3` | client | play by itself; print what it sees |
-| `--scenario name` | client | run one dev scenario test |
+| `--report-every 3` | client | print what it sees |
 | `--screenshot x.png` (+ `--overview`, `--garden`, `--creator`, `--show-characters`, `--screenshot-after 4`) | client | save a picture and quit: how looks were checked without clicking |
 
 ## Controller
@@ -90,8 +87,8 @@ Godot's user data folder is `%APPDATA%\Godot\app_userdata\mmo-game-3d`:
   docker exec mmo3d-db psql -U mmo -d postgres -c "create database mmo3d;"
   ```
 
-  The dev database holds test data: scenario players ("Test cracker", ...), load bots
-  ("Load0" ...), bots, and their house plants, subway tags, scores and achievements.
+  The dev database may hold test players from the old bot and scenario runs ("Test
+  cracker", "Load0", "Soak1", ...) and their house plants, subway tags and scores.
 - The test database: the same with `mmo3d_test`; tests never need it empty.
 - A client's identity: delete its `profiles/<name>` folder (the old account stays in
   the database, unreachable).

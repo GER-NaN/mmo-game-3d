@@ -52,8 +52,8 @@ I/O. One background thread per signal writes the queue out about once a second. 
 a queue is full, new records are dropped and counted (`logs.dropped_total`,
 `spans.dropped_total` in the health record), so the game thread never waits.
 
-Measured 2026-09-26 with `scripts/load-test.ps1 -Bots 100`, the same worst case as
-`load-test.md` (100 players who all see each other):
+Measured 2026-09-26 with the load test (100 players who all see each other; the load
+test was taken out with the bots on 2026-09-28, and is in git history):
 
 | Server | fps | Frame (ms) |
 | --- | --- | --- |
@@ -160,7 +160,7 @@ file.
   each to `ServerDiagnostics` as a `packet in` / `packet out` record, with the packet's
   kind read from Godot's multiplayer header (`sync`, `spawn`, `remote_call`...).
 - To check it works: `.\scripts\native-build.ps1`, then
-  `.\scripts\load-test.ps1 -Bots 10 -Seconds 30 -LogPackets`, then
+  a server with `--log-packets` and a client or two, then
   `python tools/diag-query/query.py --where logger=Net.Packets --group-by net.direction,net.kind`.
 - Building, versions (godot-cpp is pinned to 4.5, which loads in 4.7), Linux, and adding
   another extension: `native/README.md`.

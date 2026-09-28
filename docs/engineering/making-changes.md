@@ -48,8 +48,7 @@ example-tree-chopping.md.
 7. **Catalog:** music and ambience are `music.<id>` and `amb.<id>` in
    `game/audio/sounds.json`, played on entry by `ClientGame.UpdateSoundscape`. A zone
    without them is silent; add entries or a `case` there to reuse another zone's.
-8. **Run:** restart the server, walk in. For a lasting test, copy the `college` dev
-   scenario, which stands a player in front of a door and walks through.
+8. **Run:** restart the server, walk in.
 
 ## A terrain zone (hills, cliffs, open country)
 
@@ -64,7 +63,7 @@ example-tree-chopping.md.
    and arrivals on the flat entry.
 4. Set `ItemStock` to 0 unless the item area is flat: ground items drop at height 0.
 5. **Editor:** sculpt and paint (editor.md).
-6. **Run:** a scenario that walks in and stays on the ground: copy `meadows`.
+6. **Run:** walk in, and check that you stay on the ground.
 
 ## A door between zones
 
@@ -164,7 +163,6 @@ The pattern, in full in example-tree-chopping.md:
    `ServerGame.Start`, ticked in `ServerGame`'s tick if it has timers.
 5. Placed in zones under `Interactables` (editor), each with a unique name.
 6. Sounds in the catalog, played by the client from the synced state.
-7. A dev scenario that proves it.
 
 ## Something to use (an interactable)
 
@@ -266,8 +264,7 @@ protocol.
 ## A terminal app
 
 `src/Rules/Terminals/TerminalApps.cs` (the list; the phone's subset in `PhoneApps`;
-a locked notice makes it show but not open), a `case` in `TerminalScreen.ShowApp`, and
-groups on its buttons so scenarios can find them.
+a locked notice makes it show but not open), and a `case` in `TerminalScreen.ShowApp`.
 
 ## Status board, achievements, phone pushes
 
@@ -279,11 +276,7 @@ groups on its buttons so scenarios can find them.
 ## Proving a change
 
 - A rule or a store: a unit test.
-- A feature in the running game: a dev scenario (testing.md). Set the player up exactly;
-  never let a bot wander to it. Each ends within a minute.
-- Headless clients: `FindChildren` matches engine classes, not C# classes, so find our
-  nodes by group; hold a key a moment (`Input.ActionPress`, release next frame), since
-  the game polls it.
+- A scene written or changed by hand: the scene check (testing.md).
 
 ## Files Godot makes
 

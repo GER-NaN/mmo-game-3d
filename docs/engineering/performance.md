@@ -1,14 +1,12 @@
 # Server performance
 
 Load tests and what they found. Numbers are from the author's machine (16 logical
-cores), the server and the bot clients on the same machine, diagnostics on.
+cores), the server and the bot clients on the same machine, diagnostics on. The load
+test itself (`scripts/load-test.ps1`, `game/dev/load/`) was taken out with the bots on
+2026-09-28, to be rebuilt; it is in git history.
 
 ## How to measure
 
-- `scripts/load-test.ps1 -Bots 100 -Seconds 60 -StatsEvery 10` runs a server and
-  wandering bots. `-Scenario load-phone | load-defense | load-taxi | load-chat` makes
-  every bot keep doing one thing instead (game/dev/load/LoadBot.cs; the server sets each up
-  through its dev scenarios).
 - The server's `Stats:` line has the frame rate, the engine's frame and physics times,
   traffic, the worst frame, the .NET collector's pauses, and the five parts of the
   server's own tick that took the most (game/server/core/TickProfile.cs).
@@ -32,7 +30,7 @@ cores), the server and the bot clients on the same machine, diagnostics on.
   about 5 ms a second in all. The rest is the engine: replication (everyone in a zone
   is sent to everyone there, n squared) and physics.
 - 200 players: 7 to 10 fps, frames 55 to 70 ms, worst about 140. Not the test
-  machine: the same with the bots at idle priority. As in load-test.md, the cost is
+  machine: the same with the bots at idle priority. The cost is
   the per-synchronizer, per-peer sync. The engine's physics time (11 to 17 ms at 200)
   is per frame, and a slow frame runs several of the 60 steps a second, so a step is
   about 1.5 to 2 ms. Jolt physics (a project setting, tried and reverted) gave 13 to 14
@@ -49,7 +47,7 @@ The author decided (2026-09-26) not to optimize further for now: 100 players in 
 place hold, and 200 is not a goal yet. Recorded so they are not rediscovered:
 
 - Replication: interest management, a lower rate for far players, or one packed
-  snapshot per client (load-test.md has the options).
+  snapshot per client.
 - Physics: Jolt, a lower server physics rate, or moving players without physics bodies
   on the server.
 - Server prints: route routine lines through the diagnostics log only, or find why a

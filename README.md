@@ -27,7 +27,7 @@ game's design is `docs/world.md`; this repo builds it.
 | `src/Data/` | Postgres stores and migrations |
 | `src/Diagnostics/` | OpenTelemetry logs and traces to JSON lines |
 | `tests/` | unit tests (rules and stores) |
-| `scripts/` | run, stop, load test, scenario tests, native build |
+| `scripts/` | run, stop, scene check, native build |
 | `tools/` | prop generator, model renders, diagnostics query, sound copy |
 | `native/` | the C++ GDExtension for the packet log |
 | `docs/engineering/` | how things work and what was measured |
@@ -49,12 +49,11 @@ making-changes has the recipes.
   gesture, an RPC, an intent, a migration, synced state, a terminal app; the git flow.
 - `docs/engineering/example-tree-chopping.md`: a new mechanic from end to end (not
   built), to copy from.
-- `docs/engineering/testing.md`: unit tests, dev scenarios, bots, load tests.
+- `docs/engineering/testing.md`: unit tests and the scene check.
 - `docs/engineering/sound.md`: the sound catalog, the director, where sounds come from.
 - `docs/engineering/diagnostics.md`: logs, traces and the packet log.
-- `docs/engineering/load-test.md`: how many players a zone holds.
-- `docs/engineering/performance.md`: server load scenarios, what was fixed, what is not
-  planned.
+- `docs/engineering/performance.md`: what the load tests found, what was fixed, what is
+  not planned.
 - Each tool has a README in its folder.
 
 ## Outside this repo

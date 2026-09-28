@@ -35,5 +35,6 @@ __pycache__/
 # The wiki site, built by scripts/wiki-publish.ps1
 /tools/wiki/site/
 
-# Bot testing pictures (docs/engineering/bot-testing-findings.md); shown in the local wiki, not kept in git
+
+# Pictures from the old bot runs, on this machine only
 /docs/engineering/bot-shots/
