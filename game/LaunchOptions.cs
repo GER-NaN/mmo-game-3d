@@ -28,7 +28,7 @@ using MmoGame3d.Rules.Time;
 ///   --address 1.2.3.4   the server to connect to
 ///   --autoconnect       skip the main menu and connect at once
 ///   --bot               the client plays by itself (implies --autoconnect)
-///   --persona curious   with --bot: who the bot is (game/dev/BotPersonas.cs)
+///   --persona curious   with --bot: who the bot is (game/dev/bots/BotPersonas.cs)
 ///   --bot-only "x"      with --bot: only the activity or goal named x, again and
 ///                       again (scripts/bot-try.ps1), to replay or try one thing
 ///   --windowed          stay in a window whatever the saved settings say, without

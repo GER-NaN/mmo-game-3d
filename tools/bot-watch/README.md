@@ -17,7 +17,7 @@ looping (one action is most of what it did), not running, refused at login, with
 errors in its log, or with new judge findings. New warnings and errors in the server's
 diagnostics are listed too. A flagged bot's picture goes to
 `%TEMP%\mmo-game-3d-bots\shots\`: the watcher leaves a request file, and the bot's own
-client (`game/dev/BotKeeper.cs`) saves its game view there, so nothing else on the
+client (`game/dev/bots/BotKeeper.cs`) saves its game view there, so nothing else on the
 screen is ever in it.
 
 Both the watcher and the memory recorder follow the server that was up when they

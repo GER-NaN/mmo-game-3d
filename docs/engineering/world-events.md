@@ -19,11 +19,11 @@ decisions are in `docs/world.md` section 2 (world events) and section 4 (Notific
 - **Store** (`src/Data/Events/WorldEventStore.cs`, migration
   `0016_world_events.sql`): the definitions, the runs, who took part, and each
   player's points. Taking part adds the point in the same transaction, once per run.
-- **Server** (`game/server/ServerWorldEvents.cs`): the schedule, the start, the
+- **Server** (`game/server/world/ServerWorldEvents.cs`): the schedule, the start, the
   participation check each tick, the end, the drops, and the rows sent to the
   Notifications app. The live event is only in memory. At start it ends every run the
   database still has as running, as ended by a restart.
-- **Drones** (`game/server/ServerDrones.cs`): one instance a zone. The town's patrols
+- **Drones** (`game/server/world/ServerDrones.cs`): one instance a zone. The town's patrols
   (a pair when there is none). The meadows' only swarms (`SpawnSwarm`). The EMP goes to
   the instance of the player's zone.
 - **Client**: the Notifications app (`TerminalApps.Notifications`, on terminals and the
@@ -53,7 +53,7 @@ The rows, the points and the app need no change.
   stands at the spot with an EMP worn. A swarm of two starts at once. The player brings
   it down, then reads "completed" and "you took part" in Notifications.
 - Bot activity "check world events"
-  (`game/dev/activities/WorldEventActivities.cs`). The bot takes the phone out and reads
+  (`game/dev/bots/activities/CheckWorldEventsActivity.cs`). The bot takes the phone out and reads
   Notifications. With the swarm on, a coin flip decides if it goes. If it goes, it
   hunts with an EMP (if worn) while drones fly, then reads the past row. The `eventer`
   persona checks often. Try it alone with `.\scripts\bot-try.ps1 "check world events"`;

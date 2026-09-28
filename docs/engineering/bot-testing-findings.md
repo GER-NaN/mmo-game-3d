@@ -363,7 +363,7 @@ Fixed as found; kept here so the same thing is recognised next time.
 - **Bots back at the main menu.** The give step pressed Esc to close a give panel that
   had not opened (the other player was too far), which opened the game menu; a later
   blind click hit Leave to main menu. Now Esc only closes a panel that is open, and a
-  keeper (`game/dev/BotKeeper.cs`) brings a bot back from the main menu and closes a
+  keeper (`game/dev/bots/BotKeeper.cs`) brings a bot back from the main menu and closes a
   game menu left open.
 - **Refused logins after a quick restart.** Restarted within seconds, the new bots
   logged in while the server still had the old sessions, and were refused. Wait about

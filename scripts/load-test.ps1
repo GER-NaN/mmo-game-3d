@@ -11,7 +11,7 @@
 # -NoDiagnostics runs the server without its logs and traces, to see what they cost;
 # -LogPackets runs it with the packet log as well. -Scenario makes every bot keep doing
 # one thing instead of wandering (load-phone, load-defense, load-taxi, load-chat; see
-# game/dev/LoadBot.cs); the server is started with --dev-scenarios for it.
+# game/dev/load/LoadBot.cs); the server is started with --dev-scenarios for it.
 param(
     [int]$Bots = 50,
     [int]$PerProcess = 50,

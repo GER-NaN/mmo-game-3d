@@ -5,7 +5,7 @@ someone would take. Walk up to a tree, press use, it falls (everyone in the zone
 it), you get a log and Treework experience, and a stump stands there until the tree
 grows back.
 
-It follows the chest (`game/chests/Chest.cs`, `game/server/ServerChests.cs`), which does
+It follows the chest (`game/chests/Chest.cs`, `game/server/items/ServerChests.cs`), which does
 nearly the same: a thing with a synced state, swapped models, a sound, a refill timer.
 When a new mechanic looks like an existing one, open that one next to this.
 
@@ -15,7 +15,7 @@ When a new mechanic looks like an existing one, open that one next to this.
 | --- | --- | --- |
 | The rules and numbers | `src/Rules/` | plain C#: the skill, the item, the XP; unit-tested |
 | The thing in the world | a node class + scene in `game/<area>/` | what everyone sees; synced state; sounds and effects on the client |
-| The server part | `game/server/Server<Thing>.cs` | what using it does: checks, state change, rewards, timers |
+| The server part | `game/server/<area>/Server<Thing>.cs` | what using it does: checks, state change, rewards, timers |
 | The hook-up | `ServerInteractions.Use`, `ServerGame.Start`, `ServerGame`'s tick | routes a use to the part, builds it, ticks it |
 | Placement | the zone scene, in the editor | where the things stand |
 | Sound | `game/audio/sounds.json` | the catalog entry the client plays |
@@ -133,7 +133,7 @@ Then **Build** (the hammer in the editor, or `dotnet build`), so the editor know
 
 ## 4. The server part (code)
 
-`game/server/ServerTrees.cs`:
+`game/server/world/ServerTrees.cs`:
 
 ```csharp
 namespace MmoGame3d.Server;
@@ -220,10 +220,10 @@ What the server part must do, whatever the mechanic:
 
 ## 5. The hook-up (code)
 
-- `game/server/ServerInteractions.cs`: a property
+- `game/server/core/ServerInteractions.cs`: a property
   `public ServerTrees? Trees { get; set; }`, and in `Use`'s switch:
   `case MmoGame3d.Forest.ChoppableTree tree: Trees?.Chop(session, tree); break;`
-- `game/server/ServerGame.cs`, in `Start` next to the chests:
+- `game/server/core/ServerGame.cs`, in `Start` next to the chests:
   `_trees = new ServerTrees(network, _progress, SendInventory);` and
   `_interactions.Trees = _trees;` (with a field `private ServerTrees _trees = null!;`).
 - `ServerGame`'s tick, next to `_chests.Tick();`: `_trees.Tick();`
@@ -257,9 +257,9 @@ file. Missing files are skipped with a log line, so the game runs without it.
 
 ## 8. Prove it (dev scenario)
 
-- `game/server/ServerScenarios.cs`, in `Apply`'s switch: set the player up beside a tree:
+- `game/dev/scenarios/ServerScenarios.cs`, in `Apply`'s switch: set the player up beside a tree:
   `case "chop": StandBy(record, ZoneIds.Outskirts, "Pine0", new Vector3(0f, 0f, 1.3f)); break;`
-- `game/dev/ScenarioDriver.cs`, in its switch: use it and expect the notice:
+- `game/dev/scenarios/ScenarioDriver.cs`, in its switch: use it and expect the notice:
   `case "chop": Use("Chop the pine"); Expect("it chopped", () => Noticed("You chopped the pine and got a log.")); break;`
 - `scripts/scenario-test.ps1`: add `"chop"` to the `$Scenarios` list.
 - Run `.\scripts\scenario-test.ps1 -Scenarios chop`.

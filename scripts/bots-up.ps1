@@ -9,7 +9,7 @@
 #                                          bigger game views and pictures, for runs
 #                                          nobody watches
 #   .\scripts\bots-up.ps1 -Personas gamer,gamer,curious
-#                                          who each bot is, in turn (game/dev/BotPersonas.cs);
+#                                          who each bot is, in turn (game/dev/bots/BotPersonas.cs);
 #                                          the default mix has one of each
 #
 # Each bot is a player of its own (profile soakN), kept between runs, and logs to

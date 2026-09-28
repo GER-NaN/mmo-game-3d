@@ -4,7 +4,7 @@
 #   .\scripts\server-stop.ps1              the server on port 7070
 #   .\scripts\server-stop.ps1 -Port 7071   another one
 #
-# It writes a stop file the server checks for (see game/server/StopSignals.cs), then
+# It writes a stop file the server checks for (see game/server/core/StopSignals.cs), then
 # waits for the server to quit.
 param(
     [int]$Port = 7070,

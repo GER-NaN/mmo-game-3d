@@ -6,7 +6,7 @@
 #   .\scripts\scenario-test.ps1                        every scenario
 #   .\scripts\scenario-test.ps1 -Scenarios defense,subway
 #
-# Scenarios are in game/server/ServerScenarios.cs (setup) and game/dev/ScenarioDriver.cs
+# Scenarios are in game/dev/scenarios/ServerScenarios.cs (setup) and game/dev/scenarios/ScenarioDriver.cs
 # (the test). The server needs Postgres with the mmo3d database, as for server-up.ps1.
 # Each run is a new player ("Test <name>"), so nothing from an earlier run is in the way.
 param(

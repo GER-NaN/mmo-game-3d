@@ -84,7 +84,7 @@ csharp_new_line_before_finally = true
 dotnet_diagnostic.IDE0130.severity = none
 
 # Startup files: reflection allowed here, and only here (see BannedSymbols.txt)
-[{game/dev/BotCatalog.cs,src/Data/MigrationRunner.cs}]
+[{game/dev/bots/BotCatalog.cs,src/Data/MigrationRunner.cs}]
 dotnet_diagnostic.RS0030.severity = none
 dotnet_diagnostic.GAME0006.severity = none
 

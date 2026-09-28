@@ -34,11 +34,11 @@ are at most 16 characters). Each scenario must end within a minute; today the lo
 takes 15 s.
 
 - The client sends the scenario's name before it logs in. The server
-  (`game/server/ServerScenarios.cs`) sets the player up at login: where they stand, what
+  (`game/dev/scenarios/ServerScenarios.cs`) sets the player up at login: where they stand, what
   they carry, what is going on around them (the taxis infected and the job taken, drones
   up, short Agent Defense runs). Without `--dev-scenarios` the server ignores the
   request.
-- The client's `game/dev/ScenarioDriver.cs` then tests the feature through input (keys,
+- The client's `game/dev/scenarios/ScenarioDriver.cs` then tests the feature through input (keys,
   clicks, typing), step by step, and prints `SCENARIO <name>: PASS` or `FAIL` with the
   step it stopped at and the notices it saw, then quits with exit code 0 or 1.
 - Scenarios: cracker, rootkit, defense, cameras, subway, book, workbench, college, lights,
