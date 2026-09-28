@@ -31,6 +31,8 @@ using MmoGame3d.Rules.Time;
 ///   --persona curious   with --bot: who the bot is (game/dev/bots/BotPersonas.cs)
 ///   --bot-only "x"      with --bot: only the activity or goal named x, again and
 ///                       again (scripts/bot-try.ps1), to replay or try one thing
+///   --bot-everything    the client plays every activity in turn, shuffled, each to its
+///                       end, and prints a tally each round (scripts/bot-everything.ps1)
 ///   --windowed          stay in a window whatever the saved settings say, without
 ///                       changing them (scripts/bots-up.ps1 tiles its bots)
 ///   --report-every 2    print what the client sees every 2 seconds
@@ -81,6 +83,7 @@ public class LaunchOptions
     public bool Windowed { get; private set; }
     public string Persona { get; private set; } = "wanderer";
     public string BotOnly { get; private set; } = "";
+    public bool BotEverything { get; private set; }
     public string? Scenario { get; private set; }
 
     // Load tests: the dev scenario every load bot asks for and then keeps doing.
@@ -182,6 +185,11 @@ public class LaunchOptions
                 case "--bot":
                     options.Bot = true;
                     options.AutoConnect = true;
+                    break;
+                case "--bot-everything":
+                    options.Bot = true;
+                    options.AutoConnect = true;
+                    options.BotEverything = true;
                     break;
                 case "--bot-only":
                     options.BotOnly = next;

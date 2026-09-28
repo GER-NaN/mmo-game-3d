@@ -13,4 +13,7 @@ public static class PersonaActivities
     public static readonly BotActivity SqueezeIntoAGap = new SqueezeIntoAGapActivity();
     public static readonly BotActivity ShadowSomeone = new ShadowSomeoneActivity();
     public static readonly BotActivity SaySomethingOdd = new SaySomethingOddActivity();
+
+    // For the bot that does everything (EverythingRun).
+    public static readonly BotActivity[] All = { PokeAround, PokeAtTerminal, RunForTheEdge, MashKeys, SqueezeIntoAGap, ShadowSomeone, SaySomethingOdd };
 }
