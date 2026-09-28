@@ -150,13 +150,20 @@ public sealed class BotNavigation
 
     public bool Pending
     {
-        get { return _ready && NavigationServer3D.MapGetClosestPoint(_map, _probe).DistanceTo(_probe) > 1f && Time.GetTicksMsec() - _bakedMsec < PendingAtMost; }
+        get { return _ready && (!Synced || NavigationServer3D.MapGetClosestPoint(_map, _probe).DistanceTo(_probe) > 1f) && Time.GetTicksMsec() - _bakedMsec < PendingAtMost; }
+    }
+
+    // A map asked anything before its first synchronization answers with an error and
+    // nothing; that is the first moments in a new zone.
+    private bool Synced
+    {
+        get { return NavigationServer3D.MapGetIterationId(_map) > 0; }
     }
 
     // The nearest point of the mesh, for the log when a path fails.
     public Vector3 Closest(Vector3 to)
     {
-        return _ready ? NavigationServer3D.MapGetClosestPoint(_map, to) : to;
+        return _ready && Synced ? NavigationServer3D.MapGetClosestPoint(_map, to) : to;
     }
 
     // What the navigation map holds round a spot, as the paths see it: a text map, 0.5 m a
@@ -165,9 +172,9 @@ public sealed class BotNavigation
     // finding shows whether the ground is missing or the map is.
     public string MapAround(Vector3 start, Vector3 target)
     {
-        if (!_ready)
+        if (!_ready || !Synced)
         {
-            return "(no mesh here)";
+            return "(no mesh here yet)";
         }
 
         const float Cell = 0.5f;
@@ -204,7 +211,7 @@ public sealed class BotNavigation
     // The points to walk through, first to last; empty with no mesh here.
     public Vector3[] Path(Vector3 from, Vector3 to)
     {
-        if (!_ready)
+        if (!_ready || !Synced)
         {
             return Array.Empty<Vector3>();
         }
