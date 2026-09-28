@@ -144,6 +144,9 @@ public class ServerScenarios
             case "phone-dead":
                 EquipPhone(session, 0f);
                 break;
+            case "unequip":
+                EquipPhone(session);
+                break;
             case "drop-wall":
                 // Up against the front of a north-side building, facing it (-z), with
                 // something to drop.

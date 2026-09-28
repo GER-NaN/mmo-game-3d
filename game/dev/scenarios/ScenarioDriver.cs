@@ -292,6 +292,43 @@ public partial class ScenarioDriver : Node
                 Step("wheel over the registrar's panel", () => WheelOverPanel<CollegePanel>(CollegePanel.ClassGroup));
                 Expect("the camera not zoomed", () => CameraDistance() == _distanceBefore);
                 break;
+            case "unequip":
+                Step("open the bag", () =>
+                {
+                    Input.ParseInputEvent(new InputEventAction { Action = "inventory", Pressed = true });
+                    Input.ParseInputEvent(new InputEventAction { Action = "inventory", Pressed = false });
+                    return true;
+                });
+                Step("click the worn phone's slot", () =>
+                {
+                    foreach (Node node in GetTree().GetNodesInGroup(InventoryPanel.SlotGroup))
+                    {
+                        Button? slot = node as Button;
+
+                        if (slot != null && !slot.Disabled)
+                        {
+                            BotDriver.Click(slot.GetGlobalRect().GetCenter());
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
+                Expect("every slot empty", () =>
+                {
+                    Godot.Collections.Array<Node> slots = GetTree().GetNodesInGroup(InventoryPanel.SlotGroup);
+
+                    foreach (Node node in slots)
+                    {
+                        if (!((Button)node).Disabled)
+                        {
+                            return false;
+                        }
+                    }
+
+                    return slots.Count > 0;
+                });
+                break;
             case "plant-card":
                 Use("Inspect");
                 Expect("the card, with a title and a history", () =>

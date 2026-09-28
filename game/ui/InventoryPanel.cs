@@ -13,6 +13,7 @@ public partial class InventoryPanel : PanelContainer
     // Bots find the Equip and Drop buttons by these groups, then click them like a person.
     public const string EquipGroup = "inventory_equip";
     public const string DropGroup = "inventory_drop";
+    public const string SlotGroup = "inventory_slot";
 
     private static readonly Color[] TierColors =
     {
@@ -70,6 +71,7 @@ public partial class InventoryPanel : PanelContainer
 
             SlotType pressed = slot;
             frame.FocusMode = FocusModeEnum.None;
+            frame.AddToGroup(SlotGroup);
             frame.Pressed += () =>
             {
                 Guid id;
