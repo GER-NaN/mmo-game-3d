@@ -337,18 +337,35 @@ public partial class ScenarioDriver : Node
                     return true;
                 });
                 Step("open the repair pack", () => ClickGroup(InventoryPanel.RepairPackGroup));
-                Expect("the workbench, away from any bench", () =>
+                Expect("the workbench, away from any bench", () => Showing<WorkbenchPanel>() != null);
+                break;
+            case "settings":
+                Step("press Esc for the game menu", () =>
                 {
-                    foreach (Node node in GetTree().Root.FindChildren("*", "PanelContainer", true, false))
+                    Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = true });
+                    Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = false });
+                    return true;
+                });
+                Step("open Settings", () => ClickGroup(InGameMenu.SettingsGroup));
+                Step("click the far end of the camera distance", () =>
+                {
+                    SettingsPanel? settings = Showing<SettingsPanel>();
+
+                    if (settings == null)
                     {
-                        if (node is WorkbenchPanel)
-                        {
-                            return true;
-                        }
+                        return false;
                     }
 
-                    return false;
+                    _distanceBefore = CameraDistance();
+                    Rect2 slider = settings.GetNode<HSlider>("%Distance").GetGlobalRect();
+                    BotDriver.Click(slider.Position + new Vector2(slider.Size.X * 0.95f, slider.Size.Y / 2f));
+                    return true;
                 });
+                Expect("the camera farther back", () => CameraDistance() > _distanceBefore + 1f);
+                Step("go back", () => ClickGroup(SettingsPanel.BackGroup));
+                Expect("Settings closed", () => Showing<SettingsPanel>() == null);
+                Step("resume", () => ClickGroup(InGameMenu.ResumeGroup));
+                Expect("the game menu closed", () => Showing<InGameMenu>() == null);
                 break;
             case "plant-card":
                 Use("Inspect");
@@ -541,6 +558,23 @@ public partial class ScenarioDriver : Node
 
         camera.Distance = (Players.ChaseCamera.MinDistance + Players.ChaseCamera.MaxDistance) / 2f;
         return true;
+    }
+
+    // The first node of this type anywhere under the root: an open panel or menu.
+    private T? Showing<T>()
+        where T : Node
+    {
+        foreach (Node node in GetTree().Root.FindChildren("*", "", true, false))
+        {
+            T? found = node as T;
+
+            if (found != null && found.IsInsideTree())
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private float CameraDistance()
