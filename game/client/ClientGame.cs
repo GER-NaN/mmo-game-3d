@@ -950,7 +950,11 @@ public partial class ClientGame : Node
                 instances.Add(new ItemInstance(item.Id, item.Type, item.Tier) { ParentId = item.ParentId, Slot = item.Slot, Charge = item.Charge });
             }
 
-            return new ClientView(_zoneId, _dollars, new Belongings(stacks, instances));
+            byte[]? cells;
+            _maps.TryGetValue(_zoneId, out cells);
+            byte[] mapCells = cells == null ? new byte[0] : (byte[])cells.Clone();
+
+            return new ClientView(_zoneId, _dollars, new Belongings(stacks, instances), mapCells);
         }
     }
 
