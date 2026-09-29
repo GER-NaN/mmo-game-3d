@@ -20,6 +20,7 @@ Run it with the script, which builds everything first:
 .\scripts\bots-run.ps1 -Soak -Duration 3600       the soak: every persona for an hour
 .\scripts\bots-run.ps1 -Bots jump:connect -Seed 42   the same random choices again
 .\scripts\bots-stop.ps1                           stops the newest run's bots
+.\scripts\bots-stop.ps1 -Run 20260929-011607      stops that run's bots
 ```
 
 A bot is `activity` or `@persona`, then `:connect` (a kept player of its own,
