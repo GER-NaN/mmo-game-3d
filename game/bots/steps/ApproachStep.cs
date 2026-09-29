@@ -38,6 +38,10 @@ public class ApproachStep<T> : BotStep
     // Spots are kept this far out of a door's trigger, which would take the bot elsewhere.
     private const float DoorMargin = 1.5f;
 
+    // Stopped this near a thing with no spot left, a player squeezes the last of the way.
+    private const float SqueezeFrom = 1.5f;
+    private const float SqueezeDoorMargin = 0.5f;
+
     private readonly List<Vector3> _spots = new List<Vector3>();
     private string _zoneId = "";
     private readonly string _which;
@@ -51,6 +55,9 @@ public class ApproachStep<T> : BotStep
 
     // In reach, but something else is nearer: walking straight at the thing.
     private bool _closingIn;
+
+    // No spot could be walked to: straight at the thing, past what the paths keep off.
+    private bool _squeezing;
 
     // which: words for the check, for the step's name ("broken"); empty for any.
     public ApproachStep(string which, Func<T, bool> check)
@@ -132,6 +139,19 @@ public class ApproachStep<T> : BotStep
             _spot++;
             _closingIn = false;
 
+            // Every spot off the walkable ground (a lamp in front, a door's block beside): the
+            // last of the way straight at the thing, as a player squeezes by, when no door
+            // lies on that line.
+            if (_spot >= _spots.Count && !_squeezing && Flat(feet, _target.GlobalPosition) <= _target.Reach + SqueezeFrom && ClearOfDoors(zone, feet, _target.GlobalPosition))
+            {
+                _squeezing = true;
+                body.Events.Write("squeezing", "straight at " + _target.Name);
+                body.Navigator.Go(zone, _target.GlobalPosition, true);
+                body.Navigator.StraightOn();
+                body.Navigator.Tick(body, delta);
+                return BotStepState.Running;
+            }
+
             if (_spot >= _spots.Count)
             {
                 return Fail("no spot in reach of " + _target.Name + " could be walked to; last stopped " + Flat(feet, _target.GlobalPosition).ToString("0.0") + " m from it (reach " + _target.Reach + " m)");
@@ -162,7 +182,7 @@ public class ApproachStep<T> : BotStep
             float angle = i * Mathf.Tau / Spots;
             Vector3 spot = _laidAround + new Vector3(Mathf.Cos(angle) * radius, 0, Mathf.Sin(angle) * radius);
 
-            if (!InADoor(zone, spot))
+            if (!InADoor(zone, spot, DoorMargin))
             {
                 _spots.Add(spot);
             }
@@ -181,8 +201,24 @@ public class ApproachStep<T> : BotStep
         body.Navigator.Go(zone, _spots[0], false);
     }
 
-    // Within a door's trigger, or near it.
-    private static bool InADoor(Zone zone, Vector3 spot)
+    // A straight walk from here to there stays out of every door's trigger.
+    private static bool ClearOfDoors(Zone zone, Vector3 from, Vector3 to)
+    {
+        int samples = Mathf.Max(1, Mathf.CeilToInt(Flat(from, to) / 0.25f));
+
+        for (int i = 0; i <= samples; i++)
+        {
+            if (InADoor(zone, from.Lerp(to, (float)i / samples), SqueezeDoorMargin))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Within a door's trigger, or within the margin of it.
+    private static bool InADoor(Zone zone, Vector3 spot, float margin)
     {
         Node? doors = zone.GetNodeOrNull("Doors");
 
@@ -203,7 +239,7 @@ public class ApproachStep<T> : BotStep
 
             Vector3 local = shape.ToLocal(spot);
 
-            if (Mathf.Abs(local.X) <= (box.Size.X / 2) + DoorMargin && Mathf.Abs(local.Z) <= (box.Size.Z / 2) + DoorMargin)
+            if (Mathf.Abs(local.X) <= (box.Size.X / 2) + margin && Mathf.Abs(local.Z) <= (box.Size.Z / 2) + margin)
             {
                 return true;
             }

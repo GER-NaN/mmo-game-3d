@@ -67,7 +67,7 @@ public static class ItemActivities
                     before = BotFacts.BagCount(body);
                     noticesAt = body.View?.NoticeCount ?? 0;
                 })
-                .Use<Chest>("full", chest => chest.HasItem)
+                .Use<Chest>()
                 .Until("the bag holds more, or someone emptied the chest first", body =>
                 {
                     return BotFacts.BagCount(body) > before || body.NoticesSince(noticesAt).Exists(notice => notice.Contains("chest is empty"));
