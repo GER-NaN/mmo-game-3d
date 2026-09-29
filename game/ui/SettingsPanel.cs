@@ -84,7 +84,8 @@ public partial class SettingsPanel : Control
         {
             string bound = action;
             keys.AddChild(new Label { Text = ActionNames[action] });
-            Button button = new Button { CustomMinimumSize = new Vector2(120, 0) };
+            // Named for its action, so it can be found by it (bots.md T2).
+            Button button = new Button { Name = "Key_" + action, CustomMinimumSize = new Vector2(120, 0) };
             button.Pressed += () => StartRebinding(bound);
             keys.AddChild(button);
             _keyButtons[action] = button;
