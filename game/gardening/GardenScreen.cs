@@ -75,6 +75,11 @@ public partial class GardenScreen : Control
     private Node3D? _heldModel;
     private bool _heldOnSoil;
 
+    // From the soil spot under the mouse to the held piece's spot, kept while it is
+    // dragged, so it moves with the mouse instead of jumping under it. Null until the
+    // first move over the table.
+    private Vector2? _grab;
+
     // The placed piece the mouse is on, tinted; -1 for none.
     private int _hovered = -1;
 
@@ -278,6 +283,7 @@ public partial class GardenScreen : Control
         _held = new PlantPiece { Id = id, Yaw = (float)GD.RandRange(-Mathf.Pi, Mathf.Pi) };
         _heldModel = PlantBuilder.Model(id);
         _heldOnSoil = true;
+        _grab = null;
 
         if (_heldModel != null)
         {
@@ -301,6 +307,7 @@ public partial class GardenScreen : Control
         GetViewport().SetInputAsHandled();
         _held = _design.Pieces[nearest];
         _heldModel = _models[nearest];
+        _grab = null;
         _design.Pieces.RemoveAt(nearest);
         _models.RemoveAt(nearest);
         Refresh();
@@ -424,9 +431,15 @@ public partial class GardenScreen : Control
             return;
         }
 
-        _heldOnSoil = spot.Value.Length() <= 1f;
-        _held.X = spot.Value.X;
-        _held.Z = spot.Value.Y;
+        if (_grab == null)
+        {
+            _grab = new Vector2(_held.X, _held.Z) - spot.Value;
+        }
+
+        Vector2 at = spot.Value + _grab.Value;
+        _heldOnSoil = at.Length() <= 1f;
+        _held.X = at.X;
+        _held.Z = at.Y;
 
         if (_heldModel != null)
         {
