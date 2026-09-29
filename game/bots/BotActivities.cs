@@ -54,6 +54,7 @@ public static class BotActivities
         all.AddRange(ItemActivities.All());
         all.AddRange(TownActivities.All());
         all.AddRange(TerminalActivities.All());
+        all.AddRange(ChaosActivities.All());
         return all;
     }
 }

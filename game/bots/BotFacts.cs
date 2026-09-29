@@ -16,6 +16,12 @@ public static class BotFacts
         return device != null && device.Type == ItemType.Phone;
     });
 
+    public static readonly BotFact EmpEquipped = new BotFact("emp-equipped", "EMP emitter equipped", body =>
+    {
+        ItemInstance? tool = body.View?.Belongings.Equipped(SlotType.Tool);
+        return tool != null && tool.Type == ItemType.EmpEmitter;
+    });
+
     public static readonly BotFact Fullscreen = new BotFact("fullscreen", "fullscreen", body =>
     {
         DisplayServer.WindowMode mode = DisplayServer.WindowGetMode();

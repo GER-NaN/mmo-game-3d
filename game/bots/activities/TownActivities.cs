@@ -66,6 +66,23 @@ public static class TownActivities
                 .UntilClosed("visitor-book"))
                 .Says("Who's been here?"),
 
+            new BotActivity("equip-emp", new[] { BotFacts.EmpEquipped }, plan => plan
+                .InWorld()
+                .Need(BotFacts.Carrying(ItemType.EmpEmitter))
+                .Press("inventory")
+                .UntilOpen("inventory")
+                .Click("Equip on the EMP emitter", body => BotScreens.RowButton(body.Find<InventoryPanel>()?.GetNode("%Things"), ItemType.EmpEmitter + "_", "Equip"))
+                .Until(BotFacts.EmpEquipped)
+                .Press("inventory")
+                .UntilClosed("inventory")),
+
+            new BotActivity("hunt-drone", plan => plan
+                .InWorld()
+                .Need(BotFacts.EmpEquipped)
+                .GoTo(ZoneIds.Town)
+                .Step(new HuntStep()))
+                .Says("Drone spotted!", "Get down here."),
+
             TalkTo("Registrar"),
             TalkTo("Professor"),
         };
