@@ -508,17 +508,12 @@ public partial class ClientGame : Node
             return;
         }
 
-        if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null || _recycler != null || _plantCard != null || _book != null) && @event.IsActionPressed("ui_cancel"))
+        // Esc closes an open panel, as its X does, the ones on their own keys (the bag,
+        // Friends, Skills) too; with none open it opens the game menu.
+        if (AnyPanelOpen() && @event.IsActionPressed("ui_cancel"))
         {
-            CloseBook();
             GetViewport().SetInputAsHandled();
-            CloseShop();
-            CloseWorkbench();
-            CloseGive();
-            CloseMap();
-            CloseCollege();
-            CloseRecycler();
-            ClosePlantCard();
+            ClosePanels();
             return;
         }
 
@@ -1726,6 +1721,13 @@ public partial class ClientGame : Node
     }
 
     // One panel at a time: opening one closes whichever was open.
+    // The panels ClosePanels closes.
+    private bool AnyPanelOpen()
+    {
+        return _inventoryPanel != null || _shop != null || _workbench != null || _give != null || _recycler != null || _college != null
+            || _skills != null || _social != null || _map != null || _plantCard != null || _book != null;
+    }
+
     private void ClosePanels()
     {
         CloseInventory();
