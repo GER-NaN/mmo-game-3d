@@ -4,10 +4,11 @@ using System.Data;
 using Dapper;
 using MmoGame3d.Rules.Town;
 
-// The subway walls' tags. A tag is written once and never changed or removed.
+// The subway walls' tags. A tag is written once and never changed or removed; its place
+// on the wall is written once too, just after.
 public class SubwayStore
 {
-    private const string Select = "select id as Id, player_name as Name, paint as Paint from subway_tags";
+    private const string Select = "select id as Id, player_name as Name, paint as Paint, x as X, y as Y, angle as Angle, size as Size from subway_tags";
 
     private readonly Database _database;
 
@@ -27,6 +28,15 @@ public class SubwayStore
             new { wall, playerId, playerName, paint = (long)paint });
         made = id.HasValue;
         return connection.QuerySingle<TagRow>(Select + " where wall = @wall and player_id = @playerId;", new { wall, playerId }).ToTag();
+    }
+
+    // Where the tag is on the wall; a tag already placed keeps its place.
+    public void Place(long id, TagPlace place)
+    {
+        using IDbConnection connection = _database.Open();
+        connection.Execute(
+            "update subway_tags set x = @X, y = @Y, angle = @Angle, size = @Size where id = @id and x is null;",
+            new { id, place.X, place.Y, place.Angle, place.Size });
     }
 
     // The newest, oldest first, as the wall shows them.
@@ -59,10 +69,21 @@ public class SubwayStore
         public long Id { get; set; }
         public string Name { get; set; } = "";
         public long Paint { get; set; }
+        public float? X { get; set; }
+        public float? Y { get; set; }
+        public float? Angle { get; set; }
+        public int? Size { get; set; }
 
         public SubwayTag ToTag()
         {
-            return new SubwayTag { Id = Id, Name = Name, Paint = (uint)Paint };
+            SubwayTag tag = new SubwayTag { Id = Id, Name = Name, Paint = (uint)Paint };
+
+            if (X != null && Y != null && Angle != null && Size != null)
+            {
+                tag.Place = new TagPlace { X = X.Value, Y = Y.Value, Angle = Angle.Value, Size = Size.Value };
+            }
+
+            return tag;
         }
     }
 }

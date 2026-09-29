@@ -27,6 +27,9 @@ public class ServerSubway
     private readonly List<SubwayTag> _shown = new List<SubwayTag>();
     private readonly Random _random = new Random();
 
+    // How far above the feet a player sprays.
+    private const float SprayHeight = 1.5f;
+
     public ServerSubway(Network session, PersistenceWorker worker, SubwayStore store, VisibilityGate gate, Zone zone)
     {
         _session = session;
@@ -50,11 +53,58 @@ public class ServerSubway
             () => _store.Newest(SubwayWall.OldTown, SubwayWall.Shown),
             tags =>
             {
-                _shown.AddRange(tags);
+                foreach (SubwayTag tag in tags)
+                {
+                    if (tag.Place == null)
+                    {
+                        PlaceOld(tag);
+                    }
+
+                    _shown.Add(tag);
+                }
+
                 Wall.Tags = SubwayWall.Pack(_shown);
                 GD.Print("Subway: " + tags.Count + " names on the wall");
             },
             e => GD.PrintErr("Loading the subway wall failed: " + e.Message));
+    }
+
+    // A tag sprayed before places were kept: somewhere free, near a spot picked from its
+    // number, and kept there from now on.
+    private void PlaceOld(SubwayTag tag)
+    {
+        Random spot = new Random((int)(tag.Id * 7919 % int.MaxValue));
+        float wantX = ((float)spot.NextDouble() - 0.5f) * SubwayWall.Width;
+        float wantY = SubwayWall.Low + ((float)spot.NextDouble() * (SubwayWall.High - SubwayWall.Low));
+        tag.Place = PlaceNew(tag.Name, spot, wantX, wantY);
+        long id = tag.Id;
+        TagPlace place = tag.Place;
+        _worker.Enqueue(() => _store.Place(id, place), e => GD.PrintErr("Placing a subway tag failed: " + e.Message));
+    }
+
+    // The free spot nearest the one wanted, at a random size and slant. On a full wall, the
+    // wanted spot, over whatever is there.
+    private TagPlace PlaceNew(string name, Random random, float wantX, float wantY)
+    {
+        int size = SubwayWall.SmallestSize + random.Next(SubwayWall.LargestSize - SubwayWall.SmallestSize + 1);
+        float angle = (float)((random.NextDouble() * 2.0) - 1.0) * SubwayWall.MostSlant;
+        TagPlace? place = TagPlacement.Find(_shown, name, size, angle, wantX, wantY);
+
+        if (place != null)
+        {
+            return place;
+        }
+
+        float halfWidth = TagPlacement.Width(name, size) / 2f;
+        float halfHeight = TagPlacement.Height(size) / 2f;
+
+        return new TagPlace
+        {
+            X = Math.Clamp(wantX, (-SubwayWall.Width / 2f) + halfWidth, Math.Max((-SubwayWall.Width / 2f) + halfWidth, (SubwayWall.Width / 2f) - halfWidth)),
+            Y = Math.Clamp(wantY, SubwayWall.Low + halfHeight, Math.Max(SubwayWall.Low + halfHeight, SubwayWall.High - halfHeight)),
+            Angle = angle,
+            Size = size,
+        };
     }
 
     public void Spray(Session session)
@@ -65,8 +115,23 @@ public class ServerSubway
         uint paint = SubwayWall.Paints[_random.Next(SubwayWall.Paints.Length)];
         bool made = false;
 
+        // In front of the player: where they stand along the wall, at about head height.
+        Vector3 facing = Wall.ToLocal(session.Body!.GlobalPosition + new Vector3(0f, SprayHeight, 0f));
+        TagPlace place = PlaceNew(name, _random, facing.X, facing.Y);
+
         _worker.Enqueue(
-            () => _store.Spray(SubwayWall.OldTown, playerId, name, paint, out made),
+            () =>
+            {
+                SubwayTag sprayed = _store.Spray(SubwayWall.OldTown, playerId, name, paint, out made);
+
+                if (made)
+                {
+                    _store.Place(sprayed.Id, place);
+                    sprayed.Place = place;
+                }
+
+                return sprayed;
+            },
             tag =>
             {
                 if (!made)

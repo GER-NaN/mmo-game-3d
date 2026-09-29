@@ -1,6 +1,5 @@
 namespace MmoGame3d.Subway;
 
-using System;
 using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Interact;
@@ -8,8 +7,8 @@ using MmoGame3d.Rules.Town;
 
 /// <summary>
 /// The tiled wall in the subway where players spray their names (SubwayWall has the
-/// rules). The newest tags are synced as one text; each client paints them on the wall,
-/// every tag in the same spot and slant on every screen, worked out from its number.
+/// rules). The newest tags are synced as one text, each with the place the server gave
+/// it; each client paints them there.
 /// </summary>
 public partial class SubwayWallNode : Interactable
 {
@@ -19,11 +18,6 @@ public partial class SubwayWallNode : Interactable
     {
         AddToGroup(Group);
     }
-
-    // The paintable face, centred on the node, facing +Z. Placeholders.
-    private const float Width = 13f;
-    private const float Low = 0.7f;
-    private const float High = 2.6f;
 
     [Export]
     public string Tags { get; set; } = "";
@@ -58,19 +52,24 @@ public partial class SubwayWallNode : Interactable
         }
     }
 
+    // The paintable face is centred on the node, facing +Z.
     private void Paint(SubwayTag tag)
     {
-        Random spot = new Random((int)(tag.Id * 7919 % int.MaxValue));
+        if (tag.Place == null)
+        {
+            return;
+        }
+
         Label3D label = new Label3D
         {
             Text = tag.Name,
             Modulate = new Color(tag.Paint),
             OutlineModulate = new Color(0.08f, 0.08f, 0.1f, 0.9f),
-            OutlineSize = 10,
-            FontSize = 56 + spot.Next(40),
-            PixelSize = 0.006f,
-            Position = new Vector3(((float)spot.NextDouble() - 0.5f) * Width, Low + ((float)spot.NextDouble() * (High - Low)), 0.2f),
-            RotationDegrees = new Vector3(0f, 0f, (float)((spot.NextDouble() - 0.5) * 24.0)),
+            OutlineSize = SubwayWall.Outline,
+            FontSize = tag.Place.Size,
+            PixelSize = SubwayWall.PixelSize,
+            Position = new Vector3(tag.Place.X, tag.Place.Y, 0.2f),
+            RotationDegrees = new Vector3(0f, 0f, tag.Place.Angle),
             DoubleSided = false,
         };
         AddChild(label);
