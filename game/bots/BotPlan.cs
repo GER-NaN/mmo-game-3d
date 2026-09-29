@@ -126,7 +126,27 @@ public class BotPlan
     public BotPlan Use<T>()
         where T : Interactable
     {
-        return Step(new ApproachStep<T>()).Press("interact");
+        return Step(new ApproachStep<T>("", thing => true)).Press("interact");
+    }
+
+    // The same, among the things of the type that pass a check ("broken", thing =>
+    // thing.Broken).
+    public BotPlan Use<T>(string which, Func<T, bool> check)
+        where T : Interactable
+    {
+        return Step(new ApproachStep<T>(which, check)).Press("interact");
+    }
+
+    // Until the server says something containing these words, after this point.
+    public BotPlan UntilNotice(string words, double timeLimit = BotStep.DefaultTimeLimit)
+    {
+        return Step(new NoticeStep(words, timeLimit));
+    }
+
+    // Ends the activity here, as completed, if there is nothing for it to do.
+    public BotPlan StopIf(string why, Func<BotBody, bool> check)
+    {
+        return Step(new StopIfStep(why, check));
     }
 
     public BotPlan WatchForDrones(int wanted, double timeLimit)

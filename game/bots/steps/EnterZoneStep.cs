@@ -1,5 +1,6 @@
 namespace MmoGame3d.Bots;
 
+using Godot;
 using MmoGame3d.Zones;
 
 /// <summary>
@@ -13,11 +14,16 @@ public class EnterZoneStep : BotStep
     // Time to land in a zone before walking on.
     private const double SettleSeconds = 1;
 
+    // How far before a door the path ends, clear of its trigger.
+    private const float FrontDistance = 2f;
+
     private readonly string _target;
     private readonly bool _walkIn;
     private string _zoneId = "";
     private double _settled;
     private bool _walking;
+    private Door? _door;
+    private bool _inFront;
 
     public EnterZoneStep(string target, bool walkIn)
         : base((walkIn ? "enter " : "go to ") + target, 120)
@@ -67,6 +73,14 @@ public class EnterZoneStep : BotStep
 
         if (_walking)
         {
+            // At the spot before the door: straight on into it.
+            if (!_inFront && body.Navigator.Arrived && _door != null && GodotObject.IsInstanceValid(_door))
+            {
+                _inFront = true;
+                body.Navigator.Go(zone, _door.GlobalPosition, true);
+                body.Navigator.StraightOn();
+            }
+
             body.Navigator.Tick(body, delta);
             return BotStepState.Running;
         }
@@ -86,10 +100,22 @@ public class EnterZoneStep : BotStep
             return Fail("no way from " + _zoneId + " toward " + _target);
         }
 
-        body.Navigator.Go(zone, door.GlobalPosition, true);
+        _door = door;
+        _inFront = false;
+        body.Navigator.Go(zone, InFront(door, body.Player?.GlobalPosition ?? door.GlobalPosition), false);
         body.Events.Write("walking", "to the " + next + " door");
         _walking = true;
         return BotStepState.Running;
+    }
+
+    // A spot before the door on the side the player comes from: the path goes there, and
+    // then the walk goes straight on into the door, whose trigger is a block to the path.
+    private static Vector3 InFront(Door door, Vector3 from)
+    {
+        Vector3 normal = door.GlobalBasis.Z.Normalized() * FrontDistance;
+        Vector3 one = door.GlobalPosition + normal;
+        Vector3 other = door.GlobalPosition - normal;
+        return one.DistanceTo(from) <= other.DistanceTo(from) ? one : other;
     }
 
     public override void End(BotBody body)

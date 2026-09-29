@@ -1,5 +1,6 @@
 namespace MmoGame3d.Bots;
 
+using System.Collections.Generic;
 using System.IO;
 using Godot;
 
@@ -31,6 +32,9 @@ public partial class BotRunner : Node
     private bool _finished;
     private bool _onceOnly;
     private bool _allWell = true;
+
+    // The notice count when the activity began, to tell a failure what it was told since.
+    private int _noticesAtStart;
     private int _failures;
 
     public override void _Ready()
@@ -108,7 +112,9 @@ public partial class BotRunner : Node
         {
             _failures++;
             _allWell = false;
-            _events!.Write("failed", _run.FailReason + " at " + body.Where());
+            List<string> told = body.NoticesSince(_noticesAtStart);
+            string notice = told.Count > 0 ? "; last told \"" + told[told.Count - 1] + "\"" : "";
+            _events!.Write("failed", _run.FailReason + " at " + body.Where() + notice);
             body.SavePicture("failed-" + _failures + ".png");
         }
 
@@ -137,6 +143,7 @@ public partial class BotRunner : Node
 
         _run = new BotActivityRun(activity);
         _body.Run = _run;
+        _noticesAtStart = _body.View?.NoticeCount ?? 0;
         _events!.Activity = name;
         _events.Write("activity", name);
         return true;

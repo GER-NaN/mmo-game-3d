@@ -93,6 +93,12 @@ public class BotActivityRun
         _steps.InsertRange(_current + 1, steps);
     }
 
+    // The step now running is the last: nothing after it runs.
+    public void SkipRest()
+    {
+        _steps.RemoveRange(_current + 1, _steps.Count - _current - 1);
+    }
+
     // Leaves the activity where it is, as a distracted player does.
     public void Cancel(BotBody body)
     {

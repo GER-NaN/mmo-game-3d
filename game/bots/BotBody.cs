@@ -98,6 +98,13 @@ public class BotBody
         }
     }
 
+    // The first node in a group, as this type, or null: Old Town's TownState, say.
+    public T? InGroup<T>(string group)
+        where T : Node
+    {
+        return _node.GetTree().GetFirstNodeInGroup(group) as T;
+    }
+
     // The first visible screen of this type, or null.
     public T? Find<T>()
         where T : Control
@@ -183,6 +190,31 @@ public class BotBody
         InputEventKey up = (InputEventKey)enter.Duplicate();
         up.Pressed = false;
         Input.ParseInputEvent(up);
+    }
+
+    // The notices that came after the given count (ClientView.NoticeCount), oldest first.
+    // Only the newest are kept, so a very old count gets what is left.
+    public List<string> NoticesSince(int count)
+    {
+        List<string> fresh = new List<string>();
+        ClientView? view = View;
+
+        if (view == null)
+        {
+            return fresh;
+        }
+
+        int first = view.NoticeCount - view.Notices.Count;
+
+        for (int i = 0; i < view.Notices.Count; i++)
+        {
+            if (first + i >= count)
+            {
+                fresh.Add(view.Notices[i]);
+            }
+        }
+
+        return fresh;
     }
 
     // The text field that has the keys, or null.

@@ -22,8 +22,39 @@ public static class BotFacts
         return mode == DisplayServer.WindowMode.Fullscreen || mode == DisplayServer.WindowMode.ExclusiveFullscreen;
     });
 
-    // Something in the bag the recycler takes: a stack, or a thing not worn.
-    public static readonly BotFact Recyclable = new BotFact("recyclable", "something to recycle", body => BagCount(body) > 0);
+    // Something in the bag a bot will recycle: a stack, or a loose thing that is not a
+    // phone (the recycler takes a phone, but the bot's other activities need it).
+    public static readonly BotFact Recyclable = new BotFact("recyclable", "something to recycle", body => RecyclableRow(body) != null);
+
+    // The bag's first thing a bot will recycle, as the start of its row's name in the
+    // recycler: a stack first, then a loose thing that is not a phone; null for none.
+    public static string? RecyclableRow(BotBody body)
+    {
+        ClientView? view = body.View;
+
+        if (view == null)
+        {
+            return null;
+        }
+
+        foreach (ItemStack stack in view.Belongings.Stacks.Stacks)
+        {
+            if (stack.Quantity > 0)
+            {
+                return "Stack_" + stack.Type + "_" + stack.Tier;
+            }
+        }
+
+        foreach (ItemInstance item in view.Belongings.Instances)
+        {
+            if (item.IsLoose && item.Type != ItemType.Phone)
+            {
+                return item.Type + "_" + item.Id;
+            }
+        }
+
+        return null;
+    }
 
     // A stack in the bag, which is what can be dropped.
     public static readonly BotFact Stack = new BotFact("stack", "a stack in the bag", body =>

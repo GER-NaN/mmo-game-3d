@@ -29,6 +29,12 @@ public class BotNavigator
     private const float WalkWithin = 0.7f;
     private const float TurnDeadZone = 0.08f;
 
+    // Walking and not getting anywhere for this long, it backs off and sidesteps for a
+    // moment, then finds a path again from where it stands (bots.md R8: stuck recovery).
+    private const double StuckSeconds = 1.5;
+    private const float Progress = 0.3f;
+    private const double BackOffSeconds = 0.6;
+
     private Rid _map;
     private Rid _region;
 
@@ -41,6 +47,14 @@ public class BotNavigator
     private int _pathIndex;
     private bool _going;
     private bool _pastEnd;
+
+    // Walking straight at the target (StraightOn), with no path to find again.
+    private bool _straight;
+
+    private Vector3 _lastPlace;
+    private double _stillFor;
+    private double _backingFor;
+    private string _sidestep = "strafe_left";
 
     // The zone the map holds a mesh of, and whether one baked there at all.
     private Zone? _bakedZone;
@@ -64,6 +78,9 @@ public class BotNavigator
         _pathIndex = 0;
         _going = true;
         _pendingFor = 0;
+        _straight = false;
+        _stillFor = 0;
+        _backingFor = 0;
 
         if (_bakedZone != zone || !GodotObject.IsInstanceValid(_bakedZone))
         {
@@ -84,6 +101,7 @@ public class BotNavigator
     // walkable ground stops short of.
     public void StraightOn()
     {
+        _straight = true;
         _pathPending = false;
         _path = new Vector3[0];
         _pathIndex = 0;
@@ -129,12 +147,76 @@ public class BotNavigator
             body.Events.Write("route", Route);
         }
 
+        if (_backingFor > 0)
+        {
+            BackOff(body, player, delta);
+            return;
+        }
+
         Steer(body, player);
+        WatchProgress(body, player, delta);
+    }
+
+    // Holding forward and not getting anywhere: time to back off.
+    private void WatchProgress(BotBody body, Player player, double delta)
+    {
+        Vector3 here = player.GlobalPosition;
+
+        if (!Input.IsActionPressed("move_forward") || Flat(here, _lastPlace) >= Progress)
+        {
+            _lastPlace = here;
+            _stillFor = 0;
+            return;
+        }
+
+        _stillFor += delta;
+
+        if (_stillFor < StuckSeconds)
+        {
+            return;
+        }
+
+        _stillFor = 0;
+        _backingFor = BackOffSeconds;
+        _sidestep = body.Random.Next(2) == 0 ? "strafe_left" : "strafe_right";
+        body.Events.Write("unsticking", "backing off to the " + (_sidestep == "strafe_left" ? "left" : "right"));
+    }
+
+    // Back and to one side for a moment, then a path again from here.
+    private void BackOff(BotBody body, Player player, double delta)
+    {
+        body.Hold("move_forward", false);
+        body.Hold("turn_left", false);
+        body.Hold("turn_right", false);
+        body.Hold("move_back", true);
+        body.Hold(_sidestep, true);
+        _backingFor -= delta;
+
+        if (_backingFor > 0)
+        {
+            return;
+        }
+
+        body.Hold("move_back", false);
+        body.Hold(_sidestep, false);
+        _lastPlace = player.GlobalPosition;
+
+        if (_hasMesh && !_straight)
+        {
+            Vector3[] path = NavigationServer3D.MapGetPath(_map, player.GlobalPosition, _target, true);
+
+            if (path.Length > 0)
+            {
+                _path = path;
+                _pathIndex = 0;
+            }
+        }
     }
 
     public void Stop(BotBody body)
     {
         _going = false;
+        _backingFor = 0;
         LetGo(body);
     }
 
@@ -143,6 +225,9 @@ public class BotNavigator
         body.Hold("turn_left", false);
         body.Hold("turn_right", false);
         body.Hold("move_forward", false);
+        body.Hold("move_back", false);
+        body.Hold("strafe_left", false);
+        body.Hold("strafe_right", false);
     }
 
     private void Steer(BotBody body, Player player)
@@ -184,6 +269,7 @@ public class BotNavigator
 
         NavigationMeshSourceGeometryData3D source = new NavigationMeshSourceGeometryData3D();
         NavigationServer3D.ParseSourceGeometryData(mesh, source, zone);
+        AddDoors(zone, source);
         Vector3 size = source.GetBounds().Size;
 
         if (size.X > MaxBakeWidth || size.Z > MaxBakeWidth)
@@ -211,6 +297,30 @@ public class BotNavigator
         NavigationServer3D.RegionSetNavigationMesh(_region, mesh);
         _meshIteration = NavigationServer3D.MapGetIterationId(_map);
         return true;
+    }
+
+    // Doors are triggers, not walls, so the bake would path straight through one and the
+    // door would take the bot elsewhere. Each goes in as a solid block; a walk that means to
+    // go through one (EnterZone) walks on past the path's end into it.
+    private static void AddDoors(Zone zone, NavigationMeshSourceGeometryData3D source)
+    {
+        Node? doors = zone.GetNodeOrNull("Doors");
+
+        if (doors == null)
+        {
+            return;
+        }
+
+        foreach (Node door in doors.GetChildren())
+        {
+            CollisionShape3D? shape = door.GetNodeOrNull<CollisionShape3D>("Shape");
+            BoxShape3D? box = shape?.Shape as BoxShape3D;
+
+            if (shape != null && box != null)
+            {
+                source.AddMesh(new BoxMesh { Size = box.Size }, shape.GlobalTransform);
+            }
+        }
     }
 
     private static float Flat(Vector3 a, Vector3 b)

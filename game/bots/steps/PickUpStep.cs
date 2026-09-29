@@ -6,14 +6,23 @@ using MmoGame3d.Zones;
 
 /// <summary>
 /// Walks over the nearest thing lying on the ground in this zone, which picks it up (the
-/// server notices the touch). Done when that thing is gone from the ground. Fails when the
-/// zone has nothing lying about.
+/// server notices the touch). Done when that thing is gone from the ground and the bag
+/// holds more. If someone else picked it up first, it goes for the next, a few times.
+/// Fails when the zone has nothing lying about.
 /// </summary>
 public class PickUpStep : BotStep
 {
     private const double LookInterval = 0.25;
 
+    private const int MaxTries = 3;
+
+    // How long after the thing goes the bag may take to show it.
+    private const double BagPatience = 1.5;
+
     private GroundItem? _target;
+    private int _bagBefore;
+    private int _tries;
+    private double _goneFor;
     private double _sinceLook = LookInterval;
 
     public PickUpStep()
@@ -46,13 +55,36 @@ public class PickUpStep : BotStep
 
         if (_target != null)
         {
-            if (!GodotObject.IsInstanceValid(_target) || !_target.IsInsideTree())
+            if (GodotObject.IsInstanceValid(_target) && _target.IsInsideTree())
             {
-                body.Navigator.Stop(body);
+                return BotStepState.Running;
+            }
+
+            body.Navigator.Stop(body);
+
+            // The server tells the bag a moment after the thing goes.
+            if (BotFacts.BagCount(body) > _bagBefore)
+            {
                 return BotStepState.Done;
             }
 
-            return BotStepState.Running;
+            _goneFor += LookInterval;
+
+            if (_goneFor < BagPatience)
+            {
+                return BotStepState.Running;
+            }
+
+            _target = null;
+            _goneFor = 0;
+            _tries++;
+
+            if (_tries >= MaxTries)
+            {
+                return Fail("someone else picked up each thing first, " + MaxTries + " times");
+            }
+
+            body.Events.Write("picking-up", "someone else took it; the next one");
         }
 
         _target = Nearest(zone, body.Player.GlobalPosition);
@@ -62,6 +94,7 @@ public class PickUpStep : BotStep
             return Fail("nothing lying on the ground in " + zone.ZoneId);
         }
 
+        _bagBefore = BotFacts.BagCount(body);
         body.Events.Write("picking-up", _target.Name + " at " + zone.ToLocal(_target.GlobalPosition).ToString("0.0"));
         body.Navigator.Go(zone, _target.GlobalPosition, true);
         return BotStepState.Running;

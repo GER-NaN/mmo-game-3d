@@ -27,6 +27,7 @@ public static class ItemActivities
             Recycle(),
             Buy(ItemType.Battery),
             Buy(ItemType.EmpEmitter),
+            Buy(ItemType.RamStick),
             SwapBattery(),
             DropSomething(),
         };
@@ -79,7 +80,7 @@ public static class ItemActivities
                 .Use<Recycler>()
                 .UntilOpen("recycler")
                 .Do("note the money", body => before = body.View!.Dollars)
-                .Click("the first Recycle", body => BotScreens.RowButton(body.Find<RecyclerPanel>()?.GetNode("%Rows"), "", "Recycle"))
+                .Click("Recycle on something it can spare", body => BotScreens.RowButton(body.Find<RecyclerPanel>()?.GetNode("%Rows"), BotFacts.RecyclableRow(body) ?? "-", "Recycle"))
                 .Until("paid for it", body => body.View!.Dollars > before, 5)
                 .Press("ui_cancel")
                 .UntilClosed("recycler");
