@@ -1,0 +1,53 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/ui/Carousel.cs" id="1_carousel"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/chevron-left.svg" id="2_left"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/chevron-right.svg" id="3_right"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chosen"]
+bg_color = Color(1, 1, 1, 0.08)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.85, 0.85, 0.85, 0.9)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="Carousel" type="HBoxContainer"]
+theme_override_constants/separation = 4
+script = ExtResource("1_carousel")
+
+[node name="Prev" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Previous"
+icon = ExtResource("2_left")
+icon_alignment = 1
+expand_icon = true
+
+[node name="Strip" type="Control" parent="."]
+unique_name_in_owner = true
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Chosen" type="Panel" parent="Strip"]
+unique_name_in_owner = true
+layout_mode = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_chosen")
+
+[node name="Next" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Next"
+icon = ExtResource("3_right")
+icon_alignment = 1
+expand_icon = true
