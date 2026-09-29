@@ -29,7 +29,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(280, 0)
+custom_minimum_size = Vector2(380, 0)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
@@ -43,27 +43,70 @@ theme_override_constants/margin_bottom = 24
 layout_mode = 2
 theme_override_constants/separation = 10
 
+[node name="Status" type="GridContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+columns = 2
+
+[node name="ServerLabel" type="Label" parent="Center/Panel/Margin/Rows/Status"]
+modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+text = "Server"
+
+[node name="Server" type="Label" parent="Center/Panel/Margin/Rows/Status"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "New York"
+
+[node name="PlayerLabel" type="Label" parent="Center/Panel/Margin/Rows/Status"]
+modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+text = "Player"
+
+[node name="Player" type="Label" parent="Center/Panel/Margin/Rows/Status"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Name"
+
+[node name="ZoneLabel" type="Label" parent="Center/Panel/Margin/Rows/Status"]
+modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+text = "Zone"
+
+[node name="Zone" type="Label" parent="Center/Panel/Margin/Rows/Status"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Old Town"
+
+[node name="Line" type="HSeparator" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
 [node name="Resume" type="Button" parent="Center/Panel/Margin/Rows"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Resume"
 
 [node name="Settings" type="Button" parent="Center/Panel/Margin/Rows"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Settings"
 
 [node name="Wardrobe" type="Button" parent="Center/Panel/Margin/Rows"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Wardrobe"
 
 [node name="Leave" type="Button" parent="Center/Panel/Margin/Rows"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Leave to main menu"
 
 [node name="Quit" type="Button" parent="Center/Panel/Margin/Rows"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Quit"

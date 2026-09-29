@@ -1809,6 +1809,7 @@ public partial class ClientGame : Node
     {
         _inGameMenu = InGameMenuScene.Instantiate<InGameMenu>();
         _ui.AddChild(_inGameMenu);
+        _inGameMenu.ShowStatus(ServerList.NameFor(_address), _displayName, ZoneIds.DisplayName(_zoneId));
         _inGameMenu.ResumePressed += CloseInGameMenu;
         _inGameMenu.SettingsPressed += OpenSettings;
         _inGameMenu.WardrobePressed += OpenWardrobe;
