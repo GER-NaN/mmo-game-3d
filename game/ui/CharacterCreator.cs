@@ -14,6 +14,10 @@ using MmoGame3d.Rules.Players;
 /// </summary>
 public partial class CharacterCreator : Control
 {
+    // Colours, the backpack and the glasses fit the Protagonists only, so they are hidden
+    // until customizing is designed for every base (TODO.md); the code stays.
+    private static readonly bool Customizing = false;
+
     private const float TurnRadiansPerSecond = 0.6f;
 
     private readonly Random _random = new Random();
@@ -53,11 +57,11 @@ public partial class CharacterCreator : Control
             }
         }
 
-        bases.ItemSelected += index =>
-        {
-            _appearance.Base = (string)bases.GetItemMetadata((int)index);
-            Changed();
-        };
+        bases.ItemSelected += index => ChooseBase((int)index);
+
+        // Through the bases one at a time, to see each on the turning preview.
+        GetNode<Button>("%BaseBack").Pressed += () => ChooseBase((bases.Selected + bases.ItemCount - 1) % bases.ItemCount);
+        GetNode<Button>("%BaseNext").Pressed += () => ChooseBase((bases.Selected + 1) % bases.ItemCount);
 
         Stepper("%Skin", Appearance.SkinTones, () => _appearance.Skin, value => _appearance.Skin = value);
         Stepper("%Hair", Appearance.HairColors, () => _appearance.Hair, value => _appearance.Hair = value);
@@ -79,6 +83,10 @@ public partial class CharacterCreator : Control
             _appearance.Glasses = on;
             Changed();
         };
+
+        GetNode<Control>("%Grid").Visible = Customizing;
+        backpack.Visible = Customizing;
+        glasses.Visible = Customizing;
 
         GetNode<Button>("%Random").Pressed += Randomize;
         GetNode<Button>("%Done").Pressed += () => DonePressed?.Invoke(_naming ? GetNode<LineEdit>("%Name").Text.Trim() : "", _appearance.Format());
@@ -135,8 +143,24 @@ public partial class CharacterCreator : Control
 
     private readonly List<Action> _refreshers = new List<Action>();
 
+    private void ChooseBase(int index)
+    {
+        OptionButton bases = GetNode<OptionButton>("%Base");
+        bases.Select(index);
+        _appearance.Base = (string)bases.GetItemMetadata(index);
+        Changed();
+    }
+
     private void Randomize()
     {
+        OptionButton bases = GetNode<OptionButton>("%Base");
+        ChooseBase(_random.Next(bases.ItemCount));
+
+        if (!Customizing)
+        {
+            return;
+        }
+
         _appearance.Skin = _random.Next(Appearance.SkinTones.Length);
         _appearance.Hair = _random.Next(Appearance.HairColors.Length);
         _appearance.Top = _random.Next(Appearance.ClothesColors.Length);

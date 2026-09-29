@@ -15,6 +15,10 @@ public class Profile
     public const string Fresh = "fresh";
 
     private const string LicenseFile = "license.txt";
+    private const string LockFile = "in-use";
+
+    // Held open while this client runs; the system lets it go when the process ends.
+    private FileStream? _lock;
 
     // A fresh profile's key, made once, so leaving and playing again is the same player.
     private readonly Guid _freshKey = Guid.NewGuid();
@@ -29,6 +33,29 @@ public class Profile
     public bool IsFresh
     {
         get { return Name == Fresh; }
+    }
+
+    // Holds the profile for this client, so a second game window with the same profile can
+    // tell it is taken. False when another client holds it. A fresh profile is never shared.
+    public bool Claim()
+    {
+        if (IsFresh || _lock != null)
+        {
+            return true;
+        }
+
+        string folder = ProjectSettings.GlobalizePath("user://profiles/" + Name);
+        Directory.CreateDirectory(folder);
+
+        try
+        {
+            _lock = new FileStream(Path.Combine(folder, LockFile), FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, FileShare.None);
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
     }
 
     // The file is a bare secret: copy it and you have cloned the player. It is the

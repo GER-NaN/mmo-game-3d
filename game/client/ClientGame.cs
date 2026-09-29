@@ -508,17 +508,12 @@ public partial class ClientGame : Node
             return;
         }
 
-        if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null || _recycler != null || _plantCard != null || _book != null) && @event.IsActionPressed("ui_cancel"))
+        // Esc closes an open panel, as its X does, the ones on their own keys (the bag,
+        // Friends, Skills) too; with none open it opens the game menu.
+        if (AnyPanelOpen() && @event.IsActionPressed("ui_cancel"))
         {
-            CloseBook();
             GetViewport().SetInputAsHandled();
-            CloseShop();
-            CloseWorkbench();
-            CloseGive();
-            CloseMap();
-            CloseCollege();
-            CloseRecycler();
-            ClosePlantCard();
+            ClosePanels();
             return;
         }
 
@@ -604,6 +599,13 @@ public partial class ClientGame : Node
 
     private void Connect(string address)
     {
+        if (!_profile.Claim())
+        {
+            GD.Print("Profile " + _profile.Name + " is taken by another client");
+            ShowMainMenu("The profile \"" + _profile.Name + "\" is open in another game window. For a second player on this machine, start the game with another profile: client-up.ps1 -Profile name, or --profile name.");
+            return;
+        }
+
         _address = address;
         _settings.Address = address;
         _settings.Save();
@@ -1726,6 +1728,13 @@ public partial class ClientGame : Node
     }
 
     // One panel at a time: opening one closes whichever was open.
+    // The panels ClosePanels closes.
+    private bool AnyPanelOpen()
+    {
+        return _inventoryPanel != null || _shop != null || _workbench != null || _give != null || _recycler != null || _college != null
+            || _skills != null || _social != null || _map != null || _plantCard != null || _book != null;
+    }
+
     private void ClosePanels()
     {
         CloseInventory();

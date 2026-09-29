@@ -48,6 +48,54 @@ making-changes.md.
   well if it should also stop the camera (walls, buildings). The layer numbers are in
   `game/PhysicsLayers.cs`.
 
+## Placing things that work
+
+A thing the player uses with F (a terminal, a shop counter, a bench that breaks) is a
+scene with a script. The game knows it by two things only:
+
+- **Where it sits:** under the zone's `Interactables` node. The server finds every
+  thing there and routes a use by the thing's class (`ServerInteractions.Use`). The
+  client offers the nearest one in reach.
+- **Its node name:** the server and the client refer to it by name, so each needs its
+  own name in the zone (`LibraryTerminal`, `StreetKiosk`, `Bench1`).
+
+So to place one: drag its scene (below) onto `Interactables`, move it, give it a name,
+and set its fields in the Inspector. No code. A kind of thing that does not exist yet is
+code: see example-tree-chopping.md.
+
+| Thing | Scene | Set in the Inspector |
+| --- | --- | --- |
+| Terminal | `game/terminals/Terminal.tscn` | `TypeId` (0 public; the rest in `src/Rules/Terminals/TerminalType.cs`) |
+| Shop counter | `game/vendors/Vendor.tscn` | `ShopId` (a shop in `src/Rules/Shops/`), `KeeperName` |
+| Workbench | `game/workbenches/Workbench.tscn` | nothing |
+| Recycler | `game/town/Recycler.tscn` | nothing |
+| Chest | `game/chests/Chest.tscn` | `ChestName` |
+| Taxi stand | `game/taxis/TaxiStand.tscn` | nothing |
+| Junction box (the street lights' repair) | `game/town/JunctionBox.tscn` | nothing |
+| Visitor book | `game/subway/VisitorBook.tscn` | nothing |
+| Tag wall | `game/subway/SubwayWall.tscn` | nothing |
+| Potting table | `game/gardening/PottingTable.tscn` | nothing |
+| Someone at the college | `game/college/CollegePerson.tscn` | `Role`, `PersonName`, `ModelPath` |
+| Townsperson | `game/town/Townsperson.tscn` | `Route` (a `Path3D` loop in the zone), `StartAt`, `PersonName`, `ModelPath` |
+
+**Something that breaks and is repaired** (a bench, a dumpster, a hydrant): place
+`game/town/Fixable.tscn`, set `FixableName` (what the prompt calls it), and tick
+`Electrical` if it is wired (fixing it is then Electrical repair, not Field repair).
+Then drag the prop that is its look (from `game/props/`) onto it and name that child
+`Prop`. Any prop becomes breakable this way.
+
+**A security camera** is a fixable with `Electrical` ticked and the camera prop as its
+`Prop`, plus one more child: a `Node3D` named `Lens`, at the lens, with the script
+`game/town/CameraMount.cs`, and `Target` set to the point it looks at (zone
+coordinates). The town cameras app shows every `CameraMount` in the zone; see `CameraNE`
+in `town.tscn`.
+
+**A street lamp** is not an interactable: place `game/zones/props/StreetLamp.tscn`
+anywhere (the town keeps them under `Lamps`). It lights when it is dark and the town has
+power. Lamps do not break one by one: the town's lights go out together, and the repair
+job (the junction box) brings them back. A lamp that breaks on its own would be a
+fixable with the lamp as its `Prop`, and going dark by itself would be new code.
+
 ## Sculpting ground (Terrain3D)
 
 Outdoor ground is a **Terrain3D** node named `Terrain` in the zone (the add-on is in

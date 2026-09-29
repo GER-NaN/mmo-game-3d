@@ -17,7 +17,8 @@ Godot edition at `C:\game-art\3d\kaykit-godot`:
 | `kaykit/resource_bits/` | `resource_bits/` |
 | `kaykit/rpg_tools_bits/` | `rpg_tools_bits/` (tools held in the hand while working) |
 | `kaykit/character_animations/rig_medium/` | `character_animations/animations/rig_medium/` |
-| `kaykit/characters/` | `mystery_monthly_series_5/10_protagonists/characters/*.glb`, and the townspeople: `mystery_monthly_series_5/11_hiker/characters/Hiker.glb`, `mystery_monthly_series_6/12_farmers/characters/Farmer_A.glb`, `mystery_monthly_series_4/02_driver/characters/Driver.glb` |
+| `kaykit/character_animations/rig_large/` | `character_animations/animations/rig_large/`: `Rig_Large_General.glb`, `Rig_Large_MovementBasic.glb`, `Rig_Large_Simulation.glb` |
+| `kaykit/characters/` | every character model in the collection, the players' bases (`src/Rules/Players/Looks.cs`): each `*/characters/*.glb` that is not a `Rig_*` animation file, 64 in all, flat in one folder. From Git Bash in the collection's folder: `find . -path "*/characters/*.glb" ! -name "Rig_*" -exec cp {} <this repo>/assets/kaykit/characters/ \;` |
 
 From Tiny Treats Collection 1 (CC0, Isa Lousberg, www.isalousberg.com), at
 `C:\game-art\3d\Tiny_Treats_Collection_1_1.0`:

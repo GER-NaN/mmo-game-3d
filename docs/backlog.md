@@ -58,6 +58,10 @@ in `world.md`; "M" marks a model's proposal.
 
 ## The author's own ideas, undecided
 
+- What a spy drone's spotting does, for later: "a player that is spotted can be
+  announced, if the AI is looking for a specific high level player for some game
+  mechanic the can be "Found"", and "achievements for Incognito, be a player that is
+  least spotted by spy drones". [`features/recorded-drone-flights.md`, F3a]
 - Hunger and sleep as player health. On the fence; fits uniquely-human. [Q19]
 - PvP at all. Designs exist (Domination with drones, Hall of Heroes); the author is
   very unsure it has a place. De-skilling or de-faming as its cost. [Q15, B]

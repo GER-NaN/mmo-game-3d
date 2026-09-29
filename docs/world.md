@@ -422,6 +422,17 @@ infiltrates and weaponises nearby technology: a drone, an RC car, a humanoid rob
 connected vehicle made to explode. This is environmental danger, not a battle system.
 No turn-based combat. [B]
 
+Drones in a zone are of two kinds. A spy drone: every so many minutes a drone appears
+in a zone that does spying, and follows a path through it, looping "forever,
+observing", at most two in a zone for now. It does nothing to players for now. Players
+can spot it via the cameras and use weapons on it; they can kill it if they get close
+enough. A roaming drone attacks players, as drones do today: it hovers in a circle and
+every so often picks a maneuver at random ("Dive bomb the ground to about the player
+height", "Zig Zag approach towards a player height", "Climb up and Back Down"), aimed at
+a random player near it. The two look the same; players "spot behaviors and be able to
+guess, this one flying high away will probably not attack me". The paths and maneuvers
+are flights recorded by hand. [C-2026-09-29]
+
 At 0 HP you faint with a real consequence: whatever hurt you can damage your inventory
 or equipment, or things get stolen. Loss is scaled by tier, not random, and never total.
 Common items are lost or destroyed often, middle tier sometimes, high tier occasionally,

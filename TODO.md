@@ -46,11 +46,10 @@ link points.
 
 ## Known issues
 
-- [ ] Screens close in different ways: Esc closes the shop, map, visitor book and the
-      rest, all at once, but the bag, Friends and Skills close only with their own key,
-      and Esc opens the game menu over them. Every screen should close the same way: an
-      X or Cancel, and one shortcut key. Then the bots' per-screen close list
-      (`BotScreens.CloseKey`) goes.
+- [x] Screens close in different ways. Done 2026-09-29: Esc closes any open panel, the
+      bag, Friends and Skills included, and every screen has an X, Close, Cancel or
+      Back. Left: the bots' per-screen close list (`BotScreens.CloseKey`) can become
+      "Esc".
 - [ ] Bodies stick at the ends of the town's 0.5 m bench boxes (Bench0 at (-10, 8),
       Bench1 at (7, -7.4)): asked to walk, touching only a floor-like edge, they cannot
       move out (bots, many times). The box height is the capsule's lower half-sphere
@@ -64,7 +63,9 @@ link points.
       flood it. Post only top-ten runs, or nothing.
 - [ ] One 40 ms server frame in a taxi load test, not explained
       (docs/engineering/performance.md).
-- [ ] A second client on the same machine needs `-Profile`; nothing in the game says so.
+- [x] A second client on the same machine needs `-Profile`; nothing in the game says so.
+      Done 2026-09-29: a client holds its profile while it runs; a second window with
+      the same profile says so on the main menu and names `-Profile`.
 - [ ] settings.cfg was reset to defaults by a load test on the author's machine; any
       custom keys or mouse speed from before 2026-09-26 are gone.
 
@@ -118,6 +119,41 @@ All four are in docs/engineering/performance.md, with the numbers.
 
 ## Planned, not built
 
+- [ ] Recorded drone flights: agreed in `docs/features/recorded-drone-flights.md`
+      (2026-09-29), not built. Spy drones fly paths the author records; roaming drones
+      fly recorded maneuvers. Four PRs, listed there under Consequences.
+- [ ] Look again at the developer launch options `--garden`, `--creator` and
+      `--show-characters`: the author, 2026-09-29, "those launch options read like bot
+      tools, lets re evaluate those".
+- [ ] A carousel for picking from many (the author, 2026-09-29; sketch:
+      `C:\Users\geral\Pictures\Screenshots\Screenshot 2026-09-29 101157.png`): a row of
+      items, the chosen one in the middle and highlighted, arrows left and right. The
+      mouse wheel scrolls it, and it scrolls by itself left or right while the mouse
+      rests near either end. For the character creator's bases, and the potting table's
+      pots and leaves. One control, used in all three.
+- [ ] Simple Postal Office QA (a feature design session, `feature-design`). The author's
+      idea, 2026-09-29: "add a PostalOffice. This is how a player sends items within the
+      world. Postal office is just a new zone that goes into a town, like the shop or
+      college. To ship something you can only ship something that is in your inventory
+      for now. You must pay a shipping fee (based on the item being sent) for now its
+      just a flat fee of $10."
+- [x] Character bases from the whole KayKit collection. Built 2026-09-29: a player
+      picks any of the 64 as a base in the character creator and the wardrobe (a list,
+      and < > to step through them on the preview); colours, backpack and glasses are
+      hidden (`CharacterCreator.Customizing`), their code kept. Left: customizing the
+      other bases, and how the large ones look against the body. Was: (the author, 2026-09-29: "update
+      the character select to choose from any of those ... select the character base and
+      then customize it. Some of them look like test dummies and that is ok actually to
+      include them."). Likely a feature session first. Facts: 62 character models in
+      `C:\game-art\3d\kaykit-godot` (adventurers, skeletons, mystery series 4 to 6,
+      prototype_bits' Dummy); 53 on the medium rig, which our animations fit, and 9 on
+      the large rig (Barbarian_Large, BlackKnight, FrostGolem, Clanker, OrcBrute,
+      Monstrosity, 4GTN, 4GTN_Forgotten, Skeleton_Golem), which need the rig_large
+      animations from the same collection. Only 5 are in the project today. A look is a
+      base id ("a", "b") plus colours and two toggles (`src/Rules/Players/Appearance.cs`),
+      and the colours and toggles fit the Protagonists only. Open: customizing the other
+      bases, choosing among 62 (a drop-down will not do), ids for the new bases, the
+      large ones' size against the body's capsule.
 - [ ] Bring over mmo-game's code rules and make them run on every build here:
       `src/Analyzers` (GAME0001 to GAME0006: no async/await, no lock, no primary
       constructors, no reflection inspection, no switch expressions, no tuple
@@ -164,7 +200,7 @@ drone flights and redemption receipts (design sessions).
 - Old town map exploration triggered even though I had one square left (at least on the mini map)
 - Compass?
 - Drone flight seems stuttery
-- I would like to be able to record drone flight and then thats their pattern in game. 
+- I would like to be able to record drone flight and then thats their pattern in game. (Designed 2026-09-29: docs/features/recorded-drone-flights.md.)
 - No auto payment, you get receipts from the terminal and need to collect in the town <whast the name... courthouse/office/headquarters/majors> I forget what the "headquarters" of a town is... Same goes for recycler, you get a receipt and it needs to be redeemed. This is something that can be traded too but its in the playres name like 
 Recycler Redemption 
 -----------------
@@ -186,12 +222,12 @@ Expires On: ....
 Second playtest 2026-09-26
 - Guestbook in the subway is wrong, the spray painted walls are the guestbook
 - When running up hill my player glides without moving his legs, its like a hover, same down hill
-- while in the camera, and I press the arrow keys I can see the world in the background spinning and rotating
-- Security cameras should not be on trees, I think in the future when I edit maps I will place them at expected spots. (this also needs a recipe). If I place a model in the editor how do I hook it up to my game to be functional (something like a camera). This will be a common pattern where I place an item using the godot editor and it needs to then have behaviors in game and be known by the game. (terminals) etc... 
+- while in the camera, and I press the arrow keys I can see the world in the background spinning and rotating (fixed 2026-09-26, c339b5c)
+- Security cameras should not be on trees, I think in the future when I edit maps I will place them at expected spots. (this also needs a recipe). If I place a model in the editor how do I hook it up to my game to be functional (something like a camera). (Recipe written 2026-09-29: docs/engineering/editor.md, "Placing things that work".) This will be a common pattern where I place an item using the godot editor and it needs to then have behaviors in game and be known by the game. (terminals) etc... 
 - Street lights seem permantetly fixed? They should break periodicly and this should be tuneable (how often they break).
-- Item placement (street lights inside trees). Again wont be an issue when I build maps. but previously problem applies. How does the gtame know my model is a street light and is eligable for breaking and being in need of repair.
+- Item placement (street lights inside trees). Again wont be an issue when I build maps. but previously problem applies. How does the gtame know my model is a street light and is eligable for breaking and being in need of repair. (Answered 2026-09-29 in the same recipe.)
 - FPV would be a nice view change.
 - I want to redo the entire HUD and menus in the game and the terminal layouts. Suggest some UI tools and options. Are there godot asset packs for this that work nicely (UI interface tools to design the GUI and hud items)
-- Scrolling in game UI elements (registrar menu) scrolls my view, keep track of where the pointer is
+- Scrolling in game UI elements (registrar menu) scrolls my view, keep track of where the pointer is (fixed 2026-09-26, 549d14b)
 - Interior decoration is slim but thats ok for now. Real maps will be built by hand.w
 - I still see a camera floating in the air, but thats ok, real maps these will be placed.
