@@ -123,6 +123,27 @@ public class BotPlan
         return Step(new ClickEachStep(what, list, check));
     }
 
+    // Another activity's steps, here (a chain: buy, recycle, buy). Built as the plan is,
+    // so its steps are new.
+    public BotPlan Then(string activity)
+    {
+        BotActivity? other = BotActivities.Named(activity);
+
+        if (other == null)
+        {
+            return Step(new FailStep("no activity named \"" + activity + "\""));
+        }
+
+        Steps.AddRange(other.Steps());
+        return this;
+    }
+
+    // Wanders to a few random spots in the zone.
+    public BotPlan Wander(int spots)
+    {
+        return Step(new WanderStep(spots));
+    }
+
     // Walks over the nearest thing on the ground, which picks it up.
     public BotPlan PickUp()
     {

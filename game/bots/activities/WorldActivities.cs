@@ -37,8 +37,58 @@ public static class WorldActivities
                 .Use<Terminal>()
                 .WaitFor<TerminalScreen>()),
 
+            new BotActivity("wander-town", plan => plan
+                .InWorld()
+                .GoTo(ZoneIds.Town)
+                .Wander(4))
+                .Says("Just walking around.", "Nice evening for a walk."),
+
+            new BotActivity("wander-new-town", plan => plan
+                .InWorld()
+                .GoTo(ZoneIds.NewTown)
+                .Wander(4))
+                .Says("New Town is so quiet.", "Nobody lives here yet?"),
+
+            // Through the wooded path and back, without going on into New Town.
+            new BotActivity("wooded-path-stroll", plan => plan
+                .InWorld()
+                .Enter(ZoneIds.WoodedPath)
+                .Wander(3)
+                .Enter(ZoneIds.Town))
+                .Says("Lovely trees.", "Where does this path go?"),
+
+            // Every zone, the long way round: out to New Town and back, the outskirts and the
+            // greenhouse, the meadows, the college, the subway, the shop.
+            new BotActivity("travel-the-long-way", plan => plan
+                .InWorld()
+                .Enter(ZoneIds.WoodedPath)
+                .Enter(ZoneIds.NewTown)
+                .Enter(ZoneIds.WoodedPath)
+                .Enter(ZoneIds.Town)
+                .Enter(ZoneIds.Outskirts)
+                .Enter(ZoneIds.Greenhouse)
+                .Enter(ZoneIds.Outskirts)
+                .Enter(ZoneIds.Town)
+                .Enter(ZoneIds.Meadows)
+                .Enter(ZoneIds.Town)
+                .Enter(ZoneIds.College)
+                .Enter(ZoneIds.Subway)
+                .Enter(ZoneIds.Shop)
+                .Enter(ZoneIds.Town))
+                .Says("Seeing the whole world today.", "Long walk.", "Almost there."),
+
+            // Straight from Old Town to New Town and back, again and again: doors taken quickly.
+            new BotActivity("ping-pong-new-town", plan => plan
+                .InWorld()
+                .Enter(ZoneIds.NewTown)
+                .Enter(ZoneIds.Town)
+                .Enter(ZoneIds.NewTown)
+                .Enter(ZoneIds.Town)),
+
             Surveyor(ZoneIds.Town),
             Surveyor(ZoneIds.NewTown),
+            Surveyor(ZoneIds.WoodedPath),
+            Surveyor(ZoneIds.Outskirts),
             Surveillance(ZoneIds.Town),
             Surveillance(ZoneIds.NewTown),
         };

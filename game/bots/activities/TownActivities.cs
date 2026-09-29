@@ -83,6 +83,31 @@ public static class TownActivities
                 .Step(new HuntStep()))
                 .Says("Drone spotted!", "Get down here."),
 
+            new BotActivity("take-the-class", plan => plan
+                .InWorld()
+                .GoTo(ZoneIds.College)
+                .Use<CollegePerson>("Registrar", who => who.Name == "Registrar")
+                .UntilOpen("college")
+                .StopIf("the class is taken", body => BotScreens.FirstButton(body.Find<CollegePanel>()!, "Finish the Class") == null)
+                .Click("Finish the Class", body => BotScreens.FirstButton(body.Find<CollegePanel>()!, "Finish the Class"))
+                .Wait(1)
+                .Press("ui_cancel")
+                .UntilClosed("college"))
+                .Says("Back to school."),
+
+            new BotActivity("enroll", plan => plan
+                .InWorld()
+                .Then("take-the-class")
+                .GoTo(ZoneIds.College)
+                .Use<CollegePerson>("Registrar", who => who.Name == "Registrar")
+                .UntilOpen("college")
+                .StopIf("no career open to it", body => EnrollButton(body) == null)
+                .Click("a career", EnrollButton)
+                .UntilNotice("", 5)
+                .Press("ui_cancel")
+                .UntilClosed("college"))
+                .Says("Time for a career.", "Signing up."),
+
             TalkTo("Registrar"),
             TalkTo("Professor"),
         };
@@ -123,6 +148,16 @@ public static class TownActivities
             .Press("ui_cancel")
             .UntilClosed("college"))
             .Says("I have a question about classes.");
+    }
+
+    // The first career the player can take: "Enroll as ..." or "Change to ...", enabled.
+    private static Godot.Button? EnrollButton(BotBody body)
+    {
+        CollegePanel? panel = body.Find<CollegePanel>();
+        Godot.Button? enroll = BotScreens.FirstButtonStarting(panel, "Enroll as");
+        Godot.Button? change = BotScreens.FirstButtonStarting(panel, "Change to");
+        Godot.Button? pick = enroll ?? change;
+        return pick != null && !pick.Disabled ? pick : null;
     }
 
     private static TownState? Town(BotBody body)
