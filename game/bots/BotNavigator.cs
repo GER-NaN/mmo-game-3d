@@ -1,13 +1,15 @@
 namespace MmoGame3d.Bots;
 
 using Godot;
+using MmoGame3d.Interact;
 using MmoGame3d.Players;
 using MmoGame3d.Zones;
 
 /// <summary>
 /// Walking inside one zone (bots.md T3a). On the first Go in a zone it bakes a
 /// navigation mesh from the zone's static collision onto its own map, and once the map
-/// has synced it asks for a path; later Gos in the same zone reuse the mesh. Each frame
+/// has synced it asks for a path; later Gos in the same zone reuse the mesh, until the
+/// zone's things change (a house plant set out in front of the greenhouse). Each frame
 /// it steers along the path with the turn and forward keys, as a player would. At the
 /// path's end it stops, or with pastEnd keeps walking at the target (into a door's
 /// trigger). Where no mesh bakes (terrain has no collision nodes) it walks straight.
@@ -61,6 +63,7 @@ public class BotNavigator
 
     // The zone the map holds a mesh of, and whether one baked there at all.
     private Zone? _bakedZone;
+    private int _bakedThings;
     private bool _hasMesh;
 
     // "straight" or the path's point count, for the events file.
@@ -85,9 +88,12 @@ public class BotNavigator
         _stillFor = 0;
         _backingFor = 0;
 
-        if (_bakedZone != zone || !GodotObject.IsInstanceValid(_bakedZone))
+        int things = zone.GetNodeOrNull(Interactable.ParentName)?.GetChildCount() ?? 0;
+
+        if (_bakedZone != zone || !GodotObject.IsInstanceValid(_bakedZone) || things != _bakedThings)
         {
             _bakedZone = zone;
+            _bakedThings = things;
             _hasMesh = Bake(zone);
         }
 
