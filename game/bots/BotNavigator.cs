@@ -108,6 +108,13 @@ public class BotNavigator
 
     // Drops the path and walks straight at the target: the last metres to something the
     // walkable ground stops short of.
+    // Its state in a few words, for a stuck finding.
+    public string State()
+    {
+        return (_going ? "going" : "not going") + (_pathPending ? ", path pending" : "") + ", point " + _pathIndex + " of " + _path.Length
+            + (_straight ? ", straight" : "") + (_pastEnd ? ", past the end" : "") + (_backingFor > 0 ? ", backing off" : "");
+    }
+
     public void StraightOn()
     {
         _straight = true;
