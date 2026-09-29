@@ -39,6 +39,9 @@ public static class SocialActivities
             new BotActivity("leave-party", plan => plan
                 .InWorld()
                 .StopIf("not in a party", body => body.Find<PartyPanel>() == null)
+                .Click<PartyPanel>("%Fold")
+                .Until("the party panel folded", body => BotScreens.Named<Godot.Button>(body.Find<PartyPanel>(), "Leave") == null, 2)
+                .Click<PartyPanel>("%Fold")
                 .Click<PartyPanel>("%Leave")
                 .Until("out of the party", body => body.Find<PartyPanel>() == null, 5))
                 .Says("Going solo for a bit."),
