@@ -39,7 +39,7 @@ public partial class RecyclerPanel : PanelContainer
         {
             ItemType type = stack.Type;
             ItemTier tier = stack.Tier;
-            AddRow(rows, ItemCatalog.Describe(type, tier) + "  x" + stack.Quantity, Recycling.ValueOf(type, tier), "Recycle one", () => RecycleOnePressed?.Invoke(type, tier));
+            AddRow(rows, "Stack_" + type + "_" + tier, ItemCatalog.Describe(type, tier) + "  x" + stack.Quantity, Recycling.ValueOf(type, tier), "Recycle one", () => RecycleOnePressed?.Invoke(type, tier));
         }
 
         Belongings mine = new Belongings(new Inventory(), instances);
@@ -69,7 +69,7 @@ public partial class RecyclerPanel : PanelContainer
             }
 
             Guid id = thing.Id;
-            AddRow(rows, text, value, "Recycle", () => RecycleThingPressed?.Invoke(id));
+            AddRow(rows, thing.Type + "_" + id, text, value, "Recycle", () => RecycleThingPressed?.Invoke(id));
         }
 
         if (rows.GetChildCount() == 0)
@@ -78,13 +78,15 @@ public partial class RecyclerPanel : PanelContainer
         }
     }
 
-    private static void AddRow(VBoxContainer rows, string text, int value, string action, Action pressed)
+    // name: what the row holds, so it can be found by it (bots.md T2): "Stack_Battery_Standard"
+    // for a stack, "Phone_<id>" for one thing.
+    private static void AddRow(VBoxContainer rows, string name, string text, int value, string action, Action pressed)
     {
-        HBoxContainer row = new HBoxContainer();
+        HBoxContainer row = new HBoxContainer { Name = name };
         row.AddThemeConstantOverride("separation", 10);
         row.AddChild(new Label { Text = text, SizeFlagsHorizontal = SizeFlags.ExpandFill });
         row.AddChild(new Label { Text = "$" + value });
-        Button button = new Button { Text = action, FocusMode = FocusModeEnum.None };
+        Button button = new Button { Name = "Recycle", Text = action, FocusMode = FocusModeEnum.None };
         button.Pressed += pressed;
         row.AddChild(button);
         rows.AddChild(row);

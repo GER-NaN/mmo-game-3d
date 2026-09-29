@@ -88,14 +88,17 @@ public partial class InventoryPanel : PanelContainer
 
         VBoxContainer list = GetNode<VBoxContainer>("%Items");
 
+        // Out of the list at once, so the new rows can take the old rows' names.
         foreach (Node old in list.GetChildren())
         {
+            list.RemoveChild(old);
             old.QueueFree();
         }
 
         foreach (ItemStack stack in stacks)
         {
-            HBoxContainer row = new HBoxContainer();
+            // Rows are named for what they hold, so they can be found by it (bots.md T2).
+            HBoxContainer row = new HBoxContainer { Name = "Stack_" + stack.Type + "_" + stack.Tier };
             Label name = new Label
             {
                 Text = stack.Quantity + " x " + ItemCatalog.Describe(stack.Type, stack.Tier),
@@ -109,7 +112,7 @@ public partial class InventoryPanel : PanelContainer
             ItemType type = stack.Type;
             ItemTier tier = stack.Tier;
             int quantity = stack.Quantity;
-            Button drop = new Button { Text = "Drop", FocusMode = FocusModeEnum.None };
+            Button drop = new Button { Name = "Drop", Text = "Drop", FocusMode = FocusModeEnum.None };
             drop.Pressed += () => DropPressed?.Invoke(type, tier, quantity);
             row.AddChild(drop);
             list.AddChild(row);
@@ -176,6 +179,7 @@ public partial class InventoryPanel : PanelContainer
 
         foreach (Node old in things.GetChildren())
         {
+            things.RemoveChild(old);
             old.QueueFree();
         }
 
@@ -193,7 +197,7 @@ public partial class InventoryPanel : PanelContainer
                 continue;
             }
 
-            HBoxContainer row = new HBoxContainer();
+            HBoxContainer row = new HBoxContainer { Name = item.Type + "_" + item.Id };
             string text = Describe(mine, item);
 
             row.AddChild(new Label { Text = text, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = ItemCatalog.Get(item.Type).Description, MouseFilter = MouseFilterEnum.Pass });
@@ -201,7 +205,7 @@ public partial class InventoryPanel : PanelContainer
             if (Belongings.SlotFor(item.Type) != null)
             {
                 Guid id = item.Id;
-                Button button = new Button { Text = item.Slot == null ? "Equip" : "Unequip", FocusMode = FocusModeEnum.None };
+                Button button = new Button { Name = item.Slot == null ? "Equip" : "Unequip", Text = item.Slot == null ? "Equip" : "Unequip", FocusMode = FocusModeEnum.None };
 
                 if (item.Slot == null)
                 {
