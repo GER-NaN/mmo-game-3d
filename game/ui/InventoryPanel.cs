@@ -115,7 +115,7 @@ public partial class InventoryPanel : PanelContainer
         {
             // Rows are named for what they hold, so they can be found by it (bots.md T2).
             HBoxContainer row = new HBoxContainer { Name = "Stack_" + stack.Type + "_" + stack.Tier };
-            ItemLabel name = new ItemLabel
+            CardLabel name = new CardLabel
             {
                 Text = stack.Quantity + " x " + ItemCatalog.Describe(stack.Type, stack.Tier),
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
@@ -220,7 +220,7 @@ public partial class InventoryPanel : PanelContainer
             HBoxContainer row = new HBoxContainer { Name = item.Type + "_" + item.Id };
             string text = Describe(mine, item);
 
-            row.AddChild(new ItemLabel
+            row.AddChild(new CardLabel
             {
                 Text = text,
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,

@@ -1,8 +1,8 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://game/ui/ItemCard.cs" id="1_card"]
+[ext_resource type="Script" path="res://game/ui/TooltipCard.cs" id="1_card"]
 
-[node name="ItemCard" type="VBoxContainer"]
+[node name="TooltipCard" type="VBoxContainer"]
 custom_minimum_size = Vector2(260, 0)
 script = ExtResource("1_card")
 

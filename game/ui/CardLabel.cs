@@ -2,15 +2,15 @@ namespace MmoGame3d.Ui;
 
 using Godot;
 
-// A label whose tooltip is an item card instead of plain text.
-public partial class ItemLabel : Label
+// A label whose tooltip is a card instead of plain text.
+public partial class CardLabel : Label
 {
     public string CardTitle = "";
     public Color CardColor = Colors.White;
     public string CardDetail = "";
     public string CardDescription = "";
 
-    public ItemLabel()
+    public CardLabel()
     {
         // Godot shows a tooltip only when the text is set.
         TooltipText = " ";
@@ -18,6 +18,6 @@ public partial class ItemLabel : Label
 
     public override GodotObject _MakeCustomTooltip(string forText)
     {
-        return ItemCard.Make(CardTitle, CardColor, CardDetail, CardDescription);
+        return TooltipCard.Make(CardTitle, CardColor, CardDetail, CardDescription);
     }
 }
