@@ -108,6 +108,11 @@ public partial class ClientGame : Node
     private Players.Player? _giveTo;
     private Vector3 _panelOpenedAt;
     private List<ItemInstance> _instances = new List<ItemInstance>();
+
+    // The newest notices, for ClientView, and how many have come in all.
+    private const int KeptNotices = 20;
+    private readonly List<string> _notices = new List<string>();
+    private int _noticeCount;
     private ClientIntents? _intents;
     private int _dollars;
     private readonly List<ChatLine> _chatLog = new List<ChatLine>();
@@ -960,7 +965,7 @@ public partial class ClientGame : Node
             _maps.TryGetValue(_zoneId, out cells);
             byte[] mapCells = cells == null ? new byte[0] : (byte[])cells.Clone();
 
-            return new ClientView(_zoneId, _dollars, new Belongings(stacks, instances), mapCells, OpenScreens());
+            return new ClientView(_zoneId, _dollars, new Belongings(stacks, instances), mapCells, OpenScreens(), new List<string>(_notices), _noticeCount);
         }
     }
 
@@ -1403,6 +1408,14 @@ public partial class ClientGame : Node
     private void OnNoticeReceived(string text)
     {
         GD.Print("Notice: " + text);
+        _notices.Add(text);
+        _noticeCount++;
+
+        if (_notices.Count > KeptNotices)
+        {
+            _notices.RemoveAt(0);
+        }
+
         _hud?.ShowNotice(text);
         _audio?.Play(NoticeSound(text));
         _terminal?.ShowNotice(text);
