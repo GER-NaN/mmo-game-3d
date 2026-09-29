@@ -41,6 +41,7 @@ public partial class ClientGame : Node
     private static readonly PackedScene GardenScene = GD.Load<PackedScene>("res://game/gardening/GardenScreen.tscn");
     private static readonly PackedScene MapScene = GD.Load<PackedScene>("res://game/ui/MapPanel.tscn");
     private static readonly PackedScene SocialScene = GD.Load<PackedScene>("res://game/ui/SocialPanel.tscn");
+    private static readonly PackedScene LoadingScene = GD.Load<PackedScene>("res://game/ui/LoadingScreen.tscn");
     private static readonly PackedScene SkillsScene = GD.Load<PackedScene>("res://game/ui/SkillsPanel.tscn");
     private static readonly PackedScene CollegeScene = GD.Load<PackedScene>("res://game/ui/CollegePanel.tscn");
 
@@ -87,6 +88,7 @@ public partial class ClientGame : Node
     private MapPanel? _map;
     private RecyclerPanel? _recycler;
     private SocialPanel? _social;
+    private LoadingScreen? _loading;
     private SkillsPanel? _skills;
     private CollegePanel? _college;
 
@@ -582,6 +584,8 @@ public partial class ClientGame : Node
 
     private void ShowMainMenu(string status)
     {
+        HideLoading();
+
         if (_menu == null)
         {
             _menu = MainMenuScene.Instantiate<MainMenu>();
@@ -673,6 +677,7 @@ public partial class ClientGame : Node
             if (ids.Length > 0)
             {
                 _autoPlayed = true;
+                ShowLoading();
                 _network.SendLogin(ids[0]);
                 return;
             }
@@ -704,6 +709,7 @@ public partial class ClientGame : Node
             _select.PlayPressed += id =>
             {
                 GD.Print("Playing " + id);
+                ShowLoading();
                 _network.SendLogin(id);
             };
             _select.CreatePressed += OpenCreator;
@@ -797,6 +803,24 @@ public partial class ClientGame : Node
         {
             _creator.QueueFree();
             _creator = null;
+        }
+    }
+
+    private void ShowLoading()
+    {
+        HideLoading();
+        _loading = LoadingScene.Instantiate<LoadingScreen>();
+        _ui.AddChild(_loading);
+        _loading.Start("Entering the world", () => GetTree().GetFirstNodeInGroup(Players.Player.LocalGroup) != null);
+        _loading.Finished += HideLoading;
+    }
+
+    private void HideLoading()
+    {
+        if (_loading != null)
+        {
+            _loading.QueueFree();
+            _loading = null;
         }
     }
 
@@ -1865,6 +1889,8 @@ public partial class ClientGame : Node
 
     private void LeaveWorld()
     {
+        HideLoading();
+
         CloseInGameMenu();
 
         // The wheel zoom is kept for next time.
