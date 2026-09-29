@@ -119,6 +119,12 @@ All four are in docs/engineering/performance.md, with the numbers.
 
 ## Planned, not built
 
+- [ ] Simple Postal Office QA (a feature design session, `feature-design`). The author's
+      idea, 2026-09-29: "add a PostalOffice. This is how a player sends items within the
+      world. Postal office is just a new zone that goes into a town, like the shop or
+      college. To ship something you can only ship something that is in your inventory
+      for now. You must pay a shipping fee (based on the item being sent) for now its
+      just a flat fee of $10."
 - [ ] Character bases from the whole KayKit collection (the author, 2026-09-29: "update
       the character select to choose from any of those ... select the character base and
       then customize it. Some of them look like test dummies and that is ok actually to
