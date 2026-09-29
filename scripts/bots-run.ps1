@@ -18,6 +18,7 @@
 param(
     [string[]]$Bots = @("main-menu"),
     [switch]$All,
+    [switch]$Soak,
     [double]$Timeout = 120,
     [double]$Duration = 0,
     [int]$Seed = -1,
@@ -39,6 +40,18 @@ $allBots = @(
     "surveillance-town:fresh"
 )
 
+# The soak: every persona, each its own kept player (-Soak -Duration 3600).
+$soakBots = @(
+    "@wanderer:connect",
+    "@curious:connect",
+    "@gamer:connect",
+    "@escaper:connect",
+    "@earner:connect",
+    "@traveller:connect",
+    "@masher:connect",
+    "@dropper:connect"
+)
+
 $root = Split-Path $PSScriptRoot -Parent
 
 # Godot runs the assembly it finds in .godot/mono, so an unbuilt change would run old code.
@@ -50,6 +63,10 @@ if ($LASTEXITCODE -ne 0) {
 
 if ($All) {
     $Bots = $allBots
+}
+
+if ($Soak) {
+    $Bots = $soakBots
 }
 
 $overseerArgs = @("--godot", $Godot, "--project", $root, "--timeout", $Timeout)

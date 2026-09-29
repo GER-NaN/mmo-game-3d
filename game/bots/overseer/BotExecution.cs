@@ -68,6 +68,9 @@ public class BotExecution
 
     public TimeSpan? StopAskedAt { get; set; }
 
+    // Its client ended itself on purpose (a dropped connection, "dropping").
+    public bool Dropped { get; set; }
+
     // A one-activity bot passes when it said "done" and quit cleanly; a persona bot when
     // it quit cleanly once asked, whatever its activities made of it.
     public bool Passed
@@ -75,7 +78,7 @@ public class BotExecution
         get
         {
             bool clean = !Killed && HasExited && ExitCode == 0;
-            return Spec.IsPersona ? clean && StopAskedAt != null : clean && Done && !Failed;
+            return Spec.IsPersona ? (clean && StopAskedAt != null) || Dropped : clean && Done && !Failed;
         }
     }
 

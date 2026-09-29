@@ -29,6 +29,22 @@ public static class ChaosActivities
 
             Anywhere("poke-around", plan => plan.Step(new PokeStep()))
                 .Says("What does this button do?"),
+
+            // Lost in the middle of a walk to somewhere: the state a lost connection leaves.
+            new BotActivity("drop-mid-walk", plan => plan
+                .InWorld()
+                .GoTo(ZoneIds.Town)
+                .Wander(1)
+                .Step(new DropStep())),
+
+            // Lost at a terminal, online.
+            new BotActivity("drop-at-terminal", plan => plan
+                .InWorld()
+                .Need(BotFacts.PhoneEquipped)
+                .Press("phone")
+                .WaitFor<Ui.TerminalScreen>()
+                .Wait(1)
+                .Step(new DropStep())),
         };
     }
 

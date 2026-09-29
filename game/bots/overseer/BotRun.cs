@@ -24,7 +24,7 @@ public class BotRun
     private static readonly TimeSpan StopGrace = TimeSpan.FromSeconds(10);
 
     // What a persona bot's lines show on the console; the rest is in its events file.
-    private static readonly HashSet<string> SoakShows = new HashSet<string> { "activity", "completed", "failed", "walked-away", "finding", "keeper" };
+    private static readonly HashSet<string> SoakShows = new HashSet<string> { "activity", "completed", "failed", "walked-away", "finding", "keeper", "dropping" };
 
     private readonly string _godot;
     private readonly string _project;
@@ -143,9 +143,19 @@ public class BotRun
 
             ReadEvents(bot);
             int restarts = _executions.FindAll(other => other.Name == bot.Name).Count;
-            Console.WriteLine("[" + bot.Name + "] client ended by itself (exit code " + bot.ExitCode + "); starting it again");
             bot.StopAskedAt = _clock.Elapsed;
-            bot.Killed = true;
+
+            if (bot.Count("dropping") > 0)
+            {
+                bot.Dropped = true;
+                Console.WriteLine("[" + bot.Name + "] dropped its connection on purpose; starting it again");
+            }
+            else
+            {
+                bot.Killed = true;
+                Console.WriteLine("[" + bot.Name + "] client ended by itself (exit code " + bot.ExitCode + "); starting it again");
+            }
+
             Start(bot.Spec, bot.Name, _bots.IndexOf(bot.Spec), restarts);
         }
     }
@@ -159,7 +169,7 @@ public class BotRun
         foreach (BotExecution bot in _executions)
         {
             ReadEvents(bot);
-            string how = bot.Killed ? "killed" : "exit code " + bot.ExitCode;
+            string how = bot.Dropped ? "dropped on purpose" : bot.Killed ? "killed" : "exit code " + bot.ExitCode;
             string counts = bot.Spec.IsPersona
                 ? ", " + bot.Count("activity") + " activities: " + bot.Count("completed") + " completed, " + bot.Count("failed") + " failed, " + bot.Count("walked-away") + " walked away; " + bot.Count("finding") + " findings"
                 : "";
