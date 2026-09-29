@@ -1,5 +1,6 @@
 namespace MmoGame3d.Overseer;
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -15,6 +16,8 @@ public class BotExecution
 {
     private const string EventsFile = "events.jsonl";
     private const string StopFile = "stop";
+    // DisplayName.MaxLength in src/Rules/Players.
+    private const int MaxNameLength = 16;
 
     private readonly Process _process;
     private readonly string _eventsPath;
@@ -43,20 +46,36 @@ public class BotExecution
         get { return _process.ExitCode; }
     }
 
-    // scene: the bot's scene in game/bots/, without ".tscn". profile: the player the
-    // client connects as at once, or null to stay at the main menu ("fresh" is a new
-    // player every launch).
-    public static BotExecution Start(string godot, string project, string scene, string name, string folder, string? profile)
+    // What the run has seen of it so far.
+    public bool Done { get; set; }
+
+    public bool Failed { get; set; }
+
+    public bool Killed { get; set; }
+
+    public TimeSpan? StopAskedAt { get; set; }
+
+    public bool Passed
+    {
+        get { return Done && !Failed && !Killed && HasExited && ExitCode == 0; }
+    }
+
+    public const string Scene = "res://game/bots/BotMain.tscn";
+
+    // activity: the name the bot looks up in game/bots/BotActivities.cs. profile: the
+    // player the client connects as at once, or null to stay at the main menu ("fresh"
+    // is a new player every launch).
+    public static BotExecution Start(string godot, string project, string activity, string name, string folder, string? profile)
     {
         Directory.CreateDirectory(folder);
-        WriteBotFile(folder, name, scene);
+        WriteBotFile(folder, name, activity);
 
         ProcessStartInfo start = new ProcessStartInfo(godot);
         start.UseShellExecute = false;
         start.ArgumentList.Add("--path");
         start.ArgumentList.Add(project);
         start.ArgumentList.Add("--scene");
-        start.ArgumentList.Add("res://game/bots/" + scene + ".tscn");
+        start.ArgumentList.Add(Scene);
         start.ArgumentList.Add("--audio-driver");
         start.ArgumentList.Add("Dummy");
         start.ArgumentList.Add("--log-file");
@@ -74,6 +93,11 @@ public class BotExecution
             start.ArgumentList.Add("--autoconnect");
             start.ArgumentList.Add("--profile");
             start.ArgumentList.Add(profile);
+
+            // A new player's name is the profile's unless given, and a name is at most 16
+            // characters.
+            start.ArgumentList.Add("--name");
+            start.ArgumentList.Add(name.Length > MaxNameLength ? name.Substring(0, MaxNameLength) : name);
         }
 
         start.ArgumentList.Add("--bot-folder");
@@ -146,14 +170,13 @@ public class BotExecution
         }
     }
 
-    // bot.json: what this execution is. The bot reads its configuration from here as it
-    // grows; for now it only names the execution and its scene.
-    private static void WriteBotFile(string folder, string name, string scene)
+    // bot.json: what this execution is. The bot reads the activity it runs from here.
+    private static void WriteBotFile(string folder, string name, string activity)
     {
         Dictionary<string, string> bot = new Dictionary<string, string>
         {
             { "name", name },
-            { "scene", scene },
+            { "activity", activity },
         };
 
         JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = true };

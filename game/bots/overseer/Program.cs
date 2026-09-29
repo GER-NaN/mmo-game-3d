@@ -1,6 +1,7 @@
 namespace MmoGame3d.Overseer;
 
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// The Overseer: runs bots, each in its own game client, and gathers what they report.
@@ -12,10 +13,8 @@ public static class Program
     {
         string godot = "";
         string project = "";
-        string scene = "BotMain";
-        bool connect = false;
-        bool fresh = false;
-        double timeoutSeconds = 30;
+        List<BotSpec> bots = new List<BotSpec>();
+        double timeoutSeconds = 120;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -32,14 +31,8 @@ public static class Program
                     i++;
                     break;
                 case "--bot":
-                    scene = next;
+                    bots.Add(BotSpec.Parse(next));
                     i++;
-                    break;
-                case "--connect":
-                    connect = true;
-                    break;
-                case "--fresh":
-                    fresh = true;
                     break;
                 case "--timeout":
                     timeoutSeconds = double.Parse(next);
@@ -53,11 +46,16 @@ public static class Program
 
         if (godot.Length == 0 || project.Length == 0)
         {
-            Console.Error.WriteLine("Usage: Overseer --godot <Godot exe> --project <project folder> [--bot <scene in game/bots>] [--connect] [--fresh] [--timeout seconds]");
+            Console.Error.WriteLine("Usage: Overseer --godot <Godot exe> --project <project folder> [--bot <activity>[:connect|:fresh]]... [--timeout seconds]");
             return 2;
         }
 
-        BotRun run = new BotRun(godot, project, scene, connect, fresh, TimeSpan.FromSeconds(timeoutSeconds));
+        if (bots.Count == 0)
+        {
+            bots.Add(new BotSpec("main-menu", BotPlayer.None));
+        }
+
+        BotRun run = new BotRun(godot, project, bots, TimeSpan.FromSeconds(timeoutSeconds));
         return run.Run();
     }
 }

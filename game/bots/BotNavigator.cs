@@ -1,0 +1,220 @@
+namespace MmoGame3d.Bots;
+
+using Godot;
+using MmoGame3d.Players;
+using MmoGame3d.Zones;
+
+/// <summary>
+/// Walking inside one zone (bots.md T3a). On the first Go in a zone it bakes a
+/// navigation mesh from the zone's static collision onto its own map, and once the map
+/// has synced it asks for a path; later Gos in the same zone reuse the mesh. Each frame
+/// it steers along the path with the turn and forward keys, as a player would. At the
+/// path's end it stops, or with pastEnd keeps walking at the target (into a door's
+/// trigger). Where no mesh bakes (terrain has no collision nodes) it walks straight.
+/// </summary>
+public class BotNavigator
+{
+    // Past this width the engine refuses to bake at the default cell size, with an error.
+    private const float MaxBakeWidth = 300f;
+
+    // A map that has synced can still answer with no path for a moment (seen with many
+    // clients starting at once), so it is asked again for this long before walking
+    // straight.
+    private const double PathRetrySeconds = 3;
+
+    // Close enough to a path point to aim at the next one.
+    private const float PointReach = 0.75f;
+
+    // Facing within this of the aim, it walks; past it, it only turns.
+    private const float WalkWithin = 0.7f;
+    private const float TurnDeadZone = 0.08f;
+
+    private Rid _map;
+    private Rid _region;
+
+    // The map's sync count when the mesh was set; a path is asked for once it has moved.
+    private long _meshIteration = -1;
+    private bool _pathPending;
+    private double _pendingFor;
+    private Vector3 _target;
+    private Vector3[] _path = new Vector3[0];
+    private int _pathIndex;
+    private bool _going;
+    private bool _pastEnd;
+
+    // The zone the map holds a mesh of, and whether one baked there at all.
+    private Zone? _bakedZone;
+    private bool _hasMesh;
+
+    // "straight" or the path's point count, for the events file.
+    public string Route { get; private set; } = "";
+
+    // At the end of its path, or of its straight walk. With pastEnd it never is: it
+    // walks on until stopped.
+    public bool Arrived
+    {
+        get { return _going && !_pastEnd && !_pathPending && _pathIndex >= _path.Length; }
+    }
+
+    public void Go(Zone zone, Vector3 target, bool pastEnd)
+    {
+        _target = target;
+        _pastEnd = pastEnd;
+        _path = new Vector3[0];
+        _pathIndex = 0;
+        _going = true;
+        _pendingFor = 0;
+
+        if (_bakedZone != zone || !GodotObject.IsInstanceValid(_bakedZone))
+        {
+            _bakedZone = zone;
+            _hasMesh = Bake(zone);
+        }
+
+        _pathPending = _hasMesh;
+
+        if (!_pathPending)
+        {
+            _path = new Vector3[] { target };
+            Route = "straight (no mesh bakes here)";
+        }
+    }
+
+    // Drops the path and walks straight at the target: the last metres to something the
+    // walkable ground stops short of.
+    public void StraightOn()
+    {
+        _pathPending = false;
+        _path = new Vector3[0];
+        _pathIndex = 0;
+    }
+
+    public void Tick(BotBody body, double delta)
+    {
+        Player? player = body.Player;
+
+        if (!_going || player == null)
+        {
+            return;
+        }
+
+        if (_pathPending)
+        {
+            _pendingFor += delta;
+
+            if (NavigationServer3D.MapGetIterationId(_map) <= _meshIteration)
+            {
+                return;
+            }
+
+            _path = NavigationServer3D.MapGetPath(_map, player.GlobalPosition, _target, true);
+
+            if (_path.Length == 0 && _pendingFor < PathRetrySeconds)
+            {
+                return;
+            }
+
+            _pathPending = false;
+
+            if (_path.Length == 0)
+            {
+                _path = new Vector3[] { _target };
+                Route = "straight (no path found)";
+            }
+            else
+            {
+                Route = _path.Length + " path points";
+            }
+
+            body.Events.Write("route", Route);
+        }
+
+        Steer(body, player);
+    }
+
+    public void Stop(BotBody body)
+    {
+        _going = false;
+        LetGo(body);
+    }
+
+    private static void LetGo(BotBody body)
+    {
+        body.Hold("turn_left", false);
+        body.Hold("turn_right", false);
+        body.Hold("move_forward", false);
+    }
+
+    private void Steer(BotBody body, Player player)
+    {
+        Vector3 here = player.GlobalPosition;
+
+        while (_pathIndex < _path.Length && Flat(here, _path[_pathIndex]) < PointReach)
+        {
+            _pathIndex++;
+        }
+
+        if (_pathIndex >= _path.Length && !_pastEnd)
+        {
+            LetGo(body);
+            return;
+        }
+
+        Vector3 aim = _pathIndex < _path.Length ? _path[_pathIndex] : _target;
+        Vector3 to = aim - here;
+        float wanted = Mathf.Atan2(-to.X, -to.Z);
+        float off = Mathf.Wrap(wanted - player.Heading, -Mathf.Pi, Mathf.Pi);
+
+        body.Hold("turn_left", off > TurnDeadZone);
+        body.Hold("turn_right", off < -TurnDeadZone);
+        body.Hold("move_forward", Mathf.Abs(off) < WalkWithin);
+    }
+
+    // False where nothing bakes: terrain has no collision nodes to read, which leaves
+    // only the zone's edge walls, too far apart to bake.
+    private bool Bake(Zone zone)
+    {
+        NavigationMesh mesh = new NavigationMesh();
+
+        // Heights are whole cells (0.25 m), or the engine warns that it rounds them.
+        mesh.AgentRadius = 0.5f;
+        mesh.AgentHeight = 2f;
+        mesh.AgentMaxClimb = 0.5f;
+        mesh.GeometryParsedGeometryType = NavigationMesh.ParsedGeometryType.StaticColliders;
+
+        NavigationMeshSourceGeometryData3D source = new NavigationMeshSourceGeometryData3D();
+        NavigationServer3D.ParseSourceGeometryData(mesh, source, zone);
+        Vector3 size = source.GetBounds().Size;
+
+        if (size.X > MaxBakeWidth || size.Z > MaxBakeWidth)
+        {
+            return false;
+        }
+
+        NavigationServer3D.BakeFromSourceGeometryData(mesh, source);
+
+        if (mesh.GetPolygonCount() == 0)
+        {
+            return false;
+        }
+
+        if (!_map.IsValid)
+        {
+            _map = NavigationServer3D.MapCreate();
+            NavigationServer3D.MapSetActive(_map, true);
+            _region = NavigationServer3D.RegionCreate();
+            NavigationServer3D.RegionSetMap(_region, _map);
+        }
+
+        NavigationServer3D.MapSetCellSize(_map, mesh.CellSize);
+        NavigationServer3D.MapSetCellHeight(_map, mesh.CellHeight);
+        NavigationServer3D.RegionSetNavigationMesh(_region, mesh);
+        _meshIteration = NavigationServer3D.MapGetIterationId(_map);
+        return true;
+    }
+
+    private static float Flat(Vector3 a, Vector3 b)
+    {
+        return new Vector2(a.X - b.X, a.Z - b.Z).Length();
+    }
+}

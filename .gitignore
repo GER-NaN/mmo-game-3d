@@ -39,5 +39,5 @@ __pycache__/
 # Pictures from the old bot runs, on this machine only
 /docs/engineering/bot-shots/
 
-# Bot runs: each run's events, logs and pictures (tools/overseer)
+# Bot runs: each run's events, logs and pictures (game/bots/overseer)
 /bot-runs/
