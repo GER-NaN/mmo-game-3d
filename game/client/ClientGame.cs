@@ -28,7 +28,6 @@ public partial class ClientGame : Node
     private static readonly PackedScene InGameMenuScene = GD.Load<PackedScene>("res://game/ui/InGameMenu.tscn");
     private static readonly PackedScene HudScene = GD.Load<PackedScene>("res://game/ui/Hud.tscn");
     private static readonly PackedScene InventoryScene = GD.Load<PackedScene>("res://game/ui/InventoryPanel.tscn");
-    private static readonly PackedScene BookScene = GD.Load<PackedScene>("res://game/ui/VisitorBookPanel.tscn");
     private static readonly PackedScene PlantCardScene = GD.Load<PackedScene>("res://game/gardening/PlantCard.tscn");
     private static readonly PackedScene ChatScene = GD.Load<PackedScene>("res://game/ui/ChatBox.tscn");
     private static readonly PackedScene TerminalScene = GD.Load<PackedScene>("res://game/ui/TerminalScreen.tscn");
@@ -63,8 +62,6 @@ public partial class ClientGame : Node
     private GardenNetwork _gardenNetwork = null!;
     private Networks _networks = null!;
     private Audio.AudioDirector? _audio;
-    private SubwayNetwork _subwayNetwork = null!;
-    private VisitorBookPanel? _book;
     private GardenScreen? _garden;
     private PlantCard? _plantCard;
     private Node _main = null!;
@@ -155,8 +152,6 @@ public partial class ClientGame : Node
         _progressNetwork = networks.Progress;
         _gardenNetwork = networks.Garden;
         _networks = networks;
-        _subwayNetwork = networks.Subway;
-        _subwayNetwork.PageReceived += ShowBook;
         _main = main;
         _profile = new Profile(options.Profile);
         _settings = ClientSettings.Load(options.SettingsFile);
@@ -320,9 +315,8 @@ public partial class ClientGame : Node
         ShowJob(self);
         UpdateSoundscape();
 
-        if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null || _plantCard != null || _book != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
+        if ((_shop != null || _workbench != null || _give != null || _college != null || _recycler != null || _plantCard != null) && self != null && self.GlobalPosition.DistanceTo(_panelOpenedAt) > PanelWalkAway)
         {
-            CloseBook();
             CloseShop();
             CloseWorkbench();
             CloseGive();
@@ -1167,7 +1161,6 @@ public partial class ClientGame : Node
         AddIfOpen(names, classes, _college, "college");
         AddIfOpen(names, classes, _garden, "garden");
         AddIfOpen(names, classes, _plantCard, "plant-card");
-        AddIfOpen(names, classes, _book, "visitor-book");
 
         // The settings panel is not kept in a field: it closes itself.
         foreach (Node child in _ui.GetChildren())
@@ -1766,7 +1759,7 @@ public partial class ClientGame : Node
     private bool AnyPanelOpen()
     {
         return _inventoryPanel != null || _shop != null || _workbench != null || _give != null || _recycler != null || _college != null
-            || _skills != null || _social != null || _map != null || _plantCard != null || _book != null;
+            || _skills != null || _social != null || _map != null || _plantCard != null;
     }
 
     private void ClosePanels()
@@ -1781,34 +1774,6 @@ public partial class ClientGame : Node
         CloseSocial();
         CloseMap();
         ClosePlantCard();
-        CloseBook();
-    }
-
-    // The subway's visitor book, a page at a time; opened by the first page to arrive.
-    private void ShowBook(int page, int pages, string[] lines)
-    {
-        GD.Print("Visitor book: page " + (page + 1) + " of " + pages + ", " + lines.Length + " names");
-
-        if (_book == null)
-        {
-            ClosePanels();
-            _panelOpenedAt = SelfPosition();
-            _book = BookScene.Instantiate<VisitorBookPanel>();
-            _ui.AddChild(_book);
-            _book.PagePressed += _subwayNetwork.SendReadBook;
-            _book.Closed += CloseBook;
-        }
-
-        _book.ShowPage(page, pages, lines);
-    }
-
-    private void CloseBook()
-    {
-        if (_book != null)
-        {
-            _book.QueueFree();
-            _book = null;
-        }
     }
 
     private void CloseInventory()

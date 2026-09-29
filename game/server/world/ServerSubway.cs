@@ -12,16 +12,14 @@ using MmoGame3d.Subway;
 using MmoGame3d.Zones;
 
 /// <summary>
-/// The subway under Old Town: spraying your name on the wall, once, for good, and the
-/// visitor book with every name. The newest tags are kept here and put on the wall's
-/// synced text; the book reads the database a page at a time.
+/// The subway under Old Town: spraying your name on the wall, once, for good. The wall
+/// is the visitor book. The newest tags are kept here and put on the wall's synced text.
 /// </summary>
 public class ServerSubway
 {
     // Tells the achievements when one is earned here; set by ServerGame.
     public Action<Session, string>? Achieved { get; set; }
 
-    private readonly SubwayNetwork _network;
     private readonly Network _session;
     private readonly PersistenceWorker _worker;
     private readonly SubwayStore _store;
@@ -29,9 +27,8 @@ public class ServerSubway
     private readonly List<SubwayTag> _shown = new List<SubwayTag>();
     private readonly Random _random = new Random();
 
-    public ServerSubway(SubwayNetwork network, Network session, PersistenceWorker worker, SubwayStore store, VisibilityGate gate, Zone zone)
+    public ServerSubway(Network session, PersistenceWorker worker, SubwayStore store, VisibilityGate gate, Zone zone)
     {
-        _network = network;
         _session = session;
         _worker = worker;
         _store = store;
@@ -96,33 +93,5 @@ public class ServerSubway
                 GD.PrintErr("Spraying a subway tag failed: " + e.Message);
                 _session.SendNotice(peer, "The paint would not stick. Try again.");
             });
-    }
-
-    // Page 0 is the first names ever sprayed; a page past the end shows the last one.
-    public void ReadBook(Session session, int page)
-    {
-        if (session.ZoneId != _zone.ZoneId)
-        {
-            return;
-        }
-
-        long peer = session.PeerId;
-        _worker.Enqueue(
-            () =>
-            {
-                int count = _store.Count(SubwayWall.OldTown);
-                int pages = Math.Max(1, (count + SubwayWall.BookPage - 1) / SubwayWall.BookPage);
-                int shown = Math.Clamp(page, 0, pages - 1);
-                List<string> lines = new List<string>();
-
-                foreach (SubwayTag tag in _store.Page(SubwayWall.OldTown, shown * SubwayWall.BookPage, SubwayWall.BookPage))
-                {
-                    lines.Add("#" + tag.Id + "   " + tag.Name);
-                }
-
-                return new object[] { shown, pages, lines.ToArray() };
-            },
-            result => _network.SendPage(peer, (int)result[0], (int)result[1], (string[])result[2]),
-            e => GD.PrintErr("Reading the visitor book failed: " + e.Message));
     }
 }

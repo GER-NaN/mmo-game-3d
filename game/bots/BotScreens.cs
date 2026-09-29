@@ -59,7 +59,6 @@ public static class BotScreens
             case "college":
             case "garden":
             case "plant-card":
-            case "visitor-book":
             case "character-creator":
                 return "ui_cancel";
             default:

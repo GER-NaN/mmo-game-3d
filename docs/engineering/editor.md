@@ -72,7 +72,6 @@ code: see example-tree-chopping.md.
 | Chest | `game/chests/Chest.tscn` | `ChestName` |
 | Taxi stand | `game/taxis/TaxiStand.tscn` | nothing |
 | Junction box (the street lights' repair) | `game/town/JunctionBox.tscn` | nothing |
-| Visitor book | `game/subway/VisitorBook.tscn` | nothing |
 | Tag wall | `game/subway/SubwayWall.tscn` | nothing |
 | Potting table | `game/gardening/PottingTable.tscn` | nothing |
 | Someone at the college | `game/college/CollegePerson.tscn` | `Role`, `PersonName`, `ModelPath` |

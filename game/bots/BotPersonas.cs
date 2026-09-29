@@ -46,7 +46,6 @@ public static class BotPersonas
             .Likes("wardrobe-cancelled", 1)
             .Likes("back-from-characters", 1)
             .Likes("whois-mine", 1)
-            .Likes("read-visitor-book", 1)
             .Likes("inspect-a-plant", 1)
             .Likes("talk-to-registrar", 1)
             .Likes("talk-to-professor", 1)

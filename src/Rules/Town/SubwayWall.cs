@@ -6,16 +6,15 @@ using System.Text;
 /// <summary>
 /// The subway wall under Old Town: an underground visitor book (world.md, What players
 /// change). A player sprays their name on it once, and it stays for good; nobody can
-/// paint over it. The wall shows the newest tags; the visitor book beside it lists them
-/// all. The tags travel to clients as one text, a tag a line.
+/// paint over it. The wall shows the newest tags. The tags travel to clients as one
+/// text, a tag a line.
 /// </summary>
 public static class SubwayWall
 {
     public const string OldTown = "old-town";
 
-    // How many tags the wall itself shows; the book has the rest.
+    // How many tags the wall shows.
     public const int Shown = 40;
-    public const int BookPage = 20;
 
     // Spray paint colours, picked at random when a tag is made. Placeholders.
     public static readonly uint[] Paints =

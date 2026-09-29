@@ -15,7 +15,6 @@ public class Networks
         Social = main.GetNode<SocialNetwork>("SocialNetwork");
         Progress = main.GetNode<ProgressNetwork>("ProgressNetwork");
         Garden = main.GetNode<GardenNetwork>("GardenNetwork");
-        Subway = main.GetNode<SubwayNetwork>("SubwayNetwork");
     }
 
     public Network Session { get; }
@@ -26,7 +25,6 @@ public class Networks
     public SocialNetwork Social { get; }
     public ProgressNetwork Progress { get; }
     public GardenNetwork Garden { get; }
-    public SubwayNetwork Subway { get; }
 
     public void SetLog(IRpcLog log)
     {
@@ -38,6 +36,5 @@ public class Networks
         Social.Log = log;
         Progress.Log = log;
         Garden.Log = log;
-        Subway.Log = log;
     }
 }

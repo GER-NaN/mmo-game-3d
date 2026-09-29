@@ -65,16 +65,6 @@ public static class TownActivities
                 .UntilNotice(""))
                 .Says("Leaving my mark.", "Art!"),
 
-            new BotActivity("read-visitor-book", plan => plan
-                .InWorld()
-                .GoTo(ZoneIds.Subway)
-                .Use<VisitorBook>()
-                .UntilOpen("visitor-book")
-                .Wait(1)
-                .Press("ui_cancel")
-                .UntilClosed("visitor-book"))
-                .Says("Who's been here?"),
-
             new BotActivity("equip-emp", new[] { BotFacts.EmpEquipped }, plan => plan
                 .InWorld()
                 .StopIf("the EMP emitter is on already", BotFacts.EmpEquipped.Holds)

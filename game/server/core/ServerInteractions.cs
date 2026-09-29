@@ -123,10 +123,6 @@ public class ServerInteractions
             case MmoGame3d.Subway.SubwayWallNode:
                 Subway?.Spray(session);
                 break;
-            case MmoGame3d.Subway.VisitorBook:
-                // The newest page first: a page past the end is the last one.
-                Subway?.ReadBook(session, int.MaxValue);
-                break;
             case Townsperson person:
                 person.Listen(session.Body.GlobalPosition);
                 _session.SendNotice(session.PeerId, person.PersonName + ": " + Chatter.Pick(_random));

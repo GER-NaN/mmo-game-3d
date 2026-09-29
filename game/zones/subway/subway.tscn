@@ -3,7 +3,6 @@
 [ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
 [ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="90_door"]
 [ext_resource type="PackedScene" path="res://game/subway/SubwayWall.tscn" id="91_wall"]
-[ext_resource type="PackedScene" path="res://game/subway/VisitorBook.tscn" id="92_book"]
 [ext_resource type="PackedScene" path="res://game/props/city_builder_bits/Bench.tscn" id="93_bench"]
 
 [sub_resource type="StandardMaterial3D" id="Material_Platform"]
@@ -204,9 +203,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -3.2)
 
 [node name="SubwayWall" parent="Interactables" instance=ExtResource("91_wall")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4)
-
-[node name="VisitorBook" parent="Interactables" instance=ExtResource("92_book")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 0, -2.4)
 
 [node name="Doors" type="Node3D" parent="."]
 
