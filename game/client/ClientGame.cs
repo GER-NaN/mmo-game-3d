@@ -483,6 +483,14 @@ public partial class ClientGame : Node
             return;
         }
 
+        // In the world the creator is the wardrobe; Esc is its Cancel.
+        if (_creator != null && @event.IsActionPressed("ui_cancel"))
+        {
+            GetViewport().SetInputAsHandled();
+            CloseWardrobe();
+            return;
+        }
+
         if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null || _recycler != null || _plantCard != null || _book != null) && @event.IsActionPressed("ui_cancel"))
         {
             CloseBook();
@@ -737,14 +745,15 @@ public partial class ClientGame : Node
         _creator.DonePressed += (name, look) =>
         {
             _network.SendSetLook(look);
-            _creator?.QueueFree();
-            _creator = null;
+            CloseWardrobe();
         };
-        _creator.CancelPressed += () =>
-        {
-            _creator?.QueueFree();
-            _creator = null;
-        };
+        _creator.CancelPressed += CloseWardrobe;
+    }
+
+    private void CloseWardrobe()
+    {
+        _creator?.QueueFree();
+        _creator = null;
     }
 
     private void CloseCharacterScreens()
