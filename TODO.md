@@ -33,10 +33,17 @@ link points.
 
 - [ ] Town cameras (terminal app): the picture, the camera angles, clicking a drone.
 - [ ] Agent Defense: the lanes, the speed, the timing windows, the score.
-- [ ] The subway: the platform, the tags on the wall, the visitor book.
+- [ ] The subway: the platform, and the tags on the wall, now placed by the server at
+      the free spot nearest the player (2026-09-29).
 - [ ] Every sound: the choices and the levels are placeholders picked by name.
 - [ ] Which voice is whose (Wren, Old Tomas, Ines, Dee, Mara, Professor Okafor).
-- [ ] The potting table's new pot banner and piece grid, and the mouse key.
+- [ ] The potting table's carousels (pots along the top, pieces with up and down for
+      the kind), the tint on the piece under the mouse, and the mouse key.
+- [ ] The UI playtest changes of 2026-09-29, listed as built in
+      `docs/planning/ui-playtest-2026-09-29.md`: the bag's tooltip card and double-click,
+      Friends, the party panel's fold, the pause menu status, the server picker, the
+      loading screen, the shop, the plant card, the skills' cards, the dropped items'
+      scatter.
 - [ ] The taxi ride's longer view and haze.
 - [ ] The meadows (3 km Terrain3D zone east of Main Street): the hills, the textures,
       the size; sculpt and paint it in the editor.
@@ -125,12 +132,10 @@ All four are in docs/engineering/performance.md, with the numbers.
 - [ ] Look again at the developer launch options `--garden`, `--creator` and
       `--show-characters`: the author, 2026-09-29, "those launch options read like bot
       tools, lets re evaluate those".
-- [ ] A carousel for picking from many (the author, 2026-09-29; sketch:
-      `C:\Users\geral\Pictures\Screenshots\Screenshot 2026-09-29 101157.png`): a row of
-      items, the chosen one in the middle and highlighted, arrows left and right. The
-      mouse wheel scrolls it, and it scrolls by itself left or right while the mouse
-      rests near either end. For the character creator's bases, and the potting table's
-      pots and leaves. One control, used in all three.
+- [ ] The carousel in the character creator: the control is built (`game/ui/Carousel`,
+      2026-09-29) and used at the potting table; the creator's bases still use a list and
+      < >. The author's sketch: `C:\Users\geral\Pictures\Screenshots\Screenshot
+      2026-09-29 101157.png`.
 - [ ] Simple Postal Office QA (a feature design session, `feature-design`). The author's
       idea, 2026-09-29: "add a PostalOffice. This is how a player sends items within the
       world. Postal office is just a new zone that goes into a town, like the shop or

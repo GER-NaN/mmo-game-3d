@@ -4,6 +4,42 @@ A summary of the author's spoken playtest of the in-game world, sorted by kind. 
 words are in the transcript: `docs/sources/transcripts/Transcript-2026-09-29-UI-Playtest.md`.
 The terminal was not covered; that is for a later playtest.
 
+## What was done (2026-09-29, branch ger/cleanup-ui)
+
+Built:
+
+- Wardrobe: Cancel and Done go back to the pause menu (bug 3); a big character fits the
+  preview (bug 4).
+- Chat: the lines fade out when not typing; a new line shows them again for 4 s.
+- Every screen's close X in its panel's top right-hand corner.
+- The bag: no "In the bag" heading; double-click equips, swapping with what the slot
+  holds, and double-click on a slot unequips (bug 5); a tooltip card (title, count or
+  charge, description).
+- Dropped things scatter round the body.
+- Friends: an online dot, a mail icon and "..." per row; "..." opens the friend's own
+  view (message, remove); the ignored behind an "Ignored" button.
+- Party: a bigger title; it folds down to "Party (n)" and opens again.
+- Pause menu: bigger, with the server, player and zone on top.
+- Main menu: a picker of named servers; the local one is New York; the last choice is
+  kept.
+- A loading screen from Play on the character screen until your body is in the world.
+- Shop: most of the screen, a description under each item.
+- The plant card in the middle of the screen.
+- Skills: a tooltip card on each skill.
+- Subway: the visitor book is gone; a new tag goes to the free spot nearest the player,
+  at a random slant, size and colour. Old Tomas walks round the back of the entrance
+  (bug 2).
+- Potting table: pots and pieces on carousels, up and down for the kind of plant; a
+  planted piece is taken by any part of it (bug 6), and the one under the mouse is
+  tinted with a hand cursor.
+
+Left for the author: the bag's name, grid and item pictures; where the HUD's five pieces
+go; skills, career and achievements as screens; speech bubbles; the registrar and career
+screens; dropping a career; the workbench screen; the wardrobe scene; the subway rebuild;
+the greenhouse decoration; one settings screen for both menus. Bug 1 (the loose battery)
+needs dropping things with an identity, which the ground cannot hold yet; bug 7
+(rubber-banding) was seen once and not reproduced.
+
 ## Bugs
 
 1. **A battery in the bag that cannot be dropped or equipped.** "Battery 95%" shows in
