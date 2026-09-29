@@ -504,7 +504,7 @@ public partial class ClientGame : Node
         if (_creator != null && @event.IsActionPressed("ui_cancel"))
         {
             GetViewport().SetInputAsHandled();
-            CloseWardrobe();
+            BackFromWardrobe();
             return;
         }
 
@@ -764,15 +764,22 @@ public partial class ClientGame : Node
         _creator.DonePressed += (name, look) =>
         {
             _network.SendSetLook(look);
-            CloseWardrobe();
+            BackFromWardrobe();
         };
-        _creator.CancelPressed += CloseWardrobe;
+        _creator.CancelPressed += BackFromWardrobe;
     }
 
     private void CloseWardrobe()
     {
         _creator?.QueueFree();
         _creator = null;
+    }
+
+    // Saved or not, back to the game menu the wardrobe was opened from.
+    private void BackFromWardrobe()
+    {
+        CloseWardrobe();
+        OpenInGameMenu();
     }
 
     private void CloseCharacterScreens()

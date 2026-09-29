@@ -18,6 +18,11 @@ public partial class CharacterCreator : Control
     // until customizing is designed for every base (TODO.md); the code stays.
     private static readonly bool Customizing = false;
 
+    // A character of the usual size, in metres, as the preview shows it: the camera's
+    // framing is made for this. Placeholders until seen.
+    private const float UsualHeight = 1.7f;
+    private const float UsualWidth = 1.4f;
+
     private const float TurnRadiansPerSecond = 0.6f;
 
     private readonly Random _random = new Random();
@@ -34,10 +39,7 @@ public partial class CharacterCreator : Control
         _naming = naming;
         _appearance = Appearance.Parse(appearance);
 
-        // A little above the face, looking at the chest; the light from the front left.
-        Camera3D camera = GetNode<Camera3D>("%Camera");
-        camera.Position = new Vector3(0f, 1.3f, 3.4f);
-        camera.LookAt(new Vector3(0f, 0.8f, 0f), Vector3.Up);
+        // The light from the front left; the camera is set for each base (FitCamera).
         GetNode<DirectionalLight3D>("%Sun").RotationDegrees = new Vector3(-40f, -30f, 0f);
         GetNode<Label>("%Title").Text = naming ? "A new character" : "Wardrobe";
         GetNode<Control>("%NameRow").Visible = naming;
@@ -190,6 +192,35 @@ public partial class CharacterCreator : Control
 
         _preview = new CharacterModel { Name = "Preview", Appearance = _appearance.Format() };
         stage.AddChild(_preview);
+        FitCamera(_preview);
         _preview.Rotation = new Vector3(0f, turn, 0f);
+    }
+
+    // A little above the face, looking at the chest, for a character of the usual size; a
+    // bigger one (a golem, the big robot) moves the camera back and up in proportion, so
+    // the whole of it shows.
+    private void FitCamera(Node3D model)
+    {
+        Aabb box = new Aabb();
+        bool found = false;
+
+        foreach (Node node in model.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            MeshInstance3D mesh = (MeshInstance3D)node;
+            Aabb part = mesh.GlobalTransform * mesh.GetAabb();
+            box = found ? box.Merge(part) : part;
+            found = true;
+        }
+
+        float scale = 1f;
+
+        if (found)
+        {
+            scale = Mathf.Max(1f, Mathf.Max(box.End.Y / UsualHeight, Mathf.Max(box.Size.X, box.Size.Z) / UsualWidth));
+        }
+
+        Camera3D camera = GetNode<Camera3D>("%Camera");
+        camera.Position = new Vector3(0f, 1.3f * scale, 3.4f * scale);
+        camera.LookAt(new Vector3(0f, 0.8f * scale, 0f), Vector3.Up);
     }
 }

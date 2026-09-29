@@ -135,6 +135,12 @@ public static class UiActivities
         }).Says("Let me rebind that.");
     }
 
+    // The wardrobe closes back to the game menu; Resume is back to play.
+    private static BotStep BackToPlay()
+    {
+        return new ClickStep("Resume", body => body.Find<InGameMenu>()?.GetNodeOrNull<Godot.Control>("%Resume"));
+    }
+
     private static Godot.Button? KeyButton(BotBody body, string action)
     {
         return BotScreens.Named<Godot.Button>(body.Find<SettingsPanel>(), "Key_" + action);
@@ -160,6 +166,7 @@ public static class UiActivities
                 .Click<CharacterCreator>("%Random")
                 .Click<CharacterCreator>("%Done")
                 .UntilClosed("character-creator")
+                .Step(BackToPlay())
                 .Until("the new look on the body", body => body.Player != null && body.Player.Look != before, 5);
         }).Says("New outfit, what do you think?", "Time for a change.");
     }
@@ -175,7 +182,8 @@ public static class UiActivities
             .UntilOpen("character-creator")
             .ClickEach("the colour arrows", body => body.Find<CharacterCreator>(), button => button.Text == "<" || button.Text == ">")
             .Click<CharacterCreator>("%Done")
-            .UntilClosed("character-creator"))
+            .UntilClosed("character-creator")
+                .Step(BackToPlay()))
             .Says("Trying every colour.");
     }
 
@@ -197,6 +205,7 @@ public static class UiActivities
                 .Wait(0.5)
                 .Click<CharacterCreator>("%Cancel")
                 .UntilClosed("character-creator")
+                .Step(BackToPlay())
                 .Wait(1)
                 .Until("the old look kept", body => body.Player != null && body.Player.Look == before, 2);
         }).Says("Nah, I'll keep this.");
