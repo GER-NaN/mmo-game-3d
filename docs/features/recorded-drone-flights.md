@@ -607,9 +607,10 @@ Each "Already decided" item against the Outcome.
 - Raised during the session (2026-09-29), outside this feature: the author finds the
   developer launch options (`--garden`, `--creator`, `--show-characters`) "read like bot
   tools", and wants them looked at again. For TODO.md at the close.
-- `docs/world.md`: two kinds of drone, spy drones on recorded paths and roaming drones
-  with maneuvers, are new decisions. Proposed: fold them in, in the author's words,
-  tagged `[C-2026-09-29]`. Not done; waits for the author's yes.
+- `docs/world.md`: the two kinds of drone, spy drones on recorded paths and roaming
+  drones with maneuvers, folded into section 8 in the author's words, tagged
+  `[C-2026-09-29]` (the author's yes, 2026-09-29). The undecided spotting ideas went to
+  `docs/backlog.md`.
 - `TODO.md`: the build, as one item; and the developer launch options to look at again.
   The first playtest's note ("record drone flight") points here.
 - `docs/engineering/`: a drones doc once the code exists.
