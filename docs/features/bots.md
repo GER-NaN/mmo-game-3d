@@ -1,7 +1,8 @@
 # Bots
 
 **Date:** 2026-09-28
-**Status:** Agreed. The build has not started; the author codes the first bot by hand.
+**Status:** Agreed, and built in part (branch `ger/bot-rebuild`). See "Decided in the
+author's absence" for the choices made while the author was away.
 **Sources read:** docs/world.md (no section mentions bots), CLAUDE.local.md,
 docs/engineering/testing.md, docs/engineering/running.md, game/LaunchOptions.cs,
 game/dev/; at the close only, the removed bot code and docs (commits 48f97cb, 5a15cd3)
@@ -1336,6 +1337,71 @@ the docs taken out in 5a15cd3 (`docs/engineering/bot-testing.md`,
 >   seeding, which stays deferred [F2c]. The load test measures the server, not the
 >   game's behaviour; it stays out of this design and is designed on its own when needed.
 >   Bots announcing themselves in chat stays rejected [T5a].
+
+## Decided in the author's absence
+
+On 2026-09-28 the author went away and asked for the old features to be built, the bots
+run and tested, and a soak run. Their words:
+
+> Answer (2026-09-28): Go ahead and add all the features from the old bots (dont copy
+> their code, but you can reference it to help reason about things, The game code cannot
+> know about bots, we can give entrypoints or expose things or do small restrucutres or
+> rebuild a small scene the correct way [...] GO as far as you can without my input and
+> make your best judgements.
+>
+> Answer (2026-09-28), on the soak and its players: About 8 windowed. They dont need to
+> be fresh, you can reuse old ones, that might be a good way to test things also. A
+> fresh player should only be for things you want to be tested on a fresh account.
+> [...] Add tests for things we didnt do yet. Like character editing, menus we didnt
+> build tests for, UI items we didnt test for. Features we didnt test yet.
+>
+> Answer (2026-09-28), on the new zones: Include the new areas, they have no usable
+> things but it may be interesting to see how a bot behaves when it needs to cross zones
+> or something.. test things like that, just because it doesnt make sense doesnt mean we
+> cant test it [...] If its completely obvious and deterministic then we dont need to do
+> it.
+>
+> Decision (2026-09-28): "Take my recommendation" on the questions asked before the
+> author left. Every item below is the model's choice under that delegation, for the
+> author to review.
+
+- **Personas [R3].** Eight, in `BotPersonas.cs`: wanderer, curious, gamer, escaper,
+  earner, traveller, masher, dropper. Each is weights over activity names and a chance
+  to walk away at a step boundary [R1]. The soak is every persona at once, each its own
+  kept player (`-Soak`).
+- **Connection drops [R1], changed.** The bot ends its own client (`DropStep`) after it
+  writes a `dropping` event, rather than the Overseer killing it at a random moment. The
+  bot knows the moments worth testing (mid-walk, online at a terminal). The Overseer
+  reads `dropping`, counts the end as intended, and starts the bot again as the same
+  player. Any other early end of a persona bot is a failure and is restarted too.
+- **Asides [R2].** Not built. The chatter is the only thing that runs between steps.
+- **Two-player features without the helper [F6].** In a soak the other bots are the
+  other players, so social activities pick whoever is in town: `PickPlayerStep` walks
+  up to another player and clicks on their body. Befriend, invite, give and message are
+  activities. Answering an invite is a reflex of every bot (`BotInviteAnswers`), not an
+  activity, since the invite comes whatever the plan is doing. The helper bot of [F6]
+  stays deferred; a feature that needs a partner in a known state still needs it.
+- **Shared things.** A terminal serves one player. `UseTerminalStep` waits for a free
+  one, walks up, and backs off and tries again when someone got there first. A chest
+  that is empty, a job already taken, a map indoors: the plan stops as completed
+  (`StopIf`) or the click is optional (`ClickIfThere`), since each is a normal state of
+  a shared world, not a failure.
+- **Findings [R7, R8].** Stuck, out of bounds, floating, zone churn (three stays under
+  1.5 s in a minute) and client errors, each at most once a minute per kind and detail.
+  The network state and the server's log lines of [R8] are not built.
+- **Not built:** window layout by the Overseer [R9], the authoring loop [R10], seeding
+  [F2c], helpers [F6].
+- **Game changes, none about bots [F7]:**
+  - `--settings-file` [R9].
+  - `ClientGame.View` with the open screens and the last notices [T1].
+  - Named rows in the shop, recycler and bag; named take-the-job buttons
+    (`Take_<job id>`) [T2].
+  - Street lamps that read the day-night state (`NightLight`, group `day_night`).
+  - The two new zones, `wooded_path` and `new_town`.
+  - `--autoconnect` chooses a character once per launch.
+  - The settings panel scrolls: it ran off a 648-pixel window (found by a bot).
+  - The `fresh` profile is one player per launch, not per connect: leaving and playing
+    again made another player (found by a bot).
 
 ## Consequences
 
