@@ -21,6 +21,13 @@ link points.
 - [ ] The map achievements fire at 95% of cells (unreachable ones behind buildings), before
       the minimap looks complete: reveal the rest when it fires, or count only reachable
       cells at 100% (playtest).
+- [ ] Party ping-pong through doors: a door takes every party member within 10 m, and
+      the town's subway arrival is that close to the subway door, so members with
+      different goals bounce the whole party between town and subway (bots, 5 times in a
+      minute). A cooldown after travel, only the leader's door, or no auto-follow.
+- [ ] Drones zap a player standing online at a terminal, who faints mid-minigame (bots).
+- [ ] A party member online at the kiosk near the taxi stand rides along when the leader
+      calls a taxi (bots).
 
 ## Look at or listen to (never seen or heard by the author)
 
@@ -38,6 +45,20 @@ link points.
 - [ ] Door thresholds are too big (playtest): options to show side by side.
 
 ## Known issues
+
+- [ ] Screens close in different ways: Esc closes the shop, map, visitor book and the
+      rest, all at once, but the bag, Friends and Skills close only with their own key,
+      and Esc opens the game menu over them. Every screen should close the same way: an
+      X or Cancel, and one shortcut key. Then the bots' per-screen close list
+      (`BotScreens.CloseKey`) goes.
+- [ ] Bodies stick at the ends of the town's 0.5 m bench boxes (Bench0 at (-10, 8),
+      Bench1 at (7, -7.4)): asked to walk, touching only a floor-like edge, they cannot
+      move out (bots, many times). The box height is the capsule's lower half-sphere
+      centre; players may be trapped too.
+- [ ] The recycler has a street lamp in front of it and the shop door beside it: little
+      room to stand in reach (bots).
+- [ ] Rare engine error "Handle is not initialized" in `CharacterModel._Ready` when it
+      instantiates the model (Godot's C# bridge; 2 in about 400 bot clients).
 
 - [ ] Every Agent Defense run posts to the status board; with many players it will
       flood it. Post only top-ten runs, or nothing.
