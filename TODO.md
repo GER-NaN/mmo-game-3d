@@ -117,6 +117,19 @@ All four are in docs/engineering/performance.md, with the numbers.
 
 ## Planned, not built
 
+- [ ] Character bases from the whole KayKit collection (the author, 2026-09-29: "update
+      the character select to choose from any of those ... select the character base and
+      then customize it. Some of them look like test dummies and that is ok actually to
+      include them."). Likely a feature session first. Facts: 62 character models in
+      `C:\game-art\3d\kaykit-godot` (adventurers, skeletons, mystery series 4 to 6,
+      prototype_bits' Dummy); 53 on the medium rig, which our animations fit, and 9 on
+      the large rig (Barbarian_Large, BlackKnight, FrostGolem, Clanker, OrcBrute,
+      Monstrosity, 4GTN, 4GTN_Forgotten, Skeleton_Golem), which need the rig_large
+      animations from the same collection. Only 5 are in the project today. A look is a
+      base id ("a", "b") plus colours and two toggles (`src/Rules/Players/Appearance.cs`),
+      and the colours and toggles fit the Protagonists only. Open: customizing the other
+      bases, choosing among 62 (a drop-down will not do), ids for the new bases, the
+      large ones' size against the body's capsule.
 - [ ] Bring over mmo-game's code rules and make them run on every build here:
       `src/Analyzers` (GAME0001 to GAME0006: no async/await, no lock, no primary
       constructors, no reflection inspection, no switch expressions, no tuple
