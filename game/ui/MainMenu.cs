@@ -2,39 +2,52 @@ namespace MmoGame3d.Ui;
 
 using System;
 using Godot;
+using MmoGame3d.Client;
 
-// The first screen: which server, and Play. The character is chosen after connecting.
+// The first screen: which server, from a list of named ones, and Play. The character is chosen after connecting.
 // It only reports what was pressed; ClientGame acts on it.
 public partial class MainMenu : Control
 {
     private static readonly PackedScene CreditsScene = GD.Load<PackedScene>("res://game/ui/CreditsPanel.tscn");
 
-    // (address).
+    // (server name).
     public event Action<string>? PlayPressed;
     public event Action? SettingsPressed;
     public event Action? QuitPressed;
 
-    private LineEdit _address = null!;
+    private OptionButton _server = null!;
     private Label _status = null!;
     private Button _play = null!;
 
     public override void _Ready()
     {
-        _address = GetNode<LineEdit>("%Address");
+        _server = GetNode<OptionButton>("%Server");
+
+        foreach (GameServer server in ServerList.All)
+        {
+            _server.AddItem(server.Name);
+        }
+
         _status = GetNode<Label>("%Status");
         _play = GetNode<Button>("%Play");
 
         _play.Pressed += OnPlay;
-        _address.TextSubmitted += _ => OnPlay();
         GetNode<Button>("%Settings").Pressed += () => SettingsPressed?.Invoke();
         GetNode<Button>("%Credits").Pressed += ShowCredits;
         GetNode<Button>("%Quit").Pressed += () => QuitPressed?.Invoke();
     }
 
-    public void Fill(string profile, string address)
+    public void Fill(string profile, string server)
     {
         GetNode<Label>("%Profile").Text = "Profile: " + profile;
-        _address.Text = address;
+
+        for (int i = 0; i < ServerList.All.Length; i++)
+        {
+            if (ServerList.All[i].Name == server)
+            {
+                _server.Select(i);
+            }
+        }
     }
 
     public void SetStatus(string text)
@@ -52,7 +65,7 @@ public partial class MainMenu : Control
     {
         if (!_play.Disabled)
         {
-            PlayPressed?.Invoke(_address.Text.Trim());
+            PlayPressed?.Invoke(ServerList.All[Math.Max(_server.Selected, 0)].Name);
         }
     }
 

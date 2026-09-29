@@ -289,7 +289,7 @@ public partial class ClientGame : Node
         }
         else if (options.AutoConnect)
         {
-            Connect(options.Address ?? _settings.Address);
+            Connect(options.Address ?? ServerList.Named(_settings.Server).Address);
         }
         else
         {
@@ -586,13 +586,18 @@ public partial class ClientGame : Node
         {
             _menu = MainMenuScene.Instantiate<MainMenu>();
             _ui.AddChild(_menu);
-            _menu.PlayPressed += Connect;
+            _menu.PlayPressed += server =>
+            {
+                _settings.Server = server;
+                _settings.Save();
+                Connect(ServerList.Named(server).Address);
+            };
             _menu.SettingsPressed += OpenSettings;
             _menu.QuitPressed += Quit;
         }
 
         CloseCharacterScreens();
-        _menu.Fill(_profile.Name, _settings.Address);
+        _menu.Fill(_profile.Name, _settings.Server);
         _menu.SetStatus(status);
         _menu.SetBusy(false);
     }
@@ -607,8 +612,6 @@ public partial class ClientGame : Node
         }
 
         _address = address;
-        _settings.Address = address;
-        _settings.Save();
 
         ENetMultiplayerPeer peer = new ENetMultiplayerPeer();
         Error error = peer.CreateClient(address, _options.Port);
@@ -620,7 +623,7 @@ public partial class ClientGame : Node
         }
 
         Multiplayer.MultiplayerPeer = peer;
-        _menu?.SetStatus("Connecting to " + address + "...");
+        _menu?.SetStatus("Connecting to " + ServerList.NameFor(address) + "...");
         _menu?.SetBusy(true);
         GD.Print("Connecting to " + address + ":" + _options.Port + " as profile " + _profile.Name);
     }
@@ -642,7 +645,7 @@ public partial class ClientGame : Node
     private void OnConnectionFailed()
     {
         Disconnect();
-        ShowMainMenu("Could not reach the server at " + _address + ".");
+        ShowMainMenu("Could not reach " + ServerList.NameFor(_address) + ".");
     }
 
     private void OnServerDisconnected()

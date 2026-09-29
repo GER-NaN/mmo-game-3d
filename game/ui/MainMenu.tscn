@@ -56,14 +56,13 @@ layout_mode = 2
 text = "Profile: default"
 horizontal_alignment = 1
 
-[node name="AddressLabel" type="Label" parent="Center/Panel/Margin/Rows"]
+[node name="ServerLabel" type="Label" parent="Center/Panel/Margin/Rows"]
 layout_mode = 2
 text = "Server"
 
-[node name="Address" type="LineEdit" parent="Center/Panel/Margin/Rows"]
+[node name="Server" type="OptionButton" parent="Center/Panel/Margin/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "127.0.0.1"
 
 [node name="Status" type="Label" parent="Center/Panel/Margin/Rows"]
 unique_name_in_owner = true

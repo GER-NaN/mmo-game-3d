@@ -27,7 +27,8 @@ public class ClientSettings
     private string _path = DefaultPath;
 
     public bool Fullscreen { get; set; }
-    public string Address { get; set; } = "127.0.0.1";
+    // The server last chosen on the main menu, by name (ServerList).
+    public string Server { get; set; } = ServerList.All[0].Name;
 
     // A multiplier on how far a right-drag turns the camera.
     public float MouseSensitivity { get; set; } = 1f;
@@ -54,7 +55,7 @@ public class ClientSettings
         if (settings._file.Load(path) == Error.Ok)
         {
             settings.Fullscreen = (bool)settings._file.GetValue("display", "fullscreen", false);
-            settings.Address = (string)settings._file.GetValue("network", "address", "127.0.0.1");
+            settings.Server = (string)settings._file.GetValue("network", "server", ServerList.All[0].Name);
             settings.MouseSensitivity = Mathf.Clamp((float)settings._file.GetValue("controls", "mouse_sensitivity", 1f), MinSensitivity, MaxSensitivity);
             settings.CameraDistance = (float)settings._file.GetValue("controls", "camera_distance", 8f);
 
@@ -166,7 +167,7 @@ public class ClientSettings
     public void Save()
     {
         _file.SetValue("display", "fullscreen", Fullscreen);
-        _file.SetValue("network", "address", Address);
+        _file.SetValue("network", "server", Server);
         _file.SetValue("controls", "mouse_sensitivity", MouseSensitivity);
         _file.SetValue("controls", "camera_distance", CameraDistance);
 
