@@ -119,6 +119,12 @@ All four are in docs/engineering/performance.md, with the numbers.
 
 ## Planned, not built
 
+- [ ] Recorded drone flights: agreed in `docs/features/recorded-drone-flights.md`
+      (2026-09-29), not built. Spy drones fly paths the author records; roaming drones
+      fly recorded maneuvers. Four PRs, listed there under Consequences.
+- [ ] Look again at the developer launch options `--garden`, `--creator` and
+      `--show-characters`: the author, 2026-09-29, "those launch options read like bot
+      tools, lets re evaluate those".
 - [ ] A carousel for picking from many (the author, 2026-09-29; sketch:
       `C:\Users\geral\Pictures\Screenshots\Screenshot 2026-09-29 101157.png`): a row of
       items, the chosen one in the middle and highlighted, arrows left and right. The
@@ -194,7 +200,7 @@ drone flights and redemption receipts (design sessions).
 - Old town map exploration triggered even though I had one square left (at least on the mini map)
 - Compass?
 - Drone flight seems stuttery
-- I would like to be able to record drone flight and then thats their pattern in game. 
+- I would like to be able to record drone flight and then thats their pattern in game. (Designed 2026-09-29: docs/features/recorded-drone-flights.md.)
 - No auto payment, you get receipts from the terminal and need to collect in the town <whast the name... courthouse/office/headquarters/majors> I forget what the "headquarters" of a town is... Same goes for recycler, you get a receipt and it needs to be redeemed. This is something that can be traded too but its in the playres name like 
 Recycler Redemption 
 -----------------
