@@ -1,5 +1,6 @@
 namespace MmoGame3d.Bots;
 
+using System.Collections.Generic;
 using Godot;
 using MmoGame3d.Client;
 using MmoGame3d.Ui;
@@ -124,6 +125,54 @@ public static class BotScreens
         }
 
         return null;
+    }
+
+    // Play on a character card whose name is not this one; null when every card is it.
+    // A card is a column: the preview, the name, then Play at the bottom.
+    public static Button? PlayOtherThan(Node? select, string name)
+    {
+        List<Button> plays = new List<Button>();
+        AllButtons(select, "Play", plays);
+
+        foreach (Button play in plays)
+        {
+            Label? cardName = play.GetParent()?.GetChildOrNull<Label>(1);
+
+            if (cardName != null && cardName.Text != name)
+            {
+                return play;
+            }
+        }
+
+        return null;
+    }
+
+    // Play on the last character card: the newest character.
+    public static Button? LastPlay(Node? select)
+    {
+        List<Button> plays = new List<Button>();
+        AllButtons(select, "Play", plays);
+        return plays.Count > 0 ? plays[plays.Count - 1] : null;
+    }
+
+    private static void AllButtons(Node? under, string text, List<Button> found)
+    {
+        if (under == null)
+        {
+            return;
+        }
+
+        foreach (Node child in under.GetChildren())
+        {
+            Button? button = child as Button;
+
+            if (button != null && button.Text == text && button.IsVisibleInTree() && !button.IsQueuedForDeletion())
+            {
+                found.Add(button);
+            }
+
+            AllButtons(child, text, found);
+        }
     }
 
     // The first button with this text under a screen, in tree order.
