@@ -44,6 +44,30 @@ public class BotPlan
         return Step(new ClickStep(what, find));
     }
 
+    // A click at a spot inside a control, as fractions of its size (a slider at 80%).
+    public BotPlan ClickAt<T>(string path, float across, float down)
+        where T : Control
+    {
+        return Step(new ClickStep(path.TrimStart('%') + " at " + (across * 100) + "% on " + typeof(T).Name, body => body.Find<T>()?.GetNodeOrNull<Control>(path), new Vector2(across, down)));
+    }
+
+    // Until a screen is open, or closed, by its name in ClientView.OpenScreens.
+    public BotPlan UntilOpen(string screen)
+    {
+        return Until(screen + " open", body => BotScreens.IsOpen(body, screen));
+    }
+
+    public BotPlan UntilClosed(string screen)
+    {
+        return Until(screen + " closed", body => !BotScreens.IsOpen(body, screen));
+    }
+
+    // Types into the field that has the keys, then Enter.
+    public BotPlan Type(string text)
+    {
+        return Step(new TypeStep(text));
+    }
+
     public BotPlan Press(string action)
     {
         return Step(new KeyStep(action));

@@ -1,7 +1,5 @@
 namespace MmoGame3d.Bots;
 
-using Godot;
-
 /// <summary>
 /// Now and then, a line in chat from the current activity's phrases, typed as a player
 /// types it: the chat key, the line, Enter. Only in the world, while the step leaves the
@@ -50,9 +48,7 @@ public class BotChatter
                 break;
             case 2:
                 // The chat line takes the keys once it opens; if it did not, try later.
-                LineEdit? field = body.Player?.GetViewport().GuiGetFocusOwner() as LineEdit;
-
-                if (field != null)
+                if (body.FocusedField() != null)
                 {
                     body.Type(_line);
                     body.Events.Write("said", _line);

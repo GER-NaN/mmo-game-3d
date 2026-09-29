@@ -50,6 +50,7 @@ public static class BotActivities
         all.AddRange(MenuActivities.All());
         all.AddRange(WorldActivities.All());
         all.AddRange(PhoneActivities.All());
+        all.AddRange(UiActivities.All());
         return all;
     }
 }

@@ -1,6 +1,7 @@
 namespace MmoGame3d.Bots;
 
 using Godot;
+using MmoGame3d.Client;
 using MmoGame3d.Rules.Items;
 using MmoGame3d.Ui;
 
@@ -11,6 +12,27 @@ using MmoGame3d.Ui;
 /// </summary>
 public static class BotScreens
 {
+    // Whether a screen is open, by its name in ClientView.OpenScreens.
+    public static bool IsOpen(BotBody body, string screen)
+    {
+        ClientView? view = body.View;
+
+        if (view == null)
+        {
+            return false;
+        }
+
+        foreach (string open in view.OpenScreens)
+        {
+            if (open == screen)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // The key that closes a screen, by its name in ClientView.OpenScreens; null for those
     // before the world (menus, character screens), which are not closed but played through.
     public static string? CloseKey(string screen)
@@ -23,6 +45,7 @@ public static class BotScreens
             case "skills":
                 return screen;
             case "game-menu":
+            case "settings":
             case "terminal":
             case "shop":
             case "workbench":

@@ -185,6 +185,12 @@ public class BotBody
         Input.ParseInputEvent(up);
     }
 
+    // The text field that has the keys, or null.
+    public LineEdit? FocusedField()
+    {
+        return _node.GetViewport().GuiGetFocusOwner() as LineEdit;
+    }
+
     // Nothing else has the keys: no text field, no full screen.
     public bool KeysFree()
     {
