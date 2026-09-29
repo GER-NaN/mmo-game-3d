@@ -58,12 +58,18 @@ public static class TownActivities
                 .Wait(60))
                 .Says("Waiting for a ride."),
 
-            new BotActivity("tag-subway", plan => plan
-                .InWorld()
-                .GoTo(ZoneIds.Subway)
-                .Use<SubwayWallNode>()
-                .UntilNotice(""))
-                .Says("Leaving my mark.", "Art!"),
+            // Counted before the press: the answer can come back within the key press.
+            new BotActivity("tag-subway", plan =>
+            {
+                int before = 0;
+
+                return plan
+                    .InWorld()
+                    .GoTo(ZoneIds.Subway)
+                    .Do("count the notices", body => before = body.View?.NoticeCount ?? 0)
+                    .Use<SubwayWallNode>()
+                    .Until("told the name is on the wall", body => body.NoticesSince(before).Exists(notice => notice.Contains("on the wall")), 10);
+            }).Says("Leaving my mark.", "Art!"),
 
             new BotActivity("equip-emp", new[] { BotFacts.EmpEquipped }, plan => plan
                 .InWorld()
