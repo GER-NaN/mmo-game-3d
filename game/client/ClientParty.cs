@@ -62,7 +62,7 @@ public partial class ClientParty : Node
         _network.InviteReceived -= OnInviteReceived;
         _network.PartyReceived -= OnPartyReceived;
         _frame?.QueueFree();
-        _prompt?.QueueFree();
+        ClosePrompt();
         _panel?.QueueFree();
     }
 
@@ -145,7 +145,7 @@ public partial class ClientParty : Node
 
     private void OnInviteReceived(string inviterId, string inviterName)
     {
-        _prompt?.QueueFree();
+        ClosePrompt();
         _prompt = PromptScene.Instantiate<InvitePrompt>();
         _ui.AddChild(_prompt);
         _prompt.ShowInvite(inviterName);
@@ -154,6 +154,17 @@ public partial class ClientParty : Node
             _network.SendResponse(inviterId, join);
             _prompt = null;
         };
+    }
+
+    // The prompt frees itself when its time runs out, so the one held may be gone.
+    private void ClosePrompt()
+    {
+        if (_prompt != null && IsInstanceValid(_prompt))
+        {
+            _prompt.QueueFree();
+        }
+
+        _prompt = null;
     }
 
     private void OnPartyReceived(string leaderId, string[] ids, string[] names, int[] online)
