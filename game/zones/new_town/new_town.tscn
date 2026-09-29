@@ -1,0 +1,318 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/zones/Zone.cs" id="1_zone"]
+[ext_resource type="PackedScene" path="res://game/zones/Door.tscn" id="90_door"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/RoadStraight.tscn" id="2_road"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/RoadCorner.tscn" id="3_corner"]
+[ext_resource type="PackedScene" path="res://game/zones/props/StreetLamp.tscn" id="12_lamp"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingA.tscn" id="4_b"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingB.tscn" id="5_b"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingC.tscn" id="6_b"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingD.tscn" id="7_b"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingE.tscn" id="8_b"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingF.tscn" id="9_b"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingG.tscn" id="10_b"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/BuildingH.tscn" id="11_b"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TreeA.tscn" id="20_tree"]
+[ext_resource type="PackedScene" path="res://game/props/city_builder_bits/TreeB.tscn" id="21_tree"]
+
+[sub_resource type="BoxShape3D" id="Shape_Ground"]
+size = Vector3(100, 1, 100)
+
+[sub_resource type="StandardMaterial3D" id="Material_Ground"]
+albedo_color = Color(0.42, 0.42, 0.4, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_Ground"]
+material = SubResource("Material_Ground")
+size = Vector3(100, 1, 100)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeNorth"]
+size = Vector3(102, 8, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeSouth"]
+size = Vector3(102, 8, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeEast"]
+size = Vector3(1, 8, 102)
+
+[sub_resource type="BoxShape3D" id="Shape_EdgeWest"]
+size = Vector3(1, 8, 102)
+
+
+[node name="new_town" type="Node3D"]
+script = ExtResource("1_zone")
+Surface = "rock"
+ItemAreaSize = Vector2(0, 0)
+ItemStock = 0
+MapSize = Vector2(100, 100)
+
+[node name="Ground" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("Shape_Ground")
+
+[node name="Mesh" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("Mesh_Ground")
+
+[node name="Roads" type="Node3D" parent="."]
+
+[node name="North0" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -30, 0, -40)
+
+[node name="South0" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -30, 0, 40)
+
+[node name="North1" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -20, 0, -40)
+
+[node name="South1" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -20, 0, 40)
+
+[node name="North2" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -10, 0, -40)
+
+[node name="South2" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -10, 0, 40)
+
+[node name="North3" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, 0, -40)
+
+[node name="South3" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, 0, 40)
+
+[node name="North4" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 10, 0, -40)
+
+[node name="South4" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 10, 0, 40)
+
+[node name="North5" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0, -40)
+
+[node name="South5" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0, 40)
+
+[node name="North6" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 30, 0, -40)
+
+[node name="South6" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 30, 0, 40)
+
+[node name="West0" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, -30)
+
+[node name="East0" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, -30)
+
+[node name="West1" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, -20)
+
+[node name="East1" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, -20)
+
+[node name="West2" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, -10)
+
+[node name="East2" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, -10)
+
+[node name="West3" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, 0)
+
+[node name="East3" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, 0)
+
+[node name="West4" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, 10)
+
+[node name="East4" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, 10)
+
+[node name="West5" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, 20)
+
+[node name="East5" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, 20)
+
+[node name="West6" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, 30)
+
+[node name="East6" parent="Roads" instance=ExtResource("2_road")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, 30)
+
+[node name="CornerNW" parent="Roads" instance=ExtResource("3_corner")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, -40, 0, -40)
+
+[node name="CornerNE" parent="Roads" instance=ExtResource("3_corner")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 40, 0, -40)
+
+[node name="CornerSE" parent="Roads" instance=ExtResource("3_corner")]
+transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 40, 0, 40)
+
+[node name="CornerSW" parent="Roads" instance=ExtResource("3_corner")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -40, 0, 40)
+
+[node name="Buildings" type="Node3D" parent="."]
+
+[node name="North0" parent="Buildings" instance=ExtResource("4_b")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -16.5, 0, -29)
+
+[node name="North1" parent="Buildings" instance=ExtResource("5_b")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -5.5, 0, -29)
+
+[node name="North2" parent="Buildings" instance=ExtResource("6_b")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 5.5, 0, -29)
+
+[node name="North3" parent="Buildings" instance=ExtResource("7_b")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 16.5, 0, -29)
+
+[node name="South0" parent="Buildings" instance=ExtResource("8_b")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.5, 0, 29)
+
+[node name="South1" parent="Buildings" instance=ExtResource("9_b")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 0, 29)
+
+[node name="South2" parent="Buildings" instance=ExtResource("10_b")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, 29)
+
+[node name="South3" parent="Buildings" instance=ExtResource("11_b")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.5, 0, 29)
+
+[node name="West0" parent="Buildings" instance=ExtResource("4_b")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -29, 0, -16.5)
+
+[node name="West1" parent="Buildings" instance=ExtResource("5_b")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -29, 0, -5.5)
+
+[node name="West2" parent="Buildings" instance=ExtResource("6_b")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -29, 0, 5.5)
+
+[node name="West3" parent="Buildings" instance=ExtResource("7_b")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -29, 0, 16.5)
+
+[node name="East0" parent="Buildings" instance=ExtResource("8_b")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 29, 0, -16.5)
+
+[node name="East1" parent="Buildings" instance=ExtResource("9_b")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 29, 0, -5.5)
+
+[node name="East2" parent="Buildings" instance=ExtResource("10_b")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 29, 0, 5.5)
+
+[node name="East3" parent="Buildings" instance=ExtResource("11_b")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 29, 0, 16.5)
+
+[node name="YardTree0" parent="Buildings" instance=ExtResource("20_tree")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, -8, 0, -8)
+
+[node name="YardTree1" parent="Buildings" instance=ExtResource("21_tree")]
+transform = Transform3D(0.34, 0, -0.94, 0, 1, 0, 0.94, 0, 0.34, 8, 0, 8)
+
+[node name="YardTree2" parent="Buildings" instance=ExtResource("20_tree")]
+transform = Transform3D(-0.77, 0, -0.64, 0, 1, 0, 0.64, 0, -0.77, -8, 0, 8)
+
+[node name="YardTree3" parent="Buildings" instance=ExtResource("21_tree")]
+transform = Transform3D(-0.87, 0, 0.5, 0, 1, 0, -0.5, 0, -0.87, 8, 0, -8)
+
+[node name="Lamps" type="Node3D" parent="."]
+
+[node name="LampNorth0" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0, -34)
+
+[node name="LampSouth0" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -25, 0, 34)
+
+[node name="LampWest0" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -34, 0, -25)
+
+[node name="LampEast0" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 34, 0, -25)
+
+[node name="LampNorth1" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -34)
+
+[node name="LampSouth1" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 34)
+
+[node name="LampWest1" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -34, 0, 0)
+
+[node name="LampEast1" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 34, 0, 0)
+
+[node name="LampNorth2" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -34)
+
+[node name="LampSouth2" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 25, 0, 34)
+
+[node name="LampWest2" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -34, 0, 25)
+
+[node name="LampEast2" parent="Lamps" instance=ExtResource("12_lamp")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 34, 0, 25)
+
+[node name="Edges" type="Node3D" parent="."]
+
+[node name="North" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -50.5)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/North"]
+shape = SubResource("Shape_EdgeNorth")
+
+[node name="South" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 50.5)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/South"]
+shape = SubResource("Shape_EdgeSouth")
+
+[node name="East" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.5, 4, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/East"]
+shape = SubResource("Shape_EdgeEast")
+
+[node name="West" type="StaticBody3D" parent="Edges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.5, 4, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="Edges/West"]
+shape = SubResource("Shape_EdgeWest")
+
+[node name="Doors" type="Node3D" parent="."]
+
+[node name="ToWoodedPath" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 48, 0, 0)
+TargetZone = "wooded_path"
+TargetArrival = "FromNewTown"
+
+[node name="Sign" type="Label3D" parent="Doors/ToWoodedPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+pixel_size = 0.01
+billboard = 1
+modulate = Color(0.75, 1, 0.6, 1)
+text = "WOODED PATH"
+font_size = 64
+outline_size = 10
+
+[node name="Arrivals" type="Node3D" parent="."]
+
+[node name="FromWoodedPath" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 44, 0, 0)
+
+[node name="Spawn" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0, 0)
+
+[node name="Interactables" type="Node3D" parent="."]
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/player/Player.tscn")
+spawn_path = NodePath("../Players")
+
+[node name="Items" type="Node3D" parent="."]
+
+[node name="ItemSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://game/items/GroundItem.tscn")
+spawn_path = NodePath("../Items")

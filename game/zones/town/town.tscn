@@ -456,6 +456,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -47)
 TargetZone = "outskirts"
 TargetArrival = "FromTown"
 
+[node name="Sign" type="Label3D" parent="Doors/ToOutskirts"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+pixel_size = 0.01
+billboard = 1
+modulate = Color(0.75, 1, 0.6, 1)
+text = "OUTSKIRTS"
+font_size = 64
+outline_size = 10
+
 [node name="ToMeadows" parent="Doors" unique_id=1306158708 instance=ExtResource("90_door")]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 48, 0, 0)
 TargetZone = "meadows"
@@ -507,6 +516,20 @@ shape = SubResource("Shape_SubwayDoor")
 [node name="Threshold" parent="Doors/ToSubway" index="1"]
 visible = false
 
+[node name="ToWoodedPath" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -48, 0, 0)
+TargetZone = "wooded_path"
+TargetArrival = "FromTown"
+
+[node name="Sign" type="Label3D" parent="Doors/ToWoodedPath"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+pixel_size = 0.01
+billboard = 1
+modulate = Color(0.75, 1, 0.6, 1)
+text = "WOODED PATH"
+font_size = 64
+outline_size = 10
+
 [node name="Arrivals" type="Node3D" parent="." unique_id=216889681]
 
 [node name="FromOutskirts" type="Marker3D" parent="Arrivals" unique_id=608642340]
@@ -526,6 +549,9 @@ transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 27.8, 0, 6.2)
 
 [node name="FromMeadows" type="Marker3D" parent="Arrivals" unique_id=528969960]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 44, 0, 0)
+
+[node name="FromWoodedPath" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -44, 0, 0)
 
 [node name="Spawn" type="Marker3D" parent="." unique_id=1800921968]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 8)

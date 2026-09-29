@@ -364,9 +364,15 @@ public partial class ClientGame : Node
                 ambience = night ? "amb.night" : "amb.outskirts";
                 break;
             case ZoneIds.Meadows:
+            case ZoneIds.WoodedPath:
                 // Open country like the outskirts, until it has sounds of its own.
                 music = "music.outskirts";
                 ambience = night ? "amb.night" : "amb.outskirts";
+                break;
+            case ZoneIds.NewTown:
+                // A town like Old Town, until it has sounds of its own.
+                music = night ? "music.town_night" : "music.town";
+                ambience = night ? "amb.night" : "amb.town";
                 break;
         }
 
