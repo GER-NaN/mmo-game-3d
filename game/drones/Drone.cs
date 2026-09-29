@@ -22,6 +22,11 @@ public partial class Drone : Node3D
     private const float RotorSpin = 40f;
     private const float Smoothing = 10f;
 
+    // The model's own hover, on top of the flight's bob: metres and a slow rate. Seen only
+    // on clients. Placeholders.
+    private const float HoverHeight = 0.06f;
+    private const float HoverRate = 1.3f;
+
     // A client whose clock is further than this from the server's jumps to it; nearer, it
     // leans this much of the gap a frame.
     private const float ClockSnap = 1f;
@@ -109,6 +114,10 @@ public partial class Drone : Node3D
                 rotor.RotateY(RotorSpin * step);
             }
         }
+
+        Node3D model = GetNode<Node3D>("Model");
+        float hover = Down ? 0f : Mathf.Sin(((float)_time * HoverRate) + Phase) * HoverHeight;
+        model.Position = new Vector3(0f, hover, 0f);
 
         GetNode<OmniLight3D>("%Light").Visible = !Down;
 
