@@ -30,6 +30,8 @@ public static class UiActivities
 
             GameSettings(),
             Wardrobe(),
+            WardrobeByHand(),
+            WardrobeCancelled(),
             LeaveAndReturn(),
             Emote("wave"),
             Emote("cheer"),
@@ -105,6 +107,44 @@ public static class UiActivities
                 .UntilClosed("character-creator")
                 .Until("the new look on the body", body => body.Player != null && body.Player.Look != before, 5);
         }).Says("New outfit, what do you think?", "Time for a change.");
+    }
+
+    // Each colour stepped through by hand, both ways, then kept.
+    private static BotActivity WardrobeByHand()
+    {
+        return new BotActivity("wardrobe-by-hand", plan => plan
+            .InWorld()
+            .Press("ui_cancel")
+            .UntilOpen("game-menu")
+            .Click<InGameMenu>("%Wardrobe")
+            .UntilOpen("character-creator")
+            .ClickEach("the colour arrows", body => body.Find<CharacterCreator>(), button => button.Text == "<" || button.Text == ">")
+            .Click<CharacterCreator>("%Done")
+            .UntilClosed("character-creator"))
+            .Says("Trying every colour.");
+    }
+
+    // A new look tried and thrown away: the body keeps the old one.
+    private static BotActivity WardrobeCancelled()
+    {
+        return new BotActivity("wardrobe-cancelled", plan =>
+        {
+            string before = "";
+
+            return plan
+                .InWorld()
+                .Do("note the look", body => before = body.Player!.Look)
+                .Press("ui_cancel")
+                .UntilOpen("game-menu")
+                .Click<InGameMenu>("%Wardrobe")
+                .UntilOpen("character-creator")
+                .Click<CharacterCreator>("%Random")
+                .Wait(0.5)
+                .Click<CharacterCreator>("%Cancel")
+                .UntilClosed("character-creator")
+                .Wait(1)
+                .Until("the old look kept", body => body.Player != null && body.Player.Look == before, 2);
+        }).Says("Nah, I'll keep this.");
     }
 
     // The game menu's Leave: back at the main menu, then into the world again through the

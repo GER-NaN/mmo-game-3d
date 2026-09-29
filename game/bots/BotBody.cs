@@ -201,9 +201,22 @@ public class BotBody
         }
     }
 
-    // Text typed into whatever has the keys, a key per character, then Enter.
+    // Text typed into whatever has the keys, over what it held, a key per character, then
+    // Enter.
     public void Type(string text)
     {
+        // Ctrl+A first, so the line replaces what the field held (a name filled in for you).
+        InputEventKey selectAll = new InputEventKey();
+        selectAll.Keycode = Godot.Key.A;
+        selectAll.PhysicalKeycode = Godot.Key.A;
+        selectAll.CtrlPressed = true;
+        selectAll.Pressed = true;
+        Input.ParseInputEvent(selectAll);
+
+        InputEventKey selectAllUp = (InputEventKey)selectAll.Duplicate();
+        selectAllUp.Pressed = false;
+        Input.ParseInputEvent(selectAllUp);
+
         foreach (char letter in text)
         {
             InputEventKey key = new InputEventKey();

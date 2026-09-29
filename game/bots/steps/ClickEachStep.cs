@@ -6,8 +6,9 @@ using Godot;
 
 /// <summary>
 /// Clicks each button in a list, one after another with a pause between, as a curious
-/// player tries every one: a terminal's apps, say. The buttons are gathered once; the
-/// ones the check turns down (Quit, Delete) are left alone.
+/// player tries every one: a terminal's apps, say. The buttons anywhere under the list are
+/// gathered once, by their path, since a click may build the list anew; the ones the
+/// check turns down (Quit, Delete) are left alone.
 /// </summary>
 public class ClickEachStep : BotStep
 {
@@ -15,7 +16,7 @@ public class ClickEachStep : BotStep
 
     private readonly Func<BotBody, Node?> _list;
     private readonly Func<Button, bool> _check;
-    private readonly List<string> _names = new List<string>();
+    private readonly List<NodePath> _paths = new List<NodePath>();
     private double _sinceClick = Pause;
     private bool _gathered;
     private int _next;
@@ -52,23 +53,19 @@ public class ClickEachStep : BotStep
         {
             _gathered = true;
 
-            foreach (Node child in list.GetChildren())
-            {
-                Button? button = child as Button;
+            Gather(list, list);
 
-                if (button != null && _check(button))
-                {
-                    _names.Add(button.Name);
-                }
-            }
+            // A pause before the first click too: a screen opened this frame has no layout.
+            _sinceClick = 0;
+            return BotStepState.Running;
         }
 
-        if (_next >= _names.Count)
+        if (_next >= _paths.Count)
         {
             return BotStepState.Done;
         }
 
-        Button? current = list.GetNodeOrNull<Button>(_names[_next]);
+        Button? current = list.GetNodeOrNull<Button>(_paths[_next]);
         _next++;
         _sinceClick = 0;
 
@@ -79,5 +76,20 @@ public class ClickEachStep : BotStep
         }
 
         return BotStepState.Running;
+    }
+
+    private void Gather(Node list, Node under)
+    {
+        foreach (Node child in under.GetChildren())
+        {
+            Button? button = child as Button;
+
+            if (button != null && _check(button))
+            {
+                _paths.Add(list.GetPathTo(button));
+            }
+
+            Gather(list, child);
+        }
     }
 }

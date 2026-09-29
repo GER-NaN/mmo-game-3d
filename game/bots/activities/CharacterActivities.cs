@@ -10,12 +10,21 @@ using MmoGame3d.Ui;
 /// </summary>
 public static class CharacterActivities
 {
+    // Names are not unique, and at most 16 characters.
+    private static readonly string[] Names = { "Second Me", "Alt", "Robo Fan", "Night Owl", "Quinn" };
+
     public static List<BotActivity> All()
     {
         return new List<BotActivity>
         {
             SwitchCharacter(),
             CreateCharacter(),
+
+            // The character screen's Back: the main menu, then in again by Play.
+            new BotActivity("back-from-characters", plan => ToCharacterScreen(plan.InWorld())
+                .Click("Back", body => BotScreens.FirstButton(body.Find<CharacterSelect>()!, "Back"))
+                .WaitFor<MainMenu>()
+                .InWorld()),
         };
     }
 
@@ -44,11 +53,14 @@ public static class CharacterActivities
             .Click("Create a character", body => BotScreens.FirstButton(body.Find<CharacterSelect>()!, "Create a character"))
             .UntilOpen("character-creator")
             .Click<CharacterCreator>("%Random")
+            .Click<CharacterCreator>("%Name")
+            .Step(new TypeStep("a name", body => Names[body.Random.Next(Names.Length)]))
             .Click<CharacterCreator>("%Done")
             .UntilClosed("character-creator")
             .WaitFor<CharacterSelect>()
             .Click("Play on the newest character", body => BotScreens.LastPlay(body.Find<CharacterSelect>()))
-            .InWorld())
+            .InWorld()
+            .Until("playing under the new name", body => System.Array.IndexOf(Names, body.Player?.DisplayName ?? "") >= 0, 10))
             .Says("Time for a fresh start.");
     }
 
