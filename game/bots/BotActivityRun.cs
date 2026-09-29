@@ -94,9 +94,22 @@ public class BotActivityRun
     }
 
     // The step now running is the last: nothing after it runs.
+    // The rest of this part: up to the end of the activity it is in, when that activity
+    // runs inside another (PartEndStep), else to the end of the plan.
     public void SkipRest()
     {
-        _steps.RemoveRange(_current + 1, _steps.Count - _current - 1);
+        int end = _steps.Count;
+
+        for (int i = _current + 1; i < _steps.Count; i++)
+        {
+            if (_steps[i] is PartEndStep)
+            {
+                end = i;
+                break;
+            }
+        }
+
+        _steps.RemoveRange(_current + 1, end - _current - 1);
     }
 
     // Leaves the activity where it is, as a distracted player does.

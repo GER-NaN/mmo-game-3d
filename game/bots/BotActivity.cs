@@ -49,4 +49,12 @@ public class BotActivity
     {
         return _plan(new BotPlan()).Steps;
     }
+
+    // Its steps to run inside another activity, ending in a mark a StopIf skips to.
+    public List<BotStep> StepsAsPart()
+    {
+        List<BotStep> steps = Steps();
+        steps.Add(new PartEndStep(Name));
+        return steps;
+    }
 }

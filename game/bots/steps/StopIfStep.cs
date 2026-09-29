@@ -4,7 +4,8 @@ using System;
 
 /// <summary>
 /// Ends the activity here, as completed, when there is nothing for it to do (the lights
-/// already work, the taxis are out of service); otherwise it goes on.
+/// already work, the taxis are out of service); otherwise it goes on. Inside a chain or a
+/// need, only that activity ends.
 /// </summary>
 public class StopIfStep : BotStep
 {

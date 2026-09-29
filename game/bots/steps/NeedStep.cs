@@ -56,7 +56,7 @@ public class NeedStep : BotStep
 
         BotActivity provider = providers[body.Random.Next(providers.Count)];
         body.Events.Write("need", _fact.Name + ": from \"" + provider.Name + "\"");
-        List<BotStep> steps = provider.Steps();
+        List<BotStep> steps = provider.StepsAsPart();
         steps.Add(new NeedStep(_fact, _goes + 1));
         body.NeedDepth++;
         body.Run!.InsertNext(steps);
