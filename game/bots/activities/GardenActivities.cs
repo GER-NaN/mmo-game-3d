@@ -68,6 +68,7 @@ public static class GardenActivities
                 .Use<PottingTable>()
                 .UntilOpen("garden")
                 .Wait(1)
+                .Click("the next pot", body => BotScreens.Named<Button>(body.Find<GardenScreen>()?.GetNodeOrNull("Pots"), "Next"))
                 .Step(new PlantPiecesStep())
                 .Click("Complete", body => BotScreens.FirstButton(body.Find<GardenScreen>()!, "Complete"))
                 .Step(new TypeStep("a name", body => Names[body.Random.Next(Names.Length)]))

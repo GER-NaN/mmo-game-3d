@@ -6,8 +6,8 @@ using MmoGame3d.Gardening;
 using MmoGame3d.Rules.Gardening;
 
 /// <summary>
-/// Plants a few pieces at the potting table (GardenScreen open): picks a family's tab and
-/// a piece at random, and clicks it. Pressing a piece takes it into the middle of the
+/// Plants a few pieces at the potting table (GardenScreen open): steps the kind of plant
+/// on a random number of times, then clicks one of the pieces showing. Pressing a piece takes it into the middle of the
 /// pot, and letting go there plants it, so a click plants a piece in the middle; placing
 /// it elsewhere would be a drag. Each piece is seen on the table's count before the next.
 /// </summary>
@@ -18,7 +18,8 @@ public class PlantPiecesStep : BotStep
     private int _wanted;
     private int _before;
     private double _sinceClick = Pause;
-    private bool _tabNext = true;
+    private bool _kindNext = true;
+    private int _kindSteps;
 
     public PlantPiecesStep()
         : base("plant some pieces", 40)
@@ -53,16 +54,21 @@ public class PlantPiecesStep : BotStep
             return BotStepState.Done;
         }
 
-        // A family's tab first, then a piece from it once it shows.
-        if (_tabNext)
+        // A kind of plant first, a click on "next kind" at a time, then a piece of it.
+        if (_kindNext)
         {
-            _tabNext = false;
-            string family = PlantParts.PieceFamilies[body.Random.Next(PlantParts.PieceFamilies.Length)][0];
-            Button? tab = BotScreens.FirstButton(garden, family);
+            _kindNext = false;
+            _kindSteps = body.Random.Next(PlantParts.PieceFamilies.Length);
+        }
 
-            if (tab != null)
+        if (_kindSteps > 0)
+        {
+            _kindSteps--;
+            Button? down = BotScreens.Named<Button>(garden, "KindDown");
+
+            if (down != null)
             {
-                body.Click(tab);
+                body.Click(down);
             }
 
             return BotStepState.Running;
@@ -71,7 +77,7 @@ public class PlantPiecesStep : BotStep
         if (garden.PieceCount > _before)
         {
             _before = garden.PieceCount;
-            _tabNext = true;
+            _kindNext = true;
             return BotStepState.Running;
         }
 

@@ -38,7 +38,12 @@ public partial class GardenScreen : Control
     private Node3D? _pot;
     private Label _status = null!;
     private Label _count = null!;
-    private GridContainer _pieceList = null!;
+    private static readonly PackedScene CarouselScene = GD.Load<PackedScene>("res://game/ui/Carousel.tscn");
+
+    private Carousel _pieceList = null!;
+    private Carousel _pots = null!;
+    private Label _kindName = null!;
+    private int _kind;
     private Control _banner = null!;
     private Control _help = null!;
     private Control _naming = null!;
@@ -467,9 +472,9 @@ public partial class GardenScreen : Control
 
     private void BuildPanel()
     {
-        PanelContainer panel = new PanelContainer { Name = "Panel", CustomMinimumSize = new Vector2(330, 0) };
+        PanelContainer panel = new PanelContainer { Name = "Panel", CustomMinimumSize = new Vector2(360, 0) };
         panel.SetAnchorsPreset(LayoutPreset.RightWide);
-        panel.OffsetLeft = -330;
+        panel.OffsetLeft = -360;
         AddChild(panel);
         MarginContainer margin = new MarginContainer();
 
@@ -488,25 +493,17 @@ public partial class GardenScreen : Control
         column.AddChild(title);
         column.AddChild(new Label { Text = "Choose a pot along the top, then up to five pieces from the tray.", AutowrapMode = TextServer.AutowrapMode.WordSmart, Modulate = new Color(1f, 1f, 1f, 0.7f) });
 
+        // The pieces: up and down for the kind of plant, left and right for its pieces.
         column.AddChild(new Label { Text = "Pieces" });
-        HFlowContainer tabs = new HFlowContainer();
-        column.AddChild(tabs);
-        ButtonGroup tabGroup = new ButtonGroup();
-
-        for (int i = 0; i < PlantParts.PieceFamilies.Length; i++)
-        {
-            int family = i;
-            Button tab = new Button { Text = PlantParts.PieceFamilies[i][0], ToggleMode = true, ButtonGroup = tabGroup, ButtonPressed = i == 0, FocusMode = FocusModeEnum.None };
-            tab.Pressed += () => ShowFamily(family);
-            tabs.AddChild(tab);
-        }
-
-        ScrollContainer scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-        column.AddChild(scroll);
-        _pieceList = new GridContainer { Columns = 3, SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _pieceList.AddThemeConstantOverride("h_separation", 6);
-        _pieceList.AddThemeConstantOverride("v_separation", 6);
-        scroll.AddChild(_pieceList);
+        column.AddChild(KindButton("KindUp", "res://game/ui/icons/chevron-up.svg", "The kind before", -1));
+        _kindName = new Label { HorizontalAlignment = HorizontalAlignment.Center };
+        _kindName.AddThemeFontSizeOverride("font_size", 18);
+        column.AddChild(_kindName);
+        _pieceList = CarouselScene.Instantiate<Carousel>();
+        _pieceList.ShowCount = 3;
+        column.AddChild(_pieceList);
+        column.AddChild(KindButton("KindDown", "res://game/ui/icons/chevron-down.svg", "The next kind", 1));
+        column.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
         ShowFamily(0);
 
         _count = new Label();
@@ -556,20 +553,35 @@ public partial class GardenScreen : Control
         Refresh();
     }
 
+    private Button KindButton(string name, string icon, string tooltip, int step)
+    {
+        Button button = new Button
+        {
+            Name = name,
+            Icon = GD.Load<Texture2D>(icon),
+            IconAlignment = HorizontalAlignment.Center,
+            TooltipText = tooltip,
+            FocusMode = FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(64, 28),
+            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+        };
+        button.Pressed += () => ShowFamily(_kind + step);
+        return button;
+    }
+
+    // The kinds go round: past the last is the first again.
     private void ShowFamily(int index)
     {
-        foreach (Node old in _pieceList.GetChildren())
-        {
-            _pieceList.RemoveChild(old);
-            old.QueueFree();
-        }
-
-        string[] family = PlantParts.PieceFamilies[index];
+        int count = PlantParts.PieceFamilies.Length;
+        _kind = ((index % count) + count) % count;
+        string[] family = PlantParts.PieceFamilies[_kind];
+        _kindName.Text = family[0];
+        List<Control> pieces = new List<Control>();
 
         for (int i = 1; i < family.Length; i++)
         {
             string id = family[i];
-            Button piece = PictureButton(id, new Vector2(92, 92));
+            Button piece = PictureButton(id, new Vector2(74, 74));
             piece.AddToGroup(PieceGroup);
             piece.ButtonDown += () => Take(id);
 
@@ -582,8 +594,10 @@ public partial class GardenScreen : Control
             caption.SetAnchorsPreset(LayoutPreset.BottomWide);
             caption.OffsetTop = -18;
             piece.AddChild(caption);
-            _pieceList.AddChild(piece);
+            pieces.Add(piece);
         }
+
+        _pieceList.SetItems(pieces, 0);
 
         if (_count != null)
         {
@@ -611,36 +625,20 @@ public partial class GardenScreen : Control
         return button;
     }
 
-    // The pots along the top, a picture each, the chosen one pressed.
+    // The pots along the top, a picture each, the chosen one in the middle.
     private void BuildPotBanner()
     {
         PanelContainer banner = new PanelContainer { Name = "Pots" };
         banner.Position = new Vector2(16, 12);
         AddChild(banner);
         _banner = banner;
-        MarginContainer margin = new MarginContainer();
+        _pots = CarouselScene.Instantiate<Carousel>();
+        _pots.ShowCount = 7;
+        banner.AddChild(_pots);
+        List<Control> pots = new List<Control>();
 
-        foreach (string side in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
+        foreach (string pot in PlantParts.Pots)
         {
-            margin.AddThemeConstantOverride(side, 6);
-        }
-
-        banner.AddChild(margin);
-        HBoxContainer row = new HBoxContainer();
-        row.AddThemeConstantOverride("separation", 4);
-        margin.AddChild(row);
-        ButtonGroup group = new ButtonGroup();
-
-        for (int i = 0; i < PlantParts.Pots.Length; i++)
-        {
-            string pot = PlantParts.Pots[i];
-
-            // A gap between the styles; each comes in three sizes.
-            if (i > 0 && i % 3 == 0)
-            {
-                row.AddChild(new Control { CustomMinimumSize = new Vector2(10, 0) });
-            }
-
             Button button = PictureButton(pot, new Vector2(54, 62));
             Label size = new Label { Text = pot.Substring(pot.LastIndexOf('_') + 1), HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
             size.AddThemeFontSizeOverride("font_size", 11);
@@ -648,12 +646,11 @@ public partial class GardenScreen : Control
             size.SetAnchorsPreset(LayoutPreset.BottomWide);
             size.OffsetTop = -16;
             button.AddChild(size);
-            button.ToggleMode = true;
-            button.ButtonGroup = group;
-            button.ButtonPressed = pot == _design.Pot;
-            button.Pressed += () => ChangePot(pot);
-            row.AddChild(button);
+            pots.Add(button);
         }
+
+        _pots.SetItems(pots, Array.IndexOf(PlantParts.Pots, _design.Pot));
+        _pots.ChosenChanged += index => ChangePot(PlantParts.Pots[index]);
     }
 
     // What the mouse does, in the bottom left: a drawn mouse and a line per part.
