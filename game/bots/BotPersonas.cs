@@ -40,6 +40,9 @@ public static class BotPersonas
             .Likes("game-menu", 1)
             .Likes("game-settings", 1)
             .Likes("wardrobe", 1)
+            .Likes("wardrobe-by-hand", 1)
+            .Likes("wardrobe-cancelled", 1)
+            .Likes("back-from-characters", 1)
             .Likes("whois-mine", 1)
             .Likes("read-visitor-book", 1)
             .Likes("talk-to-registrar", 1)
@@ -72,6 +75,8 @@ public static class BotPersonas
             .Likes("surveillance-town", 1)
             .Likes("buy-recycle-buy", 1)
             .Likes("repair-lights", 1)
+            .Likes("clean-taxis", 1)
+            .Likes("give-someone-something", 1)
             .Likes("fix-something", 2),
 
         // Every door and every zone.
