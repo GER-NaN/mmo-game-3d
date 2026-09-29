@@ -71,6 +71,12 @@ public class WatchForDronesStep : BotStep
         CctvView? view = body.Find<CctvView>();
         Zone? zone = body.Zone;
 
+        // Offline before enough reports: fainted, or taken away by the party.
+        if (body.Find<TerminalScreen>() == null)
+        {
+            return Fail("the terminal closed before " + _wanted + " report" + (_wanted == 1 ? " was" : "s were") + " paid");
+        }
+
         if (view == null || zone == null)
         {
             return BotStepState.Running;
