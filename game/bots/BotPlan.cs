@@ -116,6 +116,13 @@ public class BotPlan
         return Step(new SurveyStep());
     }
 
+    // Clicks each button in a list, with a pause between, leaving out those the check
+    // turns down.
+    public BotPlan ClickEach(string what, Func<BotBody, Node?> list, Func<Button, bool> check)
+    {
+        return Step(new ClickEachStep(what, list, check));
+    }
+
     // Walks over the nearest thing on the ground, which picks it up.
     public BotPlan PickUp()
     {

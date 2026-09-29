@@ -96,6 +96,36 @@ public static class BotScreens
         return null;
     }
 
+    // The first visible control of a type under a screen, in tree order: the text field
+    // in a terminal's chat, say.
+    public static T? FirstOf<T>(Node? under)
+        where T : Control
+    {
+        if (under == null)
+        {
+            return null;
+        }
+
+        foreach (Node child in under.GetChildren())
+        {
+            T? found = child as T;
+
+            if (found != null && found.IsVisibleInTree() && !found.IsQueuedForDeletion())
+            {
+                return found;
+            }
+
+            T? inside = FirstOf<T>(child);
+
+            if (inside != null)
+            {
+                return inside;
+            }
+        }
+
+        return null;
+    }
+
     // The first button with this text under a screen, in tree order.
     public static Button? FirstButton(Node under, string text)
     {
