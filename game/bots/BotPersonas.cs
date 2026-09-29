@@ -26,6 +26,7 @@ public static class BotPersonas
             .Likes("ride-taxi", 1)
             .Likes("befriend-someone", 1)
             .Likes("invite-someone", 1)
+            .Likes("party-ride", 1)
             .Likes("message-someone", 1)
             .WalksAway(0.02),
 
@@ -39,6 +40,7 @@ public static class BotPersonas
             .Likes("look-at-friends", 1)
             .Likes("game-menu", 1)
             .Likes("game-settings", 1)
+            .Likes("remap-a-key", 1)
             .Likes("wardrobe", 1)
             .Likes("wardrobe-by-hand", 1)
             .Likes("wardrobe-cancelled", 1)
@@ -49,6 +51,9 @@ public static class BotPersonas
             .Likes("talk-to-professor", 1)
             .Likes("give-someone-something", 1)
             .Likes("leave-party", 1)
+            .Likes("ignore-someone", 1)
+            .Likes("unfriend-someone", 1)
+            .Likes("message-a-friend", 1)
             .WalksAway(0.05),
 
         // The minigames, over and over.

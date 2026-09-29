@@ -55,14 +55,23 @@ public static class ItemActivities
         return new BotActivity("open-chest", new[] { BotFacts.Recyclable }, plan =>
         {
             int before = 0;
+            int noticesAt = 0;
 
+            // Another player may empty it while this one walks up; the chest says so.
             return plan
                 .InWorld()
                 .GoTo(ZoneIds.Outskirts)
                 .StopIf("the chest is empty", body => !AnyFullChest(body))
-                .Do("count the bag", body => before = BotFacts.BagCount(body))
+                .Do("count the bag", body =>
+                {
+                    before = BotFacts.BagCount(body);
+                    noticesAt = body.View?.NoticeCount ?? 0;
+                })
                 .Use<Chest>("full", chest => chest.HasItem)
-                .Until("the bag holds more", body => BotFacts.BagCount(body) > before, 5);
+                .Until("the bag holds more, or someone emptied the chest first", body =>
+                {
+                    return BotFacts.BagCount(body) > before || body.NoticesSince(noticesAt).Exists(notice => notice.Contains("chest is empty"));
+                }, 5);
         }).Says("Let's see what's in the chest.");
     }
 

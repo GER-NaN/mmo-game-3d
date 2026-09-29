@@ -6,7 +6,8 @@ using MmoGame3d.Ui;
 
 /// <summary>
 /// Activities with whoever else is about: another player picked by a click on them, then
-/// befriended, invited, given something or sent a line. They need no helper bot (bots.md
+/// befriended, invited, given something, sent a line or ignored for a moment; and the
+/// friends list, a friend removed or messaged from it. They need no helper bot (bots.md
 /// F6); in a soak the others are the other bots. With nobody else in town they stop at
 /// once. Invites are answered by BotInviteAnswers, whatever the plan.
 /// </summary>
@@ -28,9 +29,10 @@ public static class SocialActivities
                 .UntilClosed("social"))
                 .Says("Let's be friends.", "Adding you."),
 
-            // The other side may say no, or let the prompt go; either is fine.
+            // The other side may say no, or let the prompt go; either is fine. Someone
+            // already in the party has no Invite button.
             new BotActivity("invite-someone", plan => Pick(plan)
-                .Click<TargetFrame>("%Invite")
+                .ClickIfThere("Invite", body => BotScreens.Named<Godot.Button>(body.Find<TargetFrame>(), "Invite"))
                 .Wait(8))
                 .Says("Want to party up?", "Join me!"),
 
@@ -57,15 +59,61 @@ public static class SocialActivities
                 .Click<TargetFrame>("%Message")
                 .Until("the chat line has the keys", body => body.FocusedField() != null, 3)
                 .Step(new TypeStep("a message", body => Lines[body.Random.Next(Lines.Length)]))),
+
+            // Ignored, seen in the list, and unignored again, so the bots do not end up
+            // deaf to each other.
+            new BotActivity("ignore-someone", plan => Pick(plan)
+                .Click<TargetFrame>("%Ignore")
+                .Wait(1)
+                .Press("social")
+                .UntilOpen("social")
+                .Until("someone in the ignored list", body => Contact(body, "Unignore") != null, 5)
+                .Wait(1)
+                .Click("Unignore", body => Contact(body, "Unignore"))
+                .Until("the ignored list empty again", body => Contact(body, "Unignore") == null, 5)
+                .Press("social")
+                .UntilClosed("social"))
+                .Says("Shh."),
+
+            new BotActivity("unfriend-someone", plan => FriendsList(plan)
+                .StopIf("no friends to remove", body => Contact(body, "Remove") == null)
+                .Click("Remove", body => Contact(body, "Remove"))
+                .Wait(1)
+                .Press("social")
+                .UntilClosed("social")),
+
+            new BotActivity("message-a-friend", plan => FriendsList(plan)
+                .StopIf("no friend online", body => Contact(body, "Message") == null)
+                .Click("Message", body => Contact(body, "Message"))
+                .Until("the chat line has the keys", body => body.FocusedField() != null, 3)
+                .Step(new TypeStep("a message", body => Lines[body.Random.Next(Lines.Length)]))),
         };
     }
 
-    // To town, where the others mostly are, and a click on one of them.
+    private static BotPlan FriendsList(BotPlan plan)
+    {
+        return plan
+            .InWorld()
+            .Press("social")
+            .UntilOpen("social")
+            .Wait(1);
+    }
+
+    // A button on a row of the friends panel, by its text.
+    private static Godot.Button? Contact(BotBody body, string text)
+    {
+        SocialPanel? panel = body.Find<SocialPanel>();
+        return panel == null ? null : BotScreens.FirstButton(panel, text);
+    }
+
+    // To town, where the others mostly are, and a click on one of them. Just after a zone
+    // loads, the others in it show a moment later.
     private static BotPlan Pick(BotPlan plan)
     {
         return plan
             .InWorld()
             .GoTo(ZoneIds.Town)
+            .Wait(2)
             .StopIf("nobody else here", body => body.OthersHere().Count == 0)
             .Step(new PickPlayerStep());
     }

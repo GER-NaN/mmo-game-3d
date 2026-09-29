@@ -8,7 +8,7 @@ using MmoGame3d.Zones;
 /// Walks into the corner of a building picked at random, and keeps pushing and jumping
 /// there (the wedger, bots.md R3): where players get wedged between buildings or stood on
 /// something they should not be. The floating and out-of-bounds watchers record what it
-/// finds. Done after a while of pushing.
+/// finds. Done after a while of pushing, or when a door by the corner takes it away.
 /// </summary>
 public class WedgeStep : BotStep
 {
@@ -16,6 +16,7 @@ public class WedgeStep : BotStep
     private const double JumpEvery = 1.2;
 
     private Vector3 _corner;
+    private string _zoneId = "";
     private bool _chosen;
     private double _pushed;
     private double _sinceJump;
@@ -40,6 +41,12 @@ public class WedgeStep : BotStep
             return BotStepState.Running;
         }
 
+        if (_chosen && zone.ZoneId != _zoneId)
+        {
+            body.Events.Write("squeezed", "through a door into " + zone.ZoneId);
+            return BotStepState.Done;
+        }
+
         if (!_chosen)
         {
             Node? buildings = zone.GetNodeOrNull("Buildings");
@@ -55,6 +62,7 @@ public class WedgeStep : BotStep
             // A corner of its front: the buildings stand about ten metres wide.
             _corner = building.GlobalPosition + (building.GlobalBasis.X.Normalized() * 5f * side) + (building.GlobalBasis.Z.Normalized() * 5f);
             _chosen = true;
+            _zoneId = zone.ZoneId;
             body.Events.Write("squeezing", "at the corner of " + building.Name);
             body.Navigator.Go(zone, _corner, true);
         }

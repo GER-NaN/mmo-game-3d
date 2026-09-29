@@ -20,6 +20,7 @@ public partial class BotRunner : Node
     public const string StopFile = "stop";
 
     private const double StopLookInterval = 0.25;
+    private const double RestAfterFailure = 3;
 
     private readonly BotWatch _watch = new BotWatch();
     private readonly BotChatter _chatter = new BotChatter();
@@ -37,6 +38,7 @@ public partial class BotRunner : Node
     // The notice count when the activity began, to tell a failure what it was told since.
     private int _noticesAtStart;
     private int _failures;
+    private double _restLeft;
 
     public override void _Ready()
     {
@@ -86,6 +88,14 @@ public partial class BotRunner : Node
         _watch.Tick(body, _run?.Step, delta);
         _invites.Tick(body, delta);
 
+        // After a failure, a moment before the next activity, so a bot that fails at once
+        // over and over (a place its plans cannot start from) does not spin.
+        if (_run == null && _restLeft > 0)
+        {
+            _restLeft -= delta;
+            return;
+        }
+
         if (_run == null && !StartNext())
         {
             return;
@@ -116,8 +126,9 @@ public partial class BotRunner : Node
             _allWell = false;
             List<string> told = body.NoticesSince(_noticesAtStart);
             string notice = told.Count > 0 ? "; last told \"" + told[told.Count - 1] + "\"" : "";
-            _events!.Write("failed", _run.FailReason + " at " + body.Where() + notice);
+            _events!.Write("failed", _run.FailReason + " at " + body.Where() + notice + "; keys: " + body.KeysHeldBy());
             body.SavePicture("failed-" + _failures + ".png");
+            _restLeft = RestAfterFailure;
         }
 
         EndRun();

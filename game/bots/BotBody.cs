@@ -155,8 +155,14 @@ public class BotBody
     }
 
     // A click at a point in the window, on whatever is there: a player in the world, say.
+    // The mouse moves there first, as a player's does, so the window knows what it is over.
     public void ClickScreen(Viewport viewport, Vector2 point)
     {
+        InputEventMouseMotion move = new InputEventMouseMotion();
+        move.Position = point;
+        move.GlobalPosition = point;
+        viewport.PushInput(move, true);
+
         InputEventMouseButton press = new InputEventMouseButton();
         press.ButtonIndex = MouseButton.Left;
         press.Position = point;
@@ -169,6 +175,30 @@ public class BotBody
         viewport.PushInput(release, true);
     }
 
+    // One turn of the mouse wheel over a control's middle, down or up.
+    public void Wheel(Control over, bool down)
+    {
+        Vector2 point = over.GetGlobalTransformWithCanvas() * (over.Size / 2);
+        Viewport viewport = over.GetViewport();
+
+        InputEventMouseMotion move = new InputEventMouseMotion();
+        move.Position = point;
+        move.GlobalPosition = point;
+        viewport.PushInput(move, true);
+
+        InputEventMouseButton wheel = new InputEventMouseButton();
+        wheel.ButtonIndex = down ? MouseButton.WheelDown : MouseButton.WheelUp;
+        wheel.Position = point;
+        wheel.GlobalPosition = point;
+        wheel.Factor = 1f;
+        wheel.Pressed = true;
+        viewport.PushInput(wheel, true);
+
+        InputEventMouseButton release = (InputEventMouseButton)wheel.Duplicate();
+        release.Pressed = false;
+        viewport.PushInput(release, true);
+    }
+
     // The event a key bound to the action makes, down or up, fed through the input system.
     public void Key(string action, bool pressed)
     {
@@ -176,6 +206,16 @@ public class BotBody
         key.Action = action;
         key.Pressed = pressed;
         Input.ParseInputEvent(key);
+    }
+
+    // A key on the keyboard, down or up, whatever action it is bound to.
+    public void RawKey(Godot.Key key, bool pressed)
+    {
+        InputEventKey raw = new InputEventKey();
+        raw.Keycode = key;
+        raw.PhysicalKeycode = key;
+        raw.Pressed = pressed;
+        Input.ParseInputEvent(raw);
     }
 
     // A key held down or let go, for walking and turning.
@@ -271,6 +311,36 @@ public class BotBody
     public bool KeysFree()
     {
         return _node.GetViewport().GuiGetFocusOwner() == null && _node.GetTree().GetNodeCountInGroup(ChaseCamera.ScreenGroup) == 0;
+    }
+
+    // What has the keys, for a finding: the focused control or a full screen, else
+    // "free"; and the walking keys down, which cancel out when opposite ones are.
+    public string KeysHeldBy()
+    {
+        Control? focus = _node.GetViewport().GuiGetFocusOwner();
+        Godot.Collections.Array<Node> screens = _node.GetTree().GetNodesInGroup(ChaseCamera.ScreenGroup);
+        string holder = "free";
+
+        if (focus != null)
+        {
+            holder = focus.GetPath();
+        }
+        else if (screens.Count > 0)
+        {
+            holder = screens[0].GetPath();
+        }
+
+        List<string> down = new List<string>();
+
+        foreach (string action in new[] { "move_forward", "move_back", "turn_left", "turn_right", "strafe_left", "strafe_right" })
+        {
+            if (Input.IsActionPressed(action))
+            {
+                down.Add(action);
+            }
+        }
+
+        return holder + ", down: " + (down.Count > 0 ? string.Join(" ", down) : "none");
     }
 
     // Where the bot is, for a finding or a failure: "town (12.0, 0.0, -3.5)".

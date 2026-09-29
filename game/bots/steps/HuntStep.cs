@@ -15,7 +15,7 @@ public class HuntStep : BotStep
     private const double LookInterval = 0.5;
 
     // Within the EMP's reach (10 m on the server), with room for the drone to move.
-    private const float FireWithin = 7f;
+    private const float FireWithin = 8.5f;
     private const double FireEvery = 2.5;
 
     private double _sinceLook = LookInterval;
@@ -78,7 +78,9 @@ public class HuntStep : BotStep
         }
 
         Vector3 under = new Vector3(_target.GlobalPosition.X, player.GlobalPosition.Y, _target.GlobalPosition.Z);
-        body.Navigator.Go(zone, under, true);
+        // To the nearest place the path reaches, not on past it: a drone over a tree or a
+        // roof is fired at from as close as a player gets.
+        body.Navigator.Go(zone, under, false);
 
         if (_target.GlobalPosition.DistanceTo(player.GlobalPosition) <= FireWithin && _sinceFire >= FireEvery)
         {

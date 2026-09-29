@@ -42,9 +42,10 @@ public class CrackStep : BotStep
         _sinceLook = 0;
         TerminalScreen? screen = body.Find<TerminalScreen>();
 
+        // Offline before it was cracked: fainted, or thrown off the terminal.
         if (screen == null)
         {
-            return BotStepState.Running;
+            return Fail("the terminal closed before the code was cracked");
         }
 
         List<string> lines = new List<string>();

@@ -49,6 +49,15 @@ public static class TownActivities
                 .Until("dropped off in town", body => body.Zone != null && body.Zone.ZoneId == ZoneIds.Town, 120))
                 .Says("Taxi!", "Let's go for a ride."),
 
+            // Stands by the taxi stand a while, as someone waiting for a ride: near enough
+            // to ride along when a party member calls one.
+            new BotActivity("wait-for-a-taxi", plan => plan
+                .InWorld()
+                .GoTo(ZoneIds.Town)
+                .Step(new ApproachStep<TaxiStand>("", stand => true))
+                .Wait(60))
+                .Says("Waiting for a ride."),
+
             new BotActivity("tag-subway", plan => plan
                 .InWorld()
                 .GoTo(ZoneIds.Subway)
@@ -68,6 +77,7 @@ public static class TownActivities
 
             new BotActivity("equip-emp", new[] { BotFacts.EmpEquipped }, plan => plan
                 .InWorld()
+                .StopIf("the EMP emitter is on already", BotFacts.EmpEquipped.Holds)
                 .Need(BotFacts.Carrying(ItemType.EmpEmitter))
                 .Press("inventory")
                 .UntilOpen("inventory")

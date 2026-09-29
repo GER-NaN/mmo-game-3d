@@ -105,6 +105,7 @@ public static class WorldActivities
             return plan
                 .InWorld()
                 .StopIf("sitting or in a gesture: a jump only stands it up", body => (body.Player?.GestureId ?? "").Length > 0)
+                .StopIf("in a taxi: the roof is too low for a jump", body => body.Zone != null && ZoneIds.SceneOf(body.Zone.ZoneId) == ZoneIds.Taxi)
                 .Wait(2)
                 .Do("note the ground", body => { ground = body.Player!.NetPosition.Y; highest = ground; })
                 .Press("jump")

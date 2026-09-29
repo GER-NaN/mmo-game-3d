@@ -5,7 +5,8 @@ using System.Collections.Generic;
 /// <summary>
 /// Chains: activities one after another, for orders random picks would almost never reach
 /// (bots.md R4, the old related chains), each around one piece of state: money spent and
-/// earned back, careers, two plants in a row, a phone taken to its limits.
+/// earned back, careers, two plants in a row, a phone taken to its limits, a party in a
+/// taxi.
 /// </summary>
 public static class ChainActivities
 {
@@ -17,6 +18,11 @@ public static class ChainActivities
                 .Then("buy-battery")
                 .Then("recycle")
                 .Then("buy-battery")),
+
+            // Whoever said yes rides along in the cabin.
+            new BotActivity("party-ride", plan => plan
+                .Then("invite-someone")
+                .Then("ride-taxi")),
 
             new BotActivity("two-plants", plan => plan
                 .Then("house-plant")

@@ -7,7 +7,8 @@ using MmoGame3d.Zones;
 /// Walks into a zone through its door, by way of any zones between (BotRouter), walking
 /// inside each with the navigator. With walkIn, done on walking in, not on being there: a
 /// bot that starts inside the zone goes out to a neighbour and back in. Without, being
-/// there is enough.
+/// there is enough. A zone with no doors is a ride (a taxi a party member called): it
+/// waits there for the drop-off.
 /// </summary>
 public class EnterZoneStep : BotStep
 {
@@ -24,6 +25,7 @@ public class EnterZoneStep : BotStep
     private bool _walking;
     private Door? _door;
     private bool _inFront;
+    private bool _riding;
 
     public EnterZoneStep(string target, bool walkIn)
         : base((walkIn ? "enter " : "go to ") + target, 120)
@@ -56,6 +58,7 @@ public class EnterZoneStep : BotStep
             body.Navigator.Stop(body);
             _zoneId = zone.ZoneId;
             _walking = false;
+            _riding = false;
             _settled = 0;
             body.Events.Write("arrived", _zoneId);
 
@@ -89,6 +92,17 @@ public class EnterZoneStep : BotStep
 
         if (_settled < SettleSeconds)
         {
+            return BotStepState.Running;
+        }
+
+        if (BotRouter.AnyNeighbour(_zoneId) == null)
+        {
+            if (!_riding)
+            {
+                _riding = true;
+                body.Events.Write("riding", "no doors in " + _zoneId + "; waiting for the drop-off");
+            }
+
             return BotStepState.Running;
         }
 

@@ -48,6 +48,7 @@ public class StuckWatcher : BotWatcher
         }
 
         _for = 0;
-        return "under " + MinDistance + " m in " + WindowSeconds + " s while \"" + step.Name + "\"";
+        // Who has the keys tells a wall from input that never reached the body.
+        return "under " + MinDistance + " m in " + WindowSeconds + " s while \"" + step.Name + "\"; keys: " + body.KeysHeldBy();
     }
 }

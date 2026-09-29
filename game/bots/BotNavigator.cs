@@ -264,8 +264,10 @@ public class BotNavigator
     {
         NavigationMesh mesh = new NavigationMesh();
 
-        // Heights are whole cells (0.25 m), or the engine warns that it rounds them.
-        mesh.AgentRadius = 0.5f;
+        // Heights are whole cells (0.25 m), or the engine warns that it rounds them. The
+        // radius is a cell wider than the body's 0.5 m: the steering turns before it walks
+        // and cuts corners, and a path that grazes a tree trunk wedges it there.
+        mesh.AgentRadius = 0.75f;
         mesh.AgentHeight = 2f;
         mesh.AgentMaxClimb = 0.5f;
         mesh.GeometryParsedGeometryType = NavigationMesh.ParsedGeometryType.StaticColliders;
@@ -323,9 +325,39 @@ public class BotNavigator
 
             if (shape != null && box != null)
             {
-                source.AddMesh(new BoxMesh { Size = box.Size + DoorClearance }, shape.GlobalTransform);
+                source.AddFaces(BoxFaces(box.Size + DoorClearance), shape.GlobalTransform);
             }
         }
+    }
+
+    // A box's twelve triangles, as plain geometry: a BoxMesh would be a render mesh, read
+    // back from the GPU at the bake.
+    private static Vector3[] BoxFaces(Vector3 size)
+    {
+        Vector3 h = size / 2;
+        Vector3[] c =
+        {
+            new Vector3(-h.X, -h.Y, -h.Z), new Vector3(h.X, -h.Y, -h.Z), new Vector3(h.X, -h.Y, h.Z), new Vector3(-h.X, -h.Y, h.Z),
+            new Vector3(-h.X, h.Y, -h.Z), new Vector3(h.X, h.Y, -h.Z), new Vector3(h.X, h.Y, h.Z), new Vector3(-h.X, h.Y, h.Z),
+        };
+        int[] quads = { 0, 1, 2, 3, 4, 7, 6, 5, 0, 4, 5, 1, 1, 5, 6, 2, 2, 6, 7, 3, 3, 7, 4, 0 };
+        Vector3[] faces = new Vector3[36];
+
+        for (int q = 0; q < 6; q++)
+        {
+            int a = quads[q * 4];
+            int b = quads[(q * 4) + 1];
+            int d = quads[(q * 4) + 2];
+            int e = quads[(q * 4) + 3];
+            faces[q * 6] = c[a];
+            faces[(q * 6) + 1] = c[b];
+            faces[(q * 6) + 2] = c[d];
+            faces[(q * 6) + 3] = c[a];
+            faces[(q * 6) + 4] = c[d];
+            faces[(q * 6) + 5] = c[e];
+        }
+
+        return faces;
     }
 
     private static float Flat(Vector3 a, Vector3 b)

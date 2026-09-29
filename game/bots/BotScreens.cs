@@ -55,6 +55,7 @@ public static class BotScreens
             case "garden":
             case "plant-card":
             case "visitor-book":
+            case "character-creator":
                 return "ui_cancel";
             default:
                 return null;

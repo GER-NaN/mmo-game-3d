@@ -29,6 +29,12 @@ public class DefenseStep : BotStep
     {
         AgentDefenseView? view = body.Find<AgentDefenseView>();
 
+        // Offline before the run was over: fainted, or thrown off the terminal.
+        if (body.Find<TerminalScreen>() == null)
+        {
+            return Fail("the terminal closed before the run was over");
+        }
+
         if (view == null)
         {
             return BotStepState.Running;

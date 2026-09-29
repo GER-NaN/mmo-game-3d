@@ -8,9 +8,11 @@ using MmoGame3d.Zones;
 
 /// <summary>
 /// Watches the town cameras (CctvView, in a terminal's Town cameras app) and clicks each
-/// drone that shows in the picture, as a player spotting it would, until it has reported
-/// enough. It reads where the drones are and where the camera looks; the report itself
-/// is a real click on the picture, which the view checks as it would a player's.
+/// drone that shows in the picture, as a player spotting it would, until the town has paid
+/// for enough reports. It reads where the drones are and where the camera looks; the
+/// report itself is a real click on the picture, which the view checks as it would a
+/// player's. The server pays once per drone and player, whatever the activity, so a drone
+/// turned down is skipped and not counted.
 /// </summary>
 public class WatchForDronesStep : BotStep
 {
@@ -22,6 +24,8 @@ public class WatchForDronesStep : BotStep
     private readonly int _wanted;
     private readonly HashSet<string> _reported = new HashSet<string>();
     private double _sinceLook = LookInterval;
+    private int _noticesAt;
+    private int _paid;
 
     public WatchForDronesStep(int wanted, double timeLimit)
         : base("watch the cameras for " + wanted + " drone" + (wanted == 1 ? "" : "s"), timeLimit)
@@ -34,8 +38,28 @@ public class WatchForDronesStep : BotStep
         get { return BotIntent.Screen; }
     }
 
+    public override void Start(BotBody body)
+    {
+        _noticesAt = body.View?.NoticeCount ?? 0;
+    }
+
     public override BotStepState Tick(BotBody body, double delta)
     {
+        foreach (string notice in body.NoticesSince(_noticesAt))
+        {
+            if (notice.StartsWith("Cameras: drone reported"))
+            {
+                _paid++;
+            }
+        }
+
+        _noticesAt = body.View?.NoticeCount ?? _noticesAt;
+
+        if (_paid >= _wanted)
+        {
+            return BotStepState.Done;
+        }
+
         _sinceLook += delta;
 
         if (_sinceLook < LookInterval)
@@ -89,7 +113,7 @@ public class WatchForDronesStep : BotStep
             break;
         }
 
-        return _reported.Count >= _wanted ? BotStepState.Done : BotStepState.Running;
+        return BotStepState.Running;
     }
 
     // The view draws through a SubViewport of its own, with the camera inside it.

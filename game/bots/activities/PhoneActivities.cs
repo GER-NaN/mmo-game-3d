@@ -15,6 +15,7 @@ public static class PhoneActivities
         {
             new BotActivity("equip-phone", new[] { BotFacts.PhoneEquipped }, plan => plan
                 .InWorld()
+                .StopIf("the phone is on already", BotFacts.PhoneEquipped.Holds)
                 .Wait(1)
                 .Press("inventory")
                 .WaitFor<InventoryPanel>()

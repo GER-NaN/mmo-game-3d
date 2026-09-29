@@ -20,6 +20,7 @@ public class PickPlayerStep : BotStep
     private const float RepathMoved = 2f;
     private const double ClickEvery = 0.6;
     private const int MaxClicks = 8;
+    private const int ClicksBeforeCloser = 3;
 
     // Where on the body to click: its middle, above the feet.
     private static readonly Vector3 Middle = new Vector3(0f, 1.1f, 0f);
@@ -107,7 +108,8 @@ public class PickPlayerStep : BotStep
 
         if (_clicks >= MaxClicks)
         {
-            return Fail("clicked " + _target.DisplayName + " " + MaxClicks + " times and no target frame showed");
+            Control? over = me.GetViewport().GuiGetHoveredControl();
+            return Fail("clicked " + _target.DisplayName + " " + MaxClicks + " times and no target frame showed; the mouse was over " + (over == null ? "the world" : over.GetPath().ToString()));
         }
 
         _clicks++;
@@ -121,6 +123,14 @@ public class PickPlayerStep : BotStep
         }
 
         body.ClickScreen(camera.GetViewport(), camera.UnprojectPosition(point));
+
+        // Clicks that missed may have landed on a panel over them (the chat, the party):
+        // closer, they fill the middle of the window.
+        if (_clicks >= ClicksBeforeCloser)
+        {
+            _range = CloseRange;
+        }
+
         return BotStepState.Running;
     }
 
