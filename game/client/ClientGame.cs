@@ -163,6 +163,12 @@ public partial class ClientGame : Node
 
         _ui = new CanvasLayer { Name = "Ui" };
         AddChild(_ui);
+
+        // F9: the graphics panel, for trying looks while playing.
+        if (OS.IsDebugBuild())
+        {
+            AddChild(new DevGraphics { Name = "DevGraphics" });
+        }
         _settings.ApplyVolumes();
 
         // A headless client has nobody to hear it.

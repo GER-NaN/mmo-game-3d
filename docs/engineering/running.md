@@ -36,6 +36,19 @@ ones used most:
 | `--report-every 3` | client | print what it sees |
 | `--screenshot x.png` (+ `--overview`, `--garden`, `--creator`, `--show-characters`, `--screenshot-after 4`) | client | save a picture and quit: how looks were checked without clicking |
 
+## The graphics panel (F9)
+
+In a debug build (the editor, `client-up.ps1`), F9 shows or hides a small panel of knobs
+on how the world looks: edges (MSAA, FXAA or SMAA, TAA), pixels (3D resolution,
+nearest upscaling, pixelate, posterize), tone and colour, light (glow, SSAO, SSIL, SSR,
+SDFGI, shadows), air (fog, volumetric fog), the camera (field of view, blur, the hour of
+day) and screen effects (vignette, grain, colour fringe, scanlines, sharpen, tint). A
+knob applies at once; Reset goes back to how the game started. Save writes every value
+and what changed as JSON, with a screenshot, to `graphics-saves/` in the repo (git
+ignores it). Nothing is kept between launches: a look is made real by writing its values
+into `game/zones/World.tscn` or `project.godot`. The code is in `game/dev/`
+(`DevGraphics`, `GraphicsPanel`, `ScreenEffects.gdshader`).
+
 ## Controller
 
 An Xbox-layout controller works in the world, beside the keys. The bindings are in
