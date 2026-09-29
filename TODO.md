@@ -151,6 +151,11 @@ All four are in docs/engineering/performance.md, with the numbers.
       2026-09-29) and used at the potting table; the creator's bases still use a list and
       < >. The author's sketch: `C:\Users\geral\Pictures\Screenshots\Screenshot
       2026-09-29 101157.png`.
+- [ ] Look across the playtest transcripts (`docs/sources/transcripts/`) for problems
+      that come back (the author, 2026-09-29): "analyze transcripts for problems I
+      always run into (these are playability issues and confusion). If I keep
+      commentating we should be able to identify repeated issues that are probably worth
+      addressing." Once there are a few transcripts.
 - [ ] Adjust the UX of the pot step at the potting table (the author, 2026-09-29):
       "having to double confirm, you see the pot on the table but now you also need to
       click on it to move to the leaf selection". Today the pot in the carousel's middle
