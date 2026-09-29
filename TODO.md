@@ -119,6 +119,12 @@ All four are in docs/engineering/performance.md, with the numbers.
 
 ## Planned, not built
 
+- [ ] A carousel for picking from many (the author, 2026-09-29; sketch:
+      `C:\Users\geral\Pictures\Screenshots\Screenshot 2026-09-29 101157.png`): a row of
+      items, the chosen one in the middle and highlighted, arrows left and right. The
+      mouse wheel scrolls it, and it scrolls by itself left or right while the mouse
+      rests near either end. For the character creator's bases, and the potting table's
+      pots and leaves. One control, used in all three.
 - [ ] Simple Postal Office QA (a feature design session, `feature-design`). The author's
       idea, 2026-09-29: "add a PostalOffice. This is how a player sends items within the
       world. Postal office is just a new zone that goes into a town, like the shop or
