@@ -138,6 +138,40 @@ Kept because the author engaged with them. None is design.
 
 Not design. From `archive/NEXT.txt`, for `TODO.md` when picked up.
 
+- **The client's shape, ideas from a conversation (2026-09-29), not decisions.** The
+  author: "Right now this is a big spaghetti mess IMO." `ClientGame` is 1,848 lines, two
+  thirds of the client: 61 fields, 22 network events wired, 56 screen button handlers.
+  Every mechanic's client side is spread through it (a field, a handler, an open and a
+  close method, a line in the open-screens list), and screens open from 17 places.
+  - *A screen is a mechanic's two ends.* The author: "a screen, it is only the input and
+    output interface of a game mechanic." The rules and state live in `src/Rules` and on
+    the server; a screen shows state and turns clicks into intents, and holds no rule.
+  - *Desktop MVC, with the model across the network.* The author: "You have your state
+    and business logic in models. Then you have your visual screens ... then eventing
+    ... which calls into model code." And WinForms: one file for how the screen looks,
+    one wiring its buttons (`button32_save.Click()` to `EntityModel.Save()`), and the
+    model calling the repository. Here: the `.tscn`, the screen's script, the client's
+    side of the mechanic (a network send), the server's stores. Unlike WinForms, the
+    wiring sits in `ClientGame`, not beside the screen.
+  - *Something that keeps the open screens, like a screen manager* (the author's
+    words). It would own a screen's life only: what is open, in order, the top one,
+    open and close, Esc, the timeline, finding an open screen by class. Not what a
+    screen shows or what its buttons do, or it grows into a second `ClientGame`.
+    Considered: an event per screen ("InventoryScreenRequested") answered by it, or the
+    trigger handing it the screen directly (fewer hops, the model's preference).
+  - *One client class per mechanic*, as `ClientParty` already is (219 lines: the target
+    frame, the invite prompt, the party panel and the party network's events together).
+    `ClientGame` would keep the connection, the world, zones and startup.
+  - *It extends past screens.* A mechanic's client side has three kinds of ends: screens
+    (the tangled part), world objects (a drone, a lamp: scene nodes with their own
+    scripts, already per thing, e.g. `game/drones/Drone.cs`), and messages and feedback
+    (notices, sounds, the Notifications feed, today through `ClientGame`'s generic
+    handlers). The server already has the shape, one class per mechanic
+    (`ServerWorldEvents`, `ServerDrones`, `ServerGarden`). Lined up, a mechanic would have
+    its piece on every side: rules, server, wire, client.
+  - Related, in `TODO.md`: every screen closes the same way; with the screen keeper,
+    that is one rule.
+
 - **A helpful compiler.** The asset half of this note is done: the build compiles the
   map project from `art/` and the package is build output (`map-project-and-assets.md`).
   Left: make the compiler's errors as helpful as a tool we own can be, saying which
