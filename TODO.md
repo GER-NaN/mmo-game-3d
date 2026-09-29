@@ -201,9 +201,9 @@ Second playtest 2026-09-26
 - Guestbook in the subway is wrong, the spray painted walls are the guestbook
 - When running up hill my player glides without moving his legs, its like a hover, same down hill
 - while in the camera, and I press the arrow keys I can see the world in the background spinning and rotating (fixed 2026-09-26, c339b5c)
-- Security cameras should not be on trees, I think in the future when I edit maps I will place them at expected spots. (this also needs a recipe). If I place a model in the editor how do I hook it up to my game to be functional (something like a camera). This will be a common pattern where I place an item using the godot editor and it needs to then have behaviors in game and be known by the game. (terminals) etc... 
+- Security cameras should not be on trees, I think in the future when I edit maps I will place them at expected spots. (this also needs a recipe). If I place a model in the editor how do I hook it up to my game to be functional (something like a camera). (Recipe written 2026-09-29: docs/engineering/editor.md, "Placing things that work".) This will be a common pattern where I place an item using the godot editor and it needs to then have behaviors in game and be known by the game. (terminals) etc... 
 - Street lights seem permantetly fixed? They should break periodicly and this should be tuneable (how often they break).
-- Item placement (street lights inside trees). Again wont be an issue when I build maps. but previously problem applies. How does the gtame know my model is a street light and is eligable for breaking and being in need of repair.
+- Item placement (street lights inside trees). Again wont be an issue when I build maps. but previously problem applies. How does the gtame know my model is a street light and is eligable for breaking and being in need of repair. (Answered 2026-09-29 in the same recipe.)
 - FPV would be a nice view change.
 - I want to redo the entire HUD and menus in the game and the terminal layouts. Suggest some UI tools and options. Are there godot asset packs for this that work nicely (UI interface tools to design the GUI and hud items)
 - Scrolling in game UI elements (registrar menu) scrolls my view, keep track of where the pointer is (fixed 2026-09-26, 549d14b)
