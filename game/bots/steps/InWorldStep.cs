@@ -9,7 +9,8 @@ using MmoGame3d.Ui;
 /// In the world, with nothing open: where most activities begin. It is also the bot's
 /// keeper (bots.md R6). Left at the main menu (a lost connection) it presses Play; at the
 /// character screen, Play on the first character; with screens left open by an activity
-/// cut short, it closes each with its own key, as a player would.
+/// cut short, it closes each with its own key, as a player would. Clear twice in a row,
+/// since a screen asked for just before (a phone key mashed) opens a moment later.
 /// </summary>
 public class InWorldStep : BotStep
 {
@@ -26,6 +27,7 @@ public class InWorldStep : BotStep
     private double _menuFor;
     private double _sinceClose = CloseGap;
     private int _tries;
+    private int _clearLooks;
 
     public InWorldStep()
         : base("in world", 60)
@@ -81,9 +83,18 @@ public class InWorldStep : BotStep
 
         if (toClose.Count == 0)
         {
+            _clearLooks++;
+
+            if (_clearLooks < 2)
+            {
+                return BotStepState.Running;
+            }
+
             body.Events.Write("in-world", body.Zone.ZoneId);
             return BotStepState.Done;
         }
+
+        _clearLooks = 0;
 
         if (_sinceClose >= CloseGap)
         {
