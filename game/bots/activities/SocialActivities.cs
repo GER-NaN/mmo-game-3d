@@ -62,18 +62,23 @@ public static class SocialActivities
 
             // Ignored, seen in the list, and unignored again, so the bots do not end up
             // deaf to each other.
-            new BotActivity("ignore-someone", plan => Pick(plan)
-                .Click<TargetFrame>("%Ignore")
-                .Wait(1)
-                .Press("social")
-                .UntilOpen("social")
-                .Until("someone in the ignored list", body => Contact(body, "Unignore") != null, 5)
-                .Wait(1)
-                .Click("Unignore", body => Contact(body, "Unignore"))
-                .Until("the ignored list empty again", body => Contact(body, "Unignore") == null, 5)
-                .Press("social")
-                .UntilClosed("social"))
-                .Says("Shh."),
+            new BotActivity("ignore-someone", plan =>
+            {
+                int ignored = 0;
+
+                return Pick(plan)
+                    .Click<TargetFrame>("%Ignore")
+                    .Wait(1)
+                    .Press("social")
+                    .UntilOpen("social")
+                    .Until("someone in the ignored list", body => Contact(body, "Unignore") != null, 5)
+                    .Wait(1)
+                    .Do("count the ignored", body => ignored = Contacts(body, "Unignore"))
+                    .Click("Unignore", body => Contact(body, "Unignore"))
+                    .Until("one fewer ignored", body => Contacts(body, "Unignore") < ignored, 5)
+                    .Press("social")
+                    .UntilClosed("social");
+            }).Says("Shh."),
 
             new BotActivity("unfriend-someone", plan => FriendsList(plan)
                 .StopIf("no friends to remove", body => Contact(body, "Remove") == null)
@@ -104,6 +109,13 @@ public static class SocialActivities
     {
         SocialPanel? panel = body.Find<SocialPanel>();
         return panel == null ? null : BotScreens.FirstButton(panel, text);
+    }
+
+    // How many rows of the friends panel have this button.
+    private static int Contacts(BotBody body, string text)
+    {
+        SocialPanel? panel = body.Find<SocialPanel>();
+        return panel == null ? 0 : BotScreens.ButtonsWith(panel, text);
     }
 
     // To town, where the others mostly are, and a click on one of them. Just after a zone

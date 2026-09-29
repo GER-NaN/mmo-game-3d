@@ -12,6 +12,9 @@ using MmoGame3d.Ui;
 /// </summary>
 public static class BotScreens
 {
+    // Not a screen: a text field with the keys, closed the same way.
+    public const string TextField = "text-field";
+
     // Whether a screen is open, by its name in ClientView.OpenScreens.
     public static bool IsOpen(BotBody body, string screen)
     {
@@ -39,6 +42,8 @@ public static class BotScreens
     {
         switch (screen)
         {
+            case TextField:
+                return "ui_cancel";
             case "inventory":
             case "map":
             case "social":
@@ -206,6 +211,26 @@ public static class BotScreens
         }
 
         return null;
+    }
+
+    // How many visible buttons with this text are under a screen.
+    public static int ButtonsWith(Node under, string text)
+    {
+        int count = 0;
+
+        foreach (Node child in under.GetChildren())
+        {
+            Button? button = child as Button;
+
+            if (button != null && button.Text == text && button.IsVisibleInTree() && !button.IsQueuedForDeletion())
+            {
+                count++;
+            }
+
+            count += ButtonsWith(child, text);
+        }
+
+        return count;
     }
 
     // An app's button in a terminal's list, by the app's name ("Town cameras"). A locked

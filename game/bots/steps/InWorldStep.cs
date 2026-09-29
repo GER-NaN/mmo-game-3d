@@ -73,6 +73,12 @@ public class InWorldStep : BotStep
             }
         }
 
+        // A chat line left open (an activity walked away from mid-line) has the keys too.
+        if (body.FocusedField() != null)
+        {
+            toClose.Add(BotScreens.TextField);
+        }
+
         if (toClose.Count == 0)
         {
             body.Events.Write("in-world", body.Zone.ZoneId);
