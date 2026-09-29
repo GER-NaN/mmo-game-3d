@@ -79,6 +79,19 @@ modulate = Color(1, 1, 1, 0.75)
 layout_mode = 2
 text = "Isa Lousberg, www.isalousberg.com (CC0)"
 
+[node name="Lucide" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/Lucide"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Lucide icons"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/Lucide"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Lucide Contributors, lucide.dev (ISC)"
+
 [node name="Sound" type="Label" parent="Center/Panel/Margin/Rows"]
 modulate = Color(1, 0.85, 0.5, 1)
 layout_mode = 2
