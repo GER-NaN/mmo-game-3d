@@ -104,6 +104,7 @@ public static class WorldActivities
 
             return plan
                 .InWorld()
+                .StopIf("sitting or in a gesture: a jump only stands it up", body => (body.Player?.GestureId ?? "").Length > 0)
                 .Wait(2)
                 .Do("note the ground", body => { ground = body.Player!.NetPosition.Y; highest = ground; })
                 .Press("jump")
@@ -154,8 +155,7 @@ public static class WorldActivities
                 .InWorld()
                 .GoTo(zone)
                 .Survey()
-                .Use<Terminal>()
-                .WaitFor<TerminalScreen>()
+                .Step(new UseTerminalStep())
                 .Click("the Town cameras app", body => BotScreens.TerminalApp(body.Find<TerminalScreen>(), "Town cameras"))
                 .WaitFor<CctvView>()
                 .Do("note the money", body => dollars = body.View!.Dollars)

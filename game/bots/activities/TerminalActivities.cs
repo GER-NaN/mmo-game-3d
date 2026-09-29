@@ -2,7 +2,6 @@ namespace MmoGame3d.Bots;
 
 using System.Collections.Generic;
 using MmoGame3d.Rules.World;
-using MmoGame3d.Terminals;
 using MmoGame3d.Ui;
 
 /// <summary>
@@ -65,41 +64,12 @@ public static class TerminalActivities
         {
             plan.InWorld()
                 .GoTo(ZoneIds.Town)
-                .Until("a terminal is free", AnyFree, 90)
-                .Use<Terminal>("free", Free)
-                .WaitFor<TerminalScreen>();
+                .Step(new UseTerminalStep());
 
             return steps(plan)
                 .Wait(0.5)
                 .Press("ui_cancel")
                 .UntilClosed("terminal");
         });
-    }
-
-    private static bool Free(Terminal terminal)
-    {
-        return terminal.Enabled && terminal.UsedBy.Length == 0;
-    }
-
-    private static bool AnyFree(BotBody body)
-    {
-        Godot.Node? things = body.Zone?.GetNodeOrNull(Interact.Interactable.ParentName);
-
-        if (things == null)
-        {
-            return false;
-        }
-
-        foreach (Godot.Node child in things.GetChildren())
-        {
-            Terminal? terminal = child as Terminal;
-
-            if (terminal != null && Free(terminal))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
