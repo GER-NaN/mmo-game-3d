@@ -7,7 +7,7 @@ using MmoGame3d.Ui;
 /// <summary>
 /// Activities with whoever else is about: another player picked by a click on them, then
 /// befriended, invited, given something, sent a line or ignored for a moment; and the
-/// friends list, a friend removed or messaged from it. They need no helper bot (bots.md
+/// friends list: a friend messaged from their row, or removed from their own view. They need no helper bot (bots.md
 /// F6); in a soak the others are the other bots. With nobody else in town they stop at
 /// once. Invites are answered by BotInviteAnswers, whatever the plan.
 /// </summary>
@@ -71,6 +71,7 @@ public static class SocialActivities
                     .Wait(1)
                     .Press("social")
                     .UntilOpen("social")
+                    .Click<SocialPanel>("%ShowIgnored")
                     .Until("someone in the ignored list", body => Contact(body, "Unignore") != null, 5)
                     .Wait(1)
                     .Do("count the ignored", body => ignored = Contacts(body, "Unignore"))
@@ -81,15 +82,17 @@ public static class SocialActivities
             }).Says("Shh."),
 
             new BotActivity("unfriend-someone", plan => FriendsList(plan)
-                .StopIf("no friends to remove", body => Contact(body, "Remove") == null)
-                .Click("Remove", body => Contact(body, "Remove"))
-                .Wait(1)
+                .StopIf("no friends to remove", body => FriendButton(body, "More") == null)
+                .Click("a friend's ...", body => FriendButton(body, "More"))
+                .Until("the friend's view", body => BotScreens.Named<Godot.Button>(body.Find<SocialPanel>(), "FriendRemove") != null, 3)
+                .Click<SocialPanel>("%FriendRemove")
+                .Until("back on the friends list", body => BotScreens.Named<Godot.Control>(body.Find<SocialPanel>(), "FriendsView") != null, 5)
                 .Press("social")
                 .UntilClosed("social")),
 
             new BotActivity("message-a-friend", plan => FriendsList(plan)
-                .StopIf("no friend online", body => Contact(body, "Message") == null)
-                .Click("Message", body => Contact(body, "Message"))
+                .StopIf("no friend online", body => FriendButton(body, "Mail") == null)
+                .Click("a friend's mail", body => FriendButton(body, "Mail"))
                 .Until("the chat line has the keys", body => body.FocusedField() != null, 3)
                 .Step(new TypeStep("a message", body => Lines[body.Random.Next(Lines.Length)]))),
         };
@@ -109,6 +112,30 @@ public static class SocialActivities
     {
         SocialPanel? panel = body.Find<SocialPanel>();
         return panel == null ? null : BotScreens.FirstButton(panel, text);
+    }
+
+    // A button on a friend's row, by its name, that can be pressed: the mail of an online
+    // friend, or anyone's "...".
+    private static Godot.Button? FriendButton(BotBody body, string name)
+    {
+        Godot.Node? list = body.Find<SocialPanel>()?.GetNodeOrNull("%Friends");
+
+        if (list == null)
+        {
+            return null;
+        }
+
+        foreach (Godot.Node row in list.GetChildren())
+        {
+            Godot.Button? button = row.GetNodeOrNull<Godot.Button>(name);
+
+            if (button != null && !button.Disabled && button.IsVisibleInTree() && !row.IsQueuedForDeletion())
+            {
+                return button;
+            }
+        }
+
+        return null;
     }
 
     // How many rows of the friends panel have this button.

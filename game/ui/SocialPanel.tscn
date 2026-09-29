@@ -4,11 +4,11 @@
 [ext_resource type="PackedScene" path="res://game/ui/CloseButton.tscn" id="2_close"]
 
 [node name="SocialPanel" type="PanelContainer"]
-custom_minimum_size = Vector2(360, 0)
+custom_minimum_size = Vector2(420, 0)
 offset_left = 16.0
 offset_top = 56.0
-offset_right = 376.0
-offset_bottom = 316.0
+offset_right = 436.0
+offset_bottom = 136.0
 script = ExtResource("1_social")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -25,7 +25,16 @@ theme_override_constants/separation = 8
 [node name="TitleRow" type="HBoxContainer" parent="Margin/Rows"]
 layout_mode = 2
 
+[node name="Back" type="Button" parent="Margin/Rows/TitleRow"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+focus_mode = 0
+text = "<"
+tooltip_text = "Back to friends"
+
 [node name="Title" type="Label" parent="Margin/Rows/TitleRow"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
@@ -35,21 +44,59 @@ text = "Friends"
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Friends" type="VBoxContainer" parent="Margin/Rows"]
+[node name="FriendsView" type="VBoxContainer" parent="Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Friends" type="VBoxContainer" parent="Margin/Rows/FriendsView"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="IgnoredTitle" type="Label" parent="Margin/Rows"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "Ignored"
-
-[node name="Ignored" type="VBoxContainer" parent="Margin/Rows"]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="Hint" type="Label" parent="Margin/Rows"]
+[node name="Hint" type="Label" parent="Margin/Rows/FriendsView"]
 modulate = Color(1, 1, 1, 0.5)
 layout_mode = 2
 text = "Select a player to add them as a friend or ignore them"
 autowrap_mode = 3
+
+[node name="ShowIgnored" type="Button" parent="Margin/Rows/FriendsView"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+focus_mode = 0
+text = "Ignored"
+
+[node name="IgnoredView" type="VBoxContainer" parent="Margin/Rows"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="Ignored" type="VBoxContainer" parent="Margin/Rows/IgnoredView"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="FriendView" type="VBoxContainer" parent="Margin/Rows"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FriendStatus" type="Label" parent="Margin/Rows/FriendView"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Online, in Town"
+
+[node name="Actions" type="HBoxContainer" parent="Margin/Rows/FriendView"]
+layout_mode = 2
+
+[node name="FriendMessage" type="Button" parent="Margin/Rows/FriendView/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "Message"
+
+[node name="FriendRemove" type="Button" parent="Margin/Rows/FriendView/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "Remove friend"

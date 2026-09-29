@@ -1,0 +1,48 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://game/ui/icons/mail.svg" id="1_mail"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/ellipsis.svg" id="2_more"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dot"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[node name="FriendRow" type="HBoxContainer"]
+theme_override_constants/separation = 10
+
+[node name="Dot" type="Panel" parent="."]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_dot")
+
+[node name="Name" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Friend"
+text_overrun_behavior = 3
+
+[node name="Where" type="Label" parent="."]
+layout_mode = 2
+text = "Town"
+
+[node name="Mail" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Message"
+icon = ExtResource("1_mail")
+icon_alignment = 1
+expand_icon = true
+
+[node name="More" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "More"
+icon = ExtResource("2_more")
+icon_alignment = 1
+expand_icon = true
