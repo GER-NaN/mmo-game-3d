@@ -13,6 +13,7 @@ public class EdgeRunStep : BotStep
 {
     private const double RunSeconds = 20;
     private const double JumpEvery = 1.5;
+    private const double JumpHold = 0.1;
 
     private float _heading;
     private double _ran;
@@ -55,9 +56,11 @@ public class EdgeRunStep : BotStep
         if (_sinceJump >= JumpEvery)
         {
             _sinceJump = 0;
-            body.Key("jump", true);
-            body.Key("jump", false);
         }
+
+        // Held a moment, not tapped in one frame: the game reads the jump in its physics
+        // tick.
+        body.Hold("jump", _sinceJump < JumpHold);
 
         _ran += delta;
         return _ran >= RunSeconds ? BotStepState.Done : BotStepState.Running;
@@ -68,5 +71,6 @@ public class EdgeRunStep : BotStep
         body.Hold("turn_left", false);
         body.Hold("turn_right", false);
         body.Hold("move_forward", false);
+        body.Hold("jump", false);
     }
 }

@@ -14,6 +14,7 @@ public class WedgeStep : BotStep
 {
     private const double PushSeconds = 10;
     private const double JumpEvery = 1.2;
+    private const double JumpHold = 0.1;
 
     private Vector3 _corner;
     private string _zoneId = "";
@@ -71,6 +72,7 @@ public class WedgeStep : BotStep
 
         if (new Vector2(player.GlobalPosition.X - _corner.X, player.GlobalPosition.Z - _corner.Z).Length() > 2f)
         {
+            body.Hold("jump", false);
             return BotStepState.Running;
         }
 
@@ -80,9 +82,11 @@ public class WedgeStep : BotStep
         if (_sinceJump >= JumpEvery)
         {
             _sinceJump = 0;
-            body.Key("jump", true);
-            body.Key("jump", false);
         }
+
+        // Held a moment, not tapped in one frame: the game reads the jump in its physics
+        // tick.
+        body.Hold("jump", _sinceJump < JumpHold);
 
         return _pushed >= PushSeconds ? BotStepState.Done : BotStepState.Running;
     }
@@ -90,5 +94,6 @@ public class WedgeStep : BotStep
     public override void End(BotBody body)
     {
         body.Navigator.Stop(body);
+        body.Hold("jump", false);
     }
 }
