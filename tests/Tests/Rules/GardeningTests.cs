@@ -19,12 +19,23 @@ public class GardeningTests
         Assert.Equal(1.2f, read.Pieces[0].Scale, 3);
     }
 
+    [Fact]
+    public void APieceLeansEitherWay()
+    {
+        PlantDesign? read = PlantDesign.Parse("pot_A_small;cactus_A,0,0,0,-0.5,1;cactus_B,0,0,0,0.5,1");
+
+        Assert.NotNull(read);
+        Assert.Equal(-0.5f, read!.Pieces[0].Tilt, 3);
+        Assert.Equal(0.5f, read.Pieces[1].Tilt, 3);
+    }
+
     [Theory]
     [InlineData("pot_A_small")]
     [InlineData("no_such_pot;cactus_A,0,0,0,0,1")]
     [InlineData("pot_A_small;no_such_piece,0,0,0,0,1")]
     [InlineData("pot_A_small;cactus_A,0.9,0.9,0,0,1")]
     [InlineData("pot_A_small;cactus_A,0,0,0,2,1")]
+    [InlineData("pot_A_small;cactus_A,0,0,0,-2,1")]
     [InlineData("pot_A_small;cactus_A,0,0,0,0,9")]
     [InlineData("pot_A_small;cactus_A,0,0,0,0,1;cactus_A,0,0,0,0,1;cactus_A,0,0,0,0,1;cactus_A,0,0,0,0,1;cactus_A,0,0,0,0,1;cactus_A,0,0,0,0,1")]
     public void ADesignOffTheRulesIsRefused(string text)

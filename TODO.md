@@ -136,6 +136,17 @@ All four are in docs/engineering/performance.md, with the numbers.
       2026-09-29) and used at the potting table; the creator's bases still use a list and
       < >. The author's sketch: `C:\Users\geral\Pictures\Screenshots\Screenshot
       2026-09-29 101157.png`.
+- [ ] Adjust the UX of the pot step at the potting table (the author, 2026-09-29):
+      "having to double confirm, you see the pot on the table but now you also need to
+      click on it to move to the leaf selection". Today the pot in the carousel's middle
+      is already on the table, and a second click on it moves on to the leaves. Options
+      offered: a click on any pot picks it; a "Use this pot" button; a "Click to use"
+      label on the middle pot.
+- [ ] Dev accounts with unlimited characters (the author, 2026-09-29): "allow certain
+      accounts to have unlimited characters DEV Accounts. This allows me to seed a
+      character everywhere I might want to quickly test something. IE I have a
+      greenhouse character that just lives in the greenhouse etc...." Today every account
+      has 2 slots (`Characters.SlotsPerAccount`, `src/Rules/Players/Characters.cs`).
 - [ ] Simple Postal Office QA (a feature design session, `feature-design`). The author's
       idea, 2026-09-29: "add a PostalOffice. This is how a player sends items within the
       world. Postal office is just a new zone that goes into a town, like the shop or

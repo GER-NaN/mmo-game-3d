@@ -68,7 +68,7 @@ public class PlantDesign
             PlantPiece piece = new PlantPiece { Id = fields[0], X = values[0], Z = values[1], Yaw = values[2], Tilt = values[3], Scale = values[4] };
 
             if ((piece.X * piece.X) + (piece.Z * piece.Z) > 1.0001f
-                || piece.Tilt < 0f || piece.Tilt > PlantPiece.MaxTiltRadians
+                || piece.Tilt < -PlantPiece.MaxTiltRadians || piece.Tilt > PlantPiece.MaxTiltRadians
                 || piece.Scale < PlantPiece.MinScale || piece.Scale > PlantPiece.MaxScale)
             {
                 return null;

@@ -80,6 +80,8 @@ public partial class GardenScreen : Control
     // first move over the table.
     private Vector2? _grab;
 
+    private readonly Dictionary<Mesh, Vector3[]> _faces = new Dictionary<Mesh, Vector3[]>();
+
     // The placed piece the mouse is on, tinted; -1 for none.
     private int _hovered = -1;
 
@@ -188,20 +190,25 @@ public partial class GardenScreen : Control
                 _orbiting = button.Pressed && OverPicture(button.Position);
                 break;
             case MouseButton.WheelUp:
-                if (button.Pressed && OverPicture(button.Position))
-                {
-                    _distance = Mathf.Clamp(_distance - 0.15f, 1.2f, 5f);
-                    PlaceCamera();
-                }
-
-                break;
             case MouseButton.WheelDown:
-                if (button.Pressed && OverPicture(button.Position))
+                if (!button.Pressed || !OverPicture(button.Position))
                 {
-                    _distance = Mathf.Clamp(_distance + 0.15f, 1.2f, 5f);
-                    PlaceCamera();
+                    break;
                 }
 
+                // Over a planted piece the wheel shapes it where it stands; off the plant
+                // it moves the view in and out.
+                if (_hovered >= 0 && _hovered < _models.Count)
+                {
+                    GetViewport().SetInputAsHandled();
+                    Shape(_design.Pieces[_hovered], button);
+                    PlantBuilder.Place(_models[_hovered], _design.Pot, _design.Pieces[_hovered]);
+                    break;
+                }
+
+                float nearer = button.ButtonIndex == MouseButton.WheelUp ? -0.15f : 0.15f;
+                _distance = Mathf.Clamp(_distance + nearer, 1.2f, 5f);
+                PlaceCamera();
                 break;
             case MouseButton.Left:
                 if (button.Pressed && OverPicture(button.Position))
@@ -244,21 +251,7 @@ public partial class GardenScreen : Control
                     return;
                 }
 
-                float sign = button.ButtonIndex == MouseButton.WheelUp ? 1f : -1f;
-
-                if (button.CtrlPressed)
-                {
-                    _held!.Scale = Mathf.Clamp(_held.Scale + (sign * ScaleStep), PlantPiece.MinScale, PlantPiece.MaxScale);
-                }
-                else if (button.ShiftPressed)
-                {
-                    _held!.Tilt = Mathf.Clamp(_held.Tilt + (sign * TiltStep), 0f, PlantPiece.MaxTiltRadians);
-                }
-                else
-                {
-                    _held!.Yaw = Mathf.Wrap(_held.Yaw + (sign * TurnStep), -Mathf.Pi, Mathf.Pi);
-                }
-
+                Shape(_held!, button);
                 FollowMouse(button.Position);
                 break;
             case MouseButton.Left:
@@ -268,6 +261,25 @@ public partial class GardenScreen : Control
                 }
 
                 break;
+        }
+    }
+
+    // The wheel on a piece: Ctrl sizes it, Shift leans it, and alone it turns it.
+    private static void Shape(PlantPiece piece, InputEventMouseButton wheel)
+    {
+        float sign = wheel.ButtonIndex == MouseButton.WheelUp ? 1f : -1f;
+
+        if (wheel.CtrlPressed)
+        {
+            piece.Scale = Mathf.Clamp(piece.Scale + (sign * ScaleStep), PlantPiece.MinScale, PlantPiece.MaxScale);
+        }
+        else if (wheel.ShiftPressed)
+        {
+            piece.Tilt = Mathf.Clamp(piece.Tilt + (sign * TiltStep), -PlantPiece.MaxTiltRadians, PlantPiece.MaxTiltRadians);
+        }
+        else
+        {
+            piece.Yaw = Mathf.Wrap(piece.Yaw + (sign * TurnStep), -Mathf.Pi, Mathf.Pi);
         }
     }
 
@@ -313,9 +325,9 @@ public partial class GardenScreen : Control
         Refresh();
     }
 
-    // The placed piece under the mouse: of the pieces whose box the mouse's ray crosses,
-    // the one whose middle is nearest the ray, so a leaf is taken by its tip as well as its
-    // base. With none, a piece whose spot on the soil is near. -1 for none.
+    // The placed piece under the mouse: the one its ray meets first, on the piece's own
+    // triangles, so a leaf is taken by its tip as well as its base and not by the air
+    // round it. With none, a piece whose spot on the soil is near. -1 for none.
     private int PieceAt(Vector2 mouse)
     {
         Vector2 local = mouse - _picture.GlobalPosition;
@@ -326,19 +338,11 @@ public partial class GardenScreen : Control
 
         for (int i = 0; i < _models.Count; i++)
         {
-            Aabb? box = Box(_models[i]);
+            float? hit = RayHit(_models[i], from, along);
 
-            if (box == null || !box.Value.IntersectsSegment(from, from + (along * RayLength)))
+            if (hit != null && hit.Value < best)
             {
-                continue;
-            }
-
-            Vector3 middle = box.Value.GetCenter();
-            float off = (middle - from).Cross(along).Length();
-
-            if (off < best)
-            {
-                best = off;
+                best = hit.Value;
                 nearest = i;
             }
         }
@@ -371,19 +375,65 @@ public partial class GardenScreen : Control
         return nearest;
     }
 
-    // The box round every mesh of a model, in the table's world.
-    private static Aabb? Box(Node3D model)
+    // How far along the ray it meets the model's surface; null when it misses. Tested in
+    // each mesh's own space, so its triangles need no moving.
+    private float? RayHit(Node3D model, Vector3 from, Vector3 along)
     {
-        Aabb? box = null;
+        float? nearest = null;
 
         foreach (Node node in model.FindChildren("*", "MeshInstance3D", true, false))
         {
             MeshInstance3D mesh = (MeshInstance3D)node;
-            Aabb part = mesh.GlobalTransform * mesh.GetAabb();
-            box = box == null ? part : box.Value.Merge(part);
+
+            if (mesh.Mesh == null)
+            {
+                continue;
+            }
+
+            Transform3D toLocal = mesh.GlobalTransform.AffineInverse();
+            Vector3 localFrom = toLocal * from;
+            Vector3 localAlong = toLocal.Basis * along;
+
+            if (!mesh.GetAabb().IntersectsSegment(localFrom, localFrom + (localAlong * RayLength)))
+            {
+                continue;
+            }
+
+            Vector3[] faces = Faces(mesh.Mesh);
+
+            for (int f = 0; f + 2 < faces.Length; f += 3)
+            {
+                Variant hit = Geometry3D.RayIntersectsTriangle(localFrom, localAlong, faces[f], faces[f + 1], faces[f + 2]);
+
+                if (hit.VariantType == Variant.Type.Nil)
+                {
+                    continue;
+                }
+
+                float distance = (mesh.GlobalTransform * hit.AsVector3()).DistanceTo(from);
+
+                if (nearest == null || distance < nearest.Value)
+                {
+                    nearest = distance;
+                }
+            }
         }
 
-        return box;
+        return nearest;
+    }
+
+    // A mesh's triangles, read once each.
+    private Vector3[] Faces(Mesh mesh)
+    {
+        Vector3[]? faces;
+
+        if (!_faces.TryGetValue(mesh, out faces))
+        {
+            faces = mesh.GetFaces();
+            _faces[mesh] = faces;
+        }
+
+        return faces;
     }
 
     private void Hover(int piece)
@@ -620,6 +670,7 @@ public partial class GardenScreen : Control
             Node3D tableNode = table.Instantiate<Node3D>();
             tableNode.Scale = Vector3.One * TableScale;
             viewport.AddChild(tableNode);
+            AddProps(viewport, tableNode);
         }
 
         _plant = new Node3D { Name = "Plant", Position = new Vector3(0f, TableTop, 0f) };
@@ -627,6 +678,52 @@ public partial class GardenScreen : Control
     }
 
     // What the table says and its buttons, floating in the bottom right.
+    // Small things along the table's back edge, so the table reads as a table and the
+    // eye has something to measure the pot against. Placeholders.
+    private static readonly string[] Props = { "watering_can_A", "sansevieria_plant_small_potted", "pots_stacked", "shovel" };
+
+    // Where each stands along the back edge, as a share of its width: in the corners,
+    // clear of the pot in the middle.
+    private static readonly float[] PropAcross = { 0.04f, 0.2f, 0.8f, 0.96f };
+    private const float PropScale = 0.55f;
+    private const float PropInset = 0.3f;
+
+    private static void AddProps(Node parent, Node3D table)
+    {
+        Aabb? top = null;
+
+        foreach (Node node in table.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            MeshInstance3D mesh = (MeshInstance3D)node;
+            Aabb part = mesh.GlobalTransform * mesh.GetAabb();
+            top = top == null ? part : top.Value.Merge(part);
+        }
+
+        if (top == null)
+        {
+            return;
+        }
+
+        float width = top.Value.Size.X - (PropInset * 2f);
+        float back = top.Value.Position.Z + PropInset;
+
+        for (int i = 0; i < Props.Length; i++)
+        {
+            Node3D? prop = PlantBuilder.Model(Props[i]);
+
+            if (prop == null)
+            {
+                continue;
+            }
+
+            float across = top.Value.Position.X + PropInset + (width * PropAcross[i]);
+            prop.Position = new Vector3(across, top.Value.End.Y, back);
+            prop.Scale = Vector3.One * PropScale;
+            prop.RotationDegrees = new Vector3(0f, (i * 47f) % 90f - 45f, 0f);
+            parent.AddChild(prop);
+        }
+    }
+
     private void BuildPanel()
     {
         PanelContainer panel = new PanelContainer { Name = "Panel", CustomMinimumSize = new Vector2(300, 0) };
@@ -860,16 +957,41 @@ public partial class GardenScreen : Control
         }
 
         help.AddChild(margin);
-        HBoxContainer row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-        row.AddThemeConstantOverride("separation", 12);
-        margin.AddChild(row);
-        row.AddChild(new MouseSketch());
+        VBoxContainer rows = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        rows.AddThemeConstantOverride("separation", 8);
+        margin.AddChild(rows);
+
+        // The mouse, and a line for each of its parts.
+        HBoxContainer mouse = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        mouse.AddThemeConstantOverride("separation", 12);
+        rows.AddChild(mouse);
+        mouse.AddChild(new MouseSketch());
         VBoxContainer lines = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center };
-        row.AddChild(lines);
-        lines.AddChild(HelpLine("Left: press a piece to put it in the pot; drag it to move it.", MouseSketch.LeftColor));
-        lines.AddChild(HelpLine("Wheel, holding a piece: turn it. Shift leans it, Ctrl sizes it.", MouseSketch.WheelColor));
-        lines.AddChild(HelpLine("Wheel, hand empty: closer or farther.", MouseSketch.WheelColor));
-        lines.AddChild(HelpLine("Right: drag to walk round the table.", MouseSketch.RightColor));
+        mouse.AddChild(lines);
+        lines.AddChild(HelpLine("Left click: pick up a piece, drag to move it", MouseSketch.LeftColor));
+        lines.AddChild(HelpLine("Right click: drag to walk round the table", MouseSketch.RightColor));
+        lines.AddChild(HelpLine("Wheel: turn the piece; off the plant, zoom", MouseSketch.WheelColor));
+
+        // The keys that change what the wheel does to a held piece.
+        rows.AddChild(KeyLine("res://game/ui/icons/keyboard_ctrl.svg", "+ wheel: make the piece bigger or smaller"));
+        rows.AddChild(KeyLine("res://game/ui/icons/keyboard_shift.svg", "+ wheel: lean the piece"));
+    }
+
+    private static HBoxContainer KeyLine(string key, string text)
+    {
+        HBoxContainer row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        row.AddThemeConstantOverride("separation", 8);
+        row.AddChild(new TextureRect
+        {
+            Texture = GD.Load<Texture2D>(key),
+            // At its own size: scaled, the key's small letters blur.
+            StretchMode = TextureRect.StretchModeEnum.KeepCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+        });
+        Label line = HelpLine(text, MouseSketch.WheelColor);
+        line.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        row.AddChild(line);
+        return row;
     }
 
     private static Label HelpLine(string text, Color color)

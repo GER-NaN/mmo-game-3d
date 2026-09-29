@@ -11,3 +11,5 @@ white (`currentColor` replaced by `#ffffff`), so a button's icon colours tint it
 | chevron-down.svg | Lucide 1.47.0 | chevron-down | ISC, `LICENSE-lucide.txt` |
 | chevron-left.svg | Lucide 1.47.0 | chevron-left | ISC, `LICENSE-lucide.txt` |
 | chevron-right.svg | Lucide 1.47.0 | chevron-right | ISC, `LICENSE-lucide.txt` |
+| keyboard_shift.svg | Kenney Input Prompts | Keyboard & Mouse/Vector/keyboard_shift | CC0 |
+| keyboard_ctrl.svg | Kenney Input Prompts | Keyboard & Mouse/Vector/keyboard_ctrl | CC0 |
