@@ -34,9 +34,10 @@ public class EnterZoneStep : BotStep
         _walkIn = walkIn;
     }
 
+    // Waiting out a ride is not walking: the stuck watcher leaves it be.
     public override BotIntent Intent
     {
-        get { return BotIntent.Walking; }
+        get { return _riding ? BotIntent.Idle : BotIntent.Walking; }
     }
 
     public override void Start(BotBody body)
@@ -124,12 +125,31 @@ public class EnterZoneStep : BotStep
 
     // A spot before the door on the side the player comes from: the path goes there, and
     // then the walk goes straight on into the door, whose trigger is a block to the path.
+    // A door in a nook (the subway steps) is open on one side only: a side with a wall
+    // between it and the door is not taken.
     private static Vector3 InFront(Door door, Vector3 from)
     {
         Vector3 normal = door.GlobalBasis.Z.Normalized() * FrontDistance;
         Vector3 one = door.GlobalPosition + normal;
         Vector3 other = door.GlobalPosition - normal;
+        bool oneClear = Clear(door, one);
+        bool otherClear = Clear(door, other);
+
+        if (oneClear != otherClear)
+        {
+            return oneClear ? one : other;
+        }
+
         return one.DistanceTo(from) <= other.DistanceTo(from) ? one : other;
+    }
+
+    // Nothing solid between a spot and the door, at knee height: the subway's walls are a
+    // metre high.
+    private static bool Clear(Door door, Vector3 spot)
+    {
+        Vector3 up = Vector3.Up * 0.5f;
+        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(spot + up, door.GlobalPosition + up, PhysicsLayers.World);
+        return door.GetWorld3D().DirectSpaceState.IntersectRay(query).Count == 0;
     }
 
     public override void End(BotBody body)
