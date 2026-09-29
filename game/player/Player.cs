@@ -209,14 +209,6 @@ public partial class Player : CharacterBody3D
         get { return _sentDirection != Vector2.Zero; }
     }
 
-    // False in a load-test process: dozens of clients there would each animate every body
-    // they see, thousands of skeletons, and nobody looks. Process-wide, set before any
-    // body spawns.
-    public static bool DrawModels { get; set; } = true;
-
-    // Load-test bots walk from this instead of the keyboard; null for a person.
-    public IPlayerInput? InputSource { get; set; }
-
     // The node is named after the peer id of the client that owns it.
     public long OwnerPeerId
     {
@@ -250,11 +242,8 @@ public partial class Player : CharacterBody3D
         _recording = true;
         Record(NetPosition);
 
-        if (DrawModels)
-        {
-            _model = new CharacterModel { Name = "Model", Appearance = Look };
-            AddChild(_model);
-        }
+        _model = new CharacterModel { Name = "Model", Appearance = Look };
+        AddChild(_model);
 
         if (IsOwnedHere)
         {
@@ -513,8 +502,7 @@ public partial class Player : CharacterBody3D
         }
     }
 
-    // The session's Network node, under this client's Main. Found by walking up, since in
-    // a load test many Mains share the tree.
+    // The session's Network node, under this client's Main, found by walking up.
     private Network? SessionNetwork()
     {
         if (_network != null)
@@ -533,24 +521,16 @@ public partial class Player : CharacterBody3D
         return _network;
     }
 
-    // Reads the keys (or the input source), turns the heading, and sends the walk on.
+    // Reads the keys, turns the heading, and sends the walk on.
     // While a text field or a menu has focus, or a screen covers the view (the terminal,
     // the potting table), the keys belong to it, not to walking or turning.
     private void ReadInput(double delta, out Vector2 walk, out bool jump)
     {
-        bool keysFree = InputSource == null && GetViewport().GuiGetFocusOwner() == null && GetTree().GetNodeCountInGroup(ChaseCamera.ScreenGroup) == 0;
+        bool keysFree = GetViewport().GuiGetFocusOwner() == null && GetTree().GetNodeCountInGroup(ChaseCamera.ScreenGroup) == 0;
         float turn = keysFree ? Input.GetAxis("turn_right", "turn_left") : 0f;
         float forward = keysFree ? Input.GetAxis("move_back", "move_forward") : 0f;
         float strafe = keysFree ? Input.GetAxis("strafe_left", "strafe_right") : 0f;
         jump = keysFree && Input.IsActionJustPressed("jump");
-
-        if (InputSource != null)
-        {
-            turn = InputSource.Turn;
-            forward = InputSource.Forward;
-            strafe = InputSource.Strafe;
-            jump = InputSource.TakeJump();
-        }
 
         Heading = Walking.Turn(Heading, turn, (float)delta);
 
@@ -695,12 +675,21 @@ public partial class Player : CharacterBody3D
             return;
         }
 
-        string against = "nothing";
+        // The first contact that is not the floor under the feet: that one holds it.
+        string against = "nothing but the floor";
 
-        if (GetSlideCollisionCount() > 0)
+        for (int i = 0; i < GetSlideCollisionCount(); i++)
         {
-            Node? collider = GetSlideCollision(0).GetCollider() as Node;
+            KinematicCollision3D contact = GetSlideCollision(i);
+
+            if (contact.GetNormal().Dot(UpDirection) > 0.7f)
+            {
+                continue;
+            }
+
+            Node? collider = contact.GetCollider() as Node;
             against = collider == null ? "something" : collider.GetPath().ToString();
+            break;
         }
 
         GD.Print(DisplayName + " is asked to walk and has not moved for " + HeldReportAfter + " s: online " + IsOnline + ", gesture \"" + GestureId + "\", on the floor "

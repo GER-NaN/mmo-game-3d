@@ -1,13 +1,33 @@
-# Closes the bot clients that scripts/bots-up.ps1 started. The server saves each bot
-# as it disconnects. Closing a C# Godot process from outside prints "Fatal error.
-# Internal CLR error" in its console: that is the close, not a bug.
-$bots = Get-CimInstance Win32_Process |
-    Where-Object { $_.Name -like "Godot_*" -and $_.CommandLine -like "*--bot*" -and $_.CommandLine -like "*--profile soak*" }
+# Stops a bot run early: leaves a "stop" file in its folder under bot-runs/, and the
+# Overseer (game/bots/overseer) asks each bot to quit cleanly, then writes the run's
+# report as usual. The newest run unless one is named (a soak, while a shorter run was
+# started beside it).
+#
+#   .\scripts\bots-stop.ps1
+#   .\scripts\bots-stop.ps1 -Run 20260929-011607
 
-foreach ($bot in $bots) {
-    Stop-Process -Id $bot.ProcessId -Force
+param(
+    [string]$Run = ""
+)
+
+$root = Split-Path $PSScriptRoot -Parent
+$runs = Join-Path $root "bot-runs"
+
+if (-not (Test-Path $runs)) {
+    Write-Host "No bot runs."
+    exit 0
 }
 
-# Each bot is two processes, the console and the game.
-$profiles = @($bots | ForEach-Object { if ($_.CommandLine -match '--profile (soak\d+)') { $matches[1] } } | Sort-Object -Unique)
-Write-Host ($profiles.Count.ToString() + " bots stopped.")
+if ($Run -ne "") {
+    $folder = Get-Item (Join-Path $runs $Run) -ErrorAction SilentlyContinue
+} else {
+    $folder = Get-ChildItem $runs -Directory | Sort-Object Name | Select-Object -Last 1
+}
+
+if ($null -eq $folder) {
+    Write-Host "No bot run $Run."
+    exit 1
+}
+
+Set-Content -Path (Join-Path $folder.FullName "stop") -Value "stop"
+Write-Host "Asked the bots in $($folder.Name) to stop."

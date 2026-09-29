@@ -16,6 +16,9 @@ public class Profile
 
     private const string LicenseFile = "license.txt";
 
+    // A fresh profile's key, made once, so leaving and playing again is the same player.
+    private readonly Guid _freshKey = Guid.NewGuid();
+
     public Profile(string name)
     {
         Name = name;
@@ -34,7 +37,7 @@ public class Profile
     {
         if (IsFresh)
         {
-            return Guid.NewGuid();
+            return _freshKey;
         }
 
         string folder = ProjectSettings.GlobalizePath("user://profiles/" + Name);

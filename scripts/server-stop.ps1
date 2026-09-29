@@ -15,8 +15,8 @@ param(
 $userData = Join-Path $env:APPDATA "Godot\app_userdata\mmo-game-3d"
 $stopFile = Join-Path $userData "server-stop-$Port"
 
-# The servers on this port only: another one (a bot run beside a test server) is not the
-# one being stopped. A server without --port is on 7070.
+# The servers on this port only: another one on another port is not the one being
+# stopped. A server without --port is on 7070.
 function Find-Servers {
     Get-CimInstance Win32_Process |
         Where-Object { $_.Name -like "Godot_*" -and $_.CommandLine -like "*--server*" } |

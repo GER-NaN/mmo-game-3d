@@ -40,12 +40,8 @@ public partial class Hud : Control
         GetNode<Label>("%Identity").Text = _identity + (_clock.Length > 0 ? "   " + _clock : "") + (_dollars.Length > 0 ? "   " + _dollars : "");
     }
 
-    // Bots read the prompt by this group, as a person reads the screen.
-    public const string PromptGroup = "interact_prompt";
-
     public override void _Ready()
     {
-        GetNode<Label>("%Prompt").AddToGroup(PromptGroup);
         AddChild(new Compass { Name = "Compass" });
     }
 
@@ -60,7 +56,6 @@ public partial class Hud : Control
         label.Text = prompt.Length > 0 ? "[" + UseKey + "]  " + prompt : "";
     }
 
-    // Bots find the action bar's buttons by this group prefix and the action name.
     public const string ActionGroupPrefix = "hud_action_";
 
     // The action bar, bottom right: the panels a key opens, also by mouse. Each button is

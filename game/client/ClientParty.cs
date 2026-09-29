@@ -26,6 +26,7 @@ public partial class ClientParty : Node
     private PartyNetwork _network = null!;
     private CanvasLayer _ui = null!;
     private Node _world = null!;
+    private Timeline _timeline = null!;
     private TargetFrame? _frame;
     private InvitePrompt? _prompt;
     private PartyPanel? _panel;
@@ -38,11 +39,12 @@ public partial class ClientParty : Node
     public event System.Action<Player>? IgnoreRequested;
     public event System.Action<Player>? MessageRequested;
 
-    public void Start(PartyNetwork network, CanvasLayer ui, Node world)
+    public void Start(PartyNetwork network, CanvasLayer ui, Node world, Timeline timeline)
     {
         _network = network;
         _ui = ui;
         _world = world;
+        _timeline = timeline;
 
         TargetPicker picker = new TargetPicker { Name = "TargetPicker" };
         AddChild(picker);
@@ -62,7 +64,7 @@ public partial class ClientParty : Node
         _network.InviteReceived -= OnInviteReceived;
         _network.PartyReceived -= OnPartyReceived;
         _frame?.QueueFree();
-        _prompt?.QueueFree();
+        ClosePrompt();
         _panel?.QueueFree();
     }
 
@@ -145,7 +147,7 @@ public partial class ClientParty : Node
 
     private void OnInviteReceived(string inviterId, string inviterName)
     {
-        _prompt?.QueueFree();
+        ClosePrompt();
         _prompt = PromptScene.Instantiate<InvitePrompt>();
         _ui.AddChild(_prompt);
         _prompt.ShowInvite(inviterName);
@@ -156,8 +158,28 @@ public partial class ClientParty : Node
         };
     }
 
+    // The prompt frees itself when its time runs out, so the one held may be gone.
+    private void ClosePrompt()
+    {
+        if (_prompt != null && IsInstanceValid(_prompt))
+        {
+            _prompt.QueueFree();
+        }
+
+        _prompt = null;
+    }
+
     private void OnPartyReceived(string leaderId, string[] ids, string[] names, int[] online)
     {
+        if (_memberIds.Count == 0 && ids.Length > 0)
+        {
+            _timeline.AddParty(TimelineKind.PartyJoined);
+        }
+        else if (_memberIds.Count > 0 && ids.Length == 0)
+        {
+            _timeline.AddParty(TimelineKind.PartyLeft);
+        }
+
         _memberIds.Clear();
 
         foreach (string id in ids)

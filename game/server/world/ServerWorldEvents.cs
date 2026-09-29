@@ -117,19 +117,6 @@ public class ServerWorldEvents
         }
     }
 
-    // Dev scenarios: the definition's next event at once, with fewer drones.
-    public void StartSoon(string definitionId, int count)
-    {
-        foreach (Scheduled scheduled in _scheduled)
-        {
-            if (scheduled.Definition.Id == definitionId && scheduled.Run == null)
-            {
-                scheduled.Count = count;
-                scheduled.Schedule.StartNow(_clock);
-            }
-        }
-    }
-
     // The Notifications app: the running events, the ones ended, the player's points.
     public void Send(Session session)
     {
@@ -181,8 +168,7 @@ public class ServerWorldEvents
     private void Start(Scheduled scheduled)
     {
         WorldEventDefinition definition = scheduled.Definition;
-        int count = scheduled.Count > 0 ? scheduled.Count : definition.Count;
-        scheduled.Count = 0;
+        int count = definition.Count;
         scheduled.Schedule.Started();
         scheduled.Run = new WorldEventRun(definition, _clock);
         RunId id = new RunId();
@@ -311,8 +297,5 @@ public class ServerWorldEvents
         public WorldEventRun? Run { get; set; }
 
         public RunId? Id { get; set; }
-
-        // A drone count for the next run only (a dev scenario's); 0 is the definition's.
-        public int Count { get; set; }
     }
 }

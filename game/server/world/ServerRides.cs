@@ -48,16 +48,6 @@ public class ServerRides
     // False while the AI's rootkit is in the taxis; set by ServerGame.
     public Func<bool> TaxisClean { get; set; } = () => true;
 
-    // Dev scenarios: a ride these players call is cut short, so a test sees its end. Long
-    // enough for .NET to collect the town's scripts meanwhile, as a real ride does.
-    private const float ShortRideSeconds = 30f;
-    private readonly HashSet<long> _shortRides = new HashSet<long>();
-
-    public void UseShortRides(Session session)
-    {
-        _shortRides.Add(session.PeerId);
-    }
-
     public void Call(Session caller, TaxiStand stand)
     {
         if (!TaxisClean())
@@ -79,7 +69,7 @@ public class ServerRides
         _gate.Watch(car.Synchronizer, ZoneIds.Town);
         town.GetNode<Node3D>("Vehicles").AddChild(car, true);
 
-        float length = _shortRides.Contains(caller.PeerId) ? Mathf.Min(car.RouteLength, ShortRideSeconds * RoboTaxi.Speed) : car.RouteLength;
+        float length = car.RouteLength;
         Ride ride = new Ride(cabinId, cabin, car, state, length);
         state.SecondsLeft = ride.Length / RoboTaxi.Speed;
         _rides.Add(ride);

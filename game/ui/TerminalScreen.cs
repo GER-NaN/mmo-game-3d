@@ -18,9 +18,6 @@ using MmoGame3d.Rules.Town;
 /// </summary>
 public partial class TerminalScreen : Control
 {
-    // Bots find the Go Offline button by this group, then click it like a person.
-    public const string GoOfflineGroup = "terminal_go_offline";
-
     private static readonly Color Text = new Color(0.55f, 1f, 0.7f);
     private static readonly Color Dim = new Color(0.55f, 1f, 0.7f, 0.5f);
     private static readonly Color Locked = new Color(1f, 0.8f, 0.4f);
@@ -31,9 +28,6 @@ public partial class TerminalScreen : Control
     private int[] _rosterOnline = Array.Empty<int>();
     private string _openApp = TerminalApps.Chat;
     private RichTextLabel? _chatView;
-
-    // Bots find the Take the job button by this group, then click it like a person.
-    public const string TakeJobGroup = "terminal_take_job";
 
     private bool _lightsWorking;
     private bool _jobTaken;
@@ -53,12 +47,6 @@ public partial class TerminalScreen : Control
     public event Action? DefenseStartPressed;
     public event Action<int[]>? DefenseFinished;
 
-    // Bots find Agent Defense's start button by this group.
-    public const string DefenseStartGroup = "terminal_defense_start";
-
-    // Bots and scenarios read the Notifications rows, as shown, by this group.
-    public const string EventRowGroup = "terminal_event_row";
-    public const string EventRowPastMeta = "past";
     public event Action? CrackStartPressed;
 
     // Whois: search text, open a page by player id, your own page, props, your own
@@ -71,12 +59,6 @@ public partial class TerminalScreen : Control
     public event Action<string>? WhoisFriendPressed;
     public event Action<string, string>? WhoisMessagePressed;
 
-    // Bots find Whois's parts by these groups.
-    public const string WhoisMineGroup = "whois_mine";
-    public const string WhoisPropsGroup = "whois_props";
-    public const string WhoisPlanGroup = "whois_plan";
-    public const string WhoisShowSkillsGroup = "whois_show_skills";
-
     // What Whois shows: the last results, or a page (null for none).
     private string[] _whoisIds = Array.Empty<string>();
     private string[] _whoisNames = Array.Empty<string>();
@@ -85,34 +67,6 @@ public partial class TerminalScreen : Control
     private int[] _whoisOnline = Array.Empty<int>();
     private Godot.Collections.Dictionary? _whoisPage;
     public event Action<string>? CrackGuessSubmitted;
-
-    // Bots find the code cracker's parts by these groups.
-    public const string CrackStartGroup = "terminal_crack_start";
-    public const string CrackInputGroup = "terminal_crack_input";
-
-    // Each app's button is in the group AppGroupPrefix + its id, for bots.
-    public const string AppGroupPrefix = "terminal_app_";
-
-    // What the screen shows of the code cracker, read by bots as a person reads it.
-    public string[]? CrackGuesses
-    {
-        get { return _crackGuesses; }
-    }
-
-    public int[] CrackExact
-    {
-        get { return _crackExact; }
-    }
-
-    public int[] CrackPartial
-    {
-        get { return _crackPartial; }
-    }
-
-    public int CrackStatus
-    {
-        get { return _crackStatus; }
-    }
 
     // The code cracker as the server last told it; null before the first code.
     private string[]? _crackGuesses;
@@ -138,7 +92,6 @@ public partial class TerminalScreen : Control
         Theme = new Theme { DefaultFont = font, DefaultFontSize = 17 };
 
         Button goOffline = GetNode<Button>("%GoOffline");
-        goOffline.AddToGroup(GoOfflineGroup);
         goOffline.Pressed += () => GoOfflinePressed?.Invoke();
     }
 
@@ -173,7 +126,6 @@ public partial class TerminalScreen : Control
             button.AddThemeColorOverride("font_color", app.State == AppState.Locked ? Locked : Text);
             TerminalApp chosen = app;
             button.Pressed += () => ShowApp(chosen);
-            button.AddToGroup(AppGroupPrefix + app.Id);
             apps.AddChild(button);
         }
 
@@ -483,8 +435,8 @@ public partial class TerminalScreen : Control
             return;
         }
 
-        Button take = new Button { Text = "Take the job", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
-        take.AddToGroup(TakeJobGroup);
+        // Named for its job, so it can be found by the job it takes (bots.md T2).
+        Button take = new Button { Name = "Take_" + id, Text = "Take the job", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
         take.Pressed += () => TakeJobPressed?.Invoke(id);
         content.AddChild(take);
     }
@@ -497,7 +449,6 @@ public partial class TerminalScreen : Control
         text.TextSubmitted += value => WhoisSearchSubmitted?.Invoke(value);
         search.AddChild(text);
         Button mine = new Button { Text = "My page", FocusMode = FocusModeEnum.None };
-        mine.AddToGroup(WhoisMineGroup);
         mine.Pressed += () => WhoisMinePressed?.Invoke();
         search.AddChild(mine);
         content.AddChild(search);
@@ -571,8 +522,6 @@ public partial class TerminalScreen : Control
             LineEdit planEdit = new LineEdit { Text = plan, PlaceholderText = "e.g. \"Fixing the street lights. Need RAM sticks.\" Enter saves.", MaxLength = WhoisSettings.MaxPlanLength };
             CheckBox showSkills = new CheckBox { Text = "Show Skills", ButtonPressed = (bool)page["showSkills"], FocusMode = FocusModeEnum.None };
             CheckBox showLocation = new CheckBox { Text = "Show Location", ButtonPressed = (bool)page["showLocation"], FocusMode = FocusModeEnum.None };
-            planEdit.AddToGroup(WhoisPlanGroup);
-            showSkills.AddToGroup(WhoisShowSkillsGroup);
             planEdit.TextSubmitted += value => WhoisEditSubmitted?.Invoke(value, showSkills.ButtonPressed, showLocation.ButtonPressed);
             showSkills.Toggled += on => WhoisEditSubmitted?.Invoke(planEdit.Text, on, showLocation.ButtonPressed);
             showLocation.Toggled += on => WhoisEditSubmitted?.Invoke(planEdit.Text, showSkills.ButtonPressed, on);
@@ -624,7 +573,6 @@ public partial class TerminalScreen : Control
 
         HBoxContainer actions = new HBoxContainer();
         Button props = new Button { Text = (bool)page["gave"] ? "Take back props" : "Give props", FocusMode = FocusModeEnum.None };
-        props.AddToGroup(WhoisPropsGroup);
         props.Pressed += () => WhoisPropsPressed?.Invoke(id);
         actions.AddChild(props);
 
@@ -664,7 +612,6 @@ public partial class TerminalScreen : Control
         {
             AddLine(content, _crackLeft + " guesses left", Dim, 15);
             LineEdit input = new LineEdit { PlaceholderText = "Guess, then Enter", MaxLength = 4 };
-            input.AddToGroup(CrackInputGroup);
             Label problem = AddLine(content, "", Locked, 15);
             input.TextSubmitted += text =>
             {
@@ -691,7 +638,6 @@ public partial class TerminalScreen : Control
         }
 
         Button start = new Button { Text = "New code", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
-        start.AddToGroup(CrackStartGroup);
         start.Pressed += () => CrackStartPressed?.Invoke();
         content.AddChild(start);
         ShowCrackBoard(content);
@@ -766,7 +712,6 @@ public partial class TerminalScreen : Control
         HBoxContainer bottom = new HBoxContainer();
         bottom.AddThemeConstantOverride("separation", 16);
         Button start = new Button { Text = "Start a run", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
-        start.AddToGroup(DefenseStartGroup);
         start.Pressed += () =>
         {
             if (_defense == null || !_defense.Playing)
@@ -836,16 +781,13 @@ public partial class TerminalScreen : Control
 
         foreach (string row in _eventsNow)
         {
-            AddLine(content, row, Text, 16).AddToGroup(EventRowGroup);
         }
 
         AddLine(content, "Past", Dim, 15);
 
         foreach (string row in _eventsPast)
         {
-            Label label = AddLine(content, row, Dim, 16);
-            label.AddToGroup(EventRowGroup);
-            label.SetMeta(EventRowPastMeta, true);
+            AddLine(content, row, Dim, 16);
         }
     }
 

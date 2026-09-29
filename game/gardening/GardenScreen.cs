@@ -17,10 +17,7 @@ using MmoGame3d.Ui;
 /// </summary>
 public partial class GardenScreen : Control
 {
-    // Bots find the parts by these groups.
     public const string PieceGroup = "garden_piece";
-    public const string CompleteGroup = "garden_complete";
-    public const string FinishGroup = "garden_finish";
 
     private const float TableScale = 1.6f;
     private const float TableTop = 0.8f * TableScale;
@@ -88,15 +85,6 @@ public partial class GardenScreen : Control
             title + " is house plant #" + plantId + ", created by you, and kept on record for good.\n\n"
             + "It will be sold and placed somewhere in the world. For now it stands outside the greenhouse, where anyone can inspect it.\n\n"
             + "For your work: a " + reward + ", in your bag.";
-    }
-
-    // Where on the screen a spot of the soil is (in soil radii), for bots that plant by
-    // dragging like a person.
-    public Vector2 ScreenPointOnSoil(float x, float z)
-    {
-        float radius = PlantParts.SoilRadius(_design.Pot);
-        Vector3 spot = new Vector3(x * radius, TableTop + PlantParts.SoilHeight(_design.Pot), z * radius);
-        return _picture.GlobalPosition + _camera.UnprojectPosition(spot);
     }
 
     public bool IsDone
@@ -532,7 +520,6 @@ public partial class GardenScreen : Control
         clear.Pressed += Clear;
         Button complete = new Button { Text = "Complete", FocusMode = FocusModeEnum.None };
         _complete = complete;
-        complete.AddToGroup(CompleteGroup);
         complete.Pressed += () =>
         {
             _naming.Visible = true;
@@ -551,7 +538,6 @@ public partial class GardenScreen : Control
         namingRows.AddChild(name);
         HBoxContainer namingButtons = new HBoxContainer();
         Button finish = new Button { Text = "Finish the plant" };
-        finish.AddToGroup(FinishGroup);
         finish.Pressed += () => CompletePressed?.Invoke(_design.Format(), name.Text.Trim());
         name.TextSubmitted += text => CompletePressed?.Invoke(_design.Format(), text.Trim());
         Button back = new Button { Text = "Back" };

@@ -13,9 +13,6 @@ using MmoGame3d.Rules.Shops;
 /// </summary>
 public partial class ShopPanel : PanelContainer
 {
-    // Bots find the Buy buttons by this group, then click them like a person.
-    public const string BuyGroup = "shop_buy";
-
     private static readonly Color TooDear = new Color(1f, 0.55f, 0.5f);
 
     private string _shopId = "";
@@ -41,8 +38,10 @@ public partial class ShopPanel : PanelContainer
         GetNode<Label>("%Wallet").Text = "You have $" + dollars;
         VBoxContainer rows = GetNode<VBoxContainer>("%Offers");
 
+        // Out of the list at once, so the new rows can take the old rows' names.
         foreach (Node old in rows.GetChildren())
         {
+            rows.RemoveChild(old);
             old.QueueFree();
         }
 
@@ -51,7 +50,8 @@ public partial class ShopPanel : PanelContainer
         for (int i = 0; i < offers.Count; i++)
         {
             ShopOffer offer = offers[i];
-            HBoxContainer row = new HBoxContainer();
+            // Named for its offer, so the row can be found by what it sells (bots.md T2).
+            HBoxContainer row = new HBoxContainer { Name = offer.Type + "_" + offer.Tier };
 
             Label name = new Label { Text = ItemCatalog.Describe(offer.Type, offer.Tier), SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = ItemCatalog.Get(offer.Type).Description, MouseFilter = MouseFilterEnum.Pass };
             Label price = new Label { Text = "$" + offer.Price };
@@ -61,8 +61,7 @@ public partial class ShopPanel : PanelContainer
                 price.AddThemeColorOverride("font_color", TooDear);
             }
 
-            Button buy = new Button { Text = "Buy", FocusMode = FocusModeEnum.None };
-            buy.AddToGroup(BuyGroup);
+            Button buy = new Button { Name = "Buy", Text = "Buy", FocusMode = FocusModeEnum.None };
             int index = i;
             buy.Pressed += () => BuyPressed?.Invoke(index);
 

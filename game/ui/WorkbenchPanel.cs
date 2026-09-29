@@ -9,10 +9,6 @@ using MmoGame3d.Rules.Items;
 // out, then choose which goes in: a new one from its pack, or one of the loose ones.
 public partial class WorkbenchPanel : PanelContainer
 {
-    // Bots find the buttons by these groups, then click them like a person.
-    public const string RemoveGroup = "workbench_remove";
-    public const string InsertGroup = "workbench_insert";
-
     public event Action<Guid>? RemovePressed;
     // The phone, and the battery: Belongings.NewBattery or a loose battery's id.
     public event Action<Guid, string>? InsertPressed;
@@ -74,7 +70,6 @@ public partial class WorkbenchPanel : PanelContainer
             if (battery != null)
             {
                 Button remove = new Button { Text = "Take battery out", FocusMode = FocusModeEnum.None };
-                remove.AddToGroup(RemoveGroup);
                 remove.Pressed += () => RemovePressed?.Invoke(id);
                 row.AddChild(remove);
                 phones.AddChild(row);
@@ -122,7 +117,6 @@ public partial class WorkbenchPanel : PanelContainer
     private Button InsertButton(Guid phone, string battery, string text)
     {
         Button button = new Button { Text = text, FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkEnd };
-        button.AddToGroup(InsertGroup);
         button.Pressed += () => InsertPressed?.Invoke(phone, battery);
         return button;
     }

@@ -35,10 +35,4 @@ public sealed class WorldEventSchedule
         _running = false;
         _nextAt = now + _everySeconds;
     }
-
-    // Brought forward, for a dev scenario that wants one at once.
-    public void StartNow(double now)
-    {
-        _nextAt = now;
-    }
 }

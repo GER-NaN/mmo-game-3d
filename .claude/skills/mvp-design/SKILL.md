@@ -92,8 +92,7 @@ Every session covers these, in about this order, each only as deep as the MVP ne
    - Server and client: what each owns, the messages.
    - Persistence: tables or fields, and what is only in memory.
    - Art: what is needed, what is a placeholder.
-   - Tests: the rules under xUnit, a dev scenario for the feature, and the bot
-     activity and judge that play it (`docs/engineering/bot-testing.md`).
+   - Tests: the rules under xUnit.
    - Frame: the seams left for the fuller version.
    Then "Beyond the MVP": what the fuller version adds, named only.
 7. **Close.** "Consequences": which existing decisions or docs this changes. Propose,
@@ -170,7 +169,7 @@ Art:
 
 Tests:
 
-- <rule test, dev scenario, bot activity and judge>
+- <rule test>
 
 Frame:
 

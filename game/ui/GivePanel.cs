@@ -9,9 +9,6 @@ using MmoGame3d.Rules.Items;
 // server checks you are close enough and have it; this only asks.
 public partial class GivePanel : PanelContainer
 {
-    // Bots find the Give buttons by this group, then click them like a person.
-    public const string GiveGroup = "give_button";
-
     // (type, tier, quantity).
     public event Action<ItemType, ItemTier, int>? GivePressed;
     public event Action<int>? GiveDollarsPressed;
@@ -45,7 +42,6 @@ public partial class GivePanel : PanelContainer
             int all = stack.Quantity;
 
             Button one = new Button { Text = "Give 1", FocusMode = FocusModeEnum.None };
-            one.AddToGroup(GiveGroup);
             one.Pressed += () => GivePressed?.Invoke(type, tier, 1);
             row.AddChild(one);
 

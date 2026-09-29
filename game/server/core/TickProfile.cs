@@ -7,7 +7,7 @@ using System.Globalization;
 using System.Text;
 
 /// <summary>
-/// Where the server's frame goes, for the stats line in load tests: each part of the
+/// Where the server's frame goes, for the stats line (--stats-every): each part of the
 /// tick is timed between laps (no allocation per frame), summed and its worst frame kept
 /// until the next report; and the worst whole frame, from the gap between frames.
 /// </summary>

@@ -11,11 +11,6 @@ using MmoGame3d.Rules.Skills;
 // Buttons never take focus, so walking goes on after a click.
 public partial class CollegePanel : PanelContainer
 {
-    // Bots find the buttons by these groups.
-    public const string ClassGroup = "college_class";
-    public const string EnrollGroup = "college_enroll";
-    public const string RankUpGroup = "college_rank_up";
-
     private static readonly Color Dim = new Color(1f, 1f, 1f, 0.6f);
     private static readonly Color Short = new Color(1f, 0.6f, 0.45f);
     private static readonly Color Met = new Color(0.6f, 1f, 0.7f);
@@ -101,7 +96,7 @@ public partial class CollegePanel : PanelContainer
             rows.AddChild(Wrapped(paragraph, Colors.White));
         }
 
-        Button done = ActionButton("Finish the Class", ClassGroup);
+        Button done = ActionButton("Finish the Class");
         done.Pressed += () => ClassPressed?.Invoke();
         rows.AddChild(done);
     }
@@ -141,7 +136,7 @@ public partial class CollegePanel : PanelContainer
 
             bool open = PlayerCareer.Missing(career, _skills).Count == 0;
             string text = leaving.Length > 0 ? "Change to " + career.Name + " (you lose your " + leaving + " progress)" : "Enroll as " + career.Name;
-            Button enroll = ActionButton(text, EnrollGroup);
+            Button enroll = ActionButton(text);
             enroll.Disabled = !open;
             int id = (int)career.Id;
             enroll.Pressed += () => EnrollPressed?.Invoke(id);
@@ -170,7 +165,7 @@ public partial class CollegePanel : PanelContainer
         CareerRank next = _career.Rank + 1;
         long need = CareerCatalog.XpForRank(next);
         rows.AddChild(new Label { Text = "Career experience  " + _career.Xp + " / " + need + "  for " + CareerCatalog.RankName(next), Modulate = _career.CanRankUp() ? Met : Dim });
-        Button rankUp = ActionButton("Ask for " + CareerCatalog.RankName(next), RankUpGroup);
+        Button rankUp = ActionButton("Ask for " + CareerCatalog.RankName(next));
         rankUp.Disabled = !_career.CanRankUp();
         rankUp.Pressed += () => RankUpPressed?.Invoke();
         rows.AddChild(rankUp);
@@ -188,10 +183,8 @@ public partial class CollegePanel : PanelContainer
         return new Label { Text = text, Modulate = color, AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(440, 0) };
     }
 
-    private static Button ActionButton(string text, string group)
+    private static Button ActionButton(string text)
     {
-        Button button = new Button { Text = text, FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
-        button.AddToGroup(group);
-        return button;
+        return new Button { Text = text, FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
     }
 }

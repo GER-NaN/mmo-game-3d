@@ -9,10 +9,6 @@ using Godot;
 /// </summary>
 public partial class VisitorBookPanel : PanelContainer
 {
-    // Bots find the page buttons by these groups.
-    public const string PreviousGroup = "book_previous";
-    public const string NextGroup = "book_next";
-
     public event Action<int>? PagePressed;
     public event Action? Closed;
 
@@ -28,8 +24,6 @@ public partial class VisitorBookPanel : PanelContainer
         _page = GetNode<Label>("%Page");
         _previous = GetNode<Button>("%Previous");
         _next = GetNode<Button>("%Next");
-        _previous.AddToGroup(PreviousGroup);
-        _next.AddToGroup(NextGroup);
         _previous.Pressed += () => PagePressed?.Invoke(_shown - 1);
         _next.Pressed += () => PagePressed?.Invoke(_shown + 1);
         GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();

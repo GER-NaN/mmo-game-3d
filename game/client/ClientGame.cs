@@ -108,51 +108,32 @@ public partial class ClientGame : Node
     private Players.Player? _giveTo;
     private Vector3 _panelOpenedAt;
     private List<ItemInstance> _instances = new List<ItemInstance>();
+
+    // The newest notices, for ClientView, and how many have come in all.
+    private const int KeptNotices = 20;
+    private readonly List<string> _notices = new List<string>();
+    private int _noticeCount;
     private ClientIntents? _intents;
     private int _dollars;
     private readonly List<ChatLine> _chatLog = new List<ChatLine>();
-    private BotDriver? _bot;
 
     // What the server last said this player carries.
     private List<ItemStack> _stacks = new List<ItemStack>();
 
-    // For bots (game/dev), which may look things up but act only through input: what
-    // this client knows of its player.
-    public int Dollars
-    {
-        get { return _dollars; }
-    }
-
-    // The career (Rules.Skills.CareerId), or -1 with none yet.
-    public int Career
-    {
-        get { return _career; }
-    }
-
-    public IReadOnlyList<ItemStack> Stacks
-    {
-        get { return _stacks; }
-    }
-
-    public IReadOnlyList<ItemInstance> Instances
-    {
-        get { return _instances; }
-    }
-
-    public byte[]? MapCells(string zoneId)
-    {
-        byte[]? cells;
-        return _maps.TryGetValue(zoneId, out cells) ? cells : null;
-    }
-
     private CharacterSelect? _select;
     private CharacterCreator? _creator;
 
-    // Bots and --autoconnect choose by themselves: make a character if there is none,
-    // then play the first. Once each.
+    // --autoconnect chooses by itself: make a character if there is none, then play the
+    // first. Once each, and once per launch: after leaving the world, the character screen
+    // shows as usual.
     private bool _autoCreated;
     private bool _autoPlayed;
     private string _zoneId = "";
+    private readonly Timeline _timeline = new Timeline();
+    private bool _bagSeen;
+
+    // The screens open last frame, by class, to see what opened and closed since.
+    private readonly List<System.Type> _screensShown = new List<System.Type>();
 
     // The street lights job, taken in a terminal: shown on the HUD until done.
     private bool _hasLightsJob;
@@ -176,33 +157,18 @@ public partial class ClientGame : Node
         _subwayNetwork.PageReceived += ShowBook;
         _main = main;
         _profile = new Profile(options.Profile);
-        _settings = ClientSettings.Load(options.LoadBot || options.Bot || options.Scenario != null);
+        _settings = ClientSettings.Load(options.SettingsFile);
 
-        if (DisplayServer.GetName() != "headless")
+        if (DisplayServer.GetName() != "headless" && !options.Windowed)
         {
-            if (!options.Windowed)
-            {
-                _settings.Apply();
-            }
-        }
-        else
-        {
-            // A headless client's window is 64 by 64 pixels, so centred panels hang off
-            // its edges and a bot's click lands beside the button. Give it a real size.
-            GetTree().Root.Size = new Vector2I(1280, 720);
+            _settings.Apply();
         }
 
         _ui = new CanvasLayer { Name = "Ui" };
         AddChild(_ui);
-
-        // For the whole run, not only in the world: it brings a bot back from the menus.
-        if (options.Bot)
-        {
-            AddChild(new Dev.BotKeeper { Name = "BotKeeper", Profile = options.Profile });
-        }
         _settings.ApplyVolumes();
 
-        // A headless client (a bot, a test) has nobody to hear it.
+        // A headless client has nobody to hear it.
         if (DisplayServer.GetName() != "headless")
         {
             _audio = new Audio.AudioDirector { Name = "Audio" };
@@ -333,6 +299,8 @@ public partial class ClientGame : Node
 
     public override void _Process(double delta)
     {
+        RecordScreens();
+
         if (_world != null && _hud != null)
         {
             _hud.ShowClock(_world.GetNode<DayNight>("DayNight").ClockText);
@@ -369,6 +337,16 @@ public partial class ClientGame : Node
     }
 
     // A person used says hello in their own voice, from where they stand.
+    private void RecordInteraction(string interactableName)
+    {
+        Interact.Interactable? thing = _world?.GetZone(_zoneId)?.GetNodeOrNull<Interact.Interactable>(Interact.Interactable.ParentName + "/" + interactableName);
+
+        if (thing != null)
+        {
+            _timeline.AddInteraction(thing.GetType(), interactableName);
+        }
+    }
+
     private void Greet(string interactableName)
     {
         Interact.Interactable? thing = _world?.GetZone(_zoneId)?.GetNodeOrNull<Interact.Interactable>(Interact.Interactable.ParentName + "/" + interactableName);
@@ -409,9 +387,15 @@ public partial class ClientGame : Node
                 ambience = night ? "amb.night" : "amb.outskirts";
                 break;
             case ZoneIds.Meadows:
+            case ZoneIds.WoodedPath:
                 // Open country like the outskirts, until it has sounds of its own.
                 music = "music.outskirts";
                 ambience = night ? "amb.night" : "amb.outskirts";
+                break;
+            case ZoneIds.NewTown:
+                // A town like Old Town, until it has sounds of its own.
+                music = night ? "music.town_night" : "music.town";
+                ambience = night ? "amb.night" : "amb.town";
                 break;
         }
 
@@ -516,6 +500,14 @@ public partial class ClientGame : Node
             return;
         }
 
+        // In the world the creator is the wardrobe; Esc is its Cancel.
+        if (_creator != null && @event.IsActionPressed("ui_cancel"))
+        {
+            GetViewport().SetInputAsHandled();
+            CloseWardrobe();
+            return;
+        }
+
         if ((_shop != null || _workbench != null || _give != null || _map != null || _college != null || _recycler != null || _plantCard != null || _book != null) && @event.IsActionPressed("ui_cancel"))
         {
             CloseBook();
@@ -612,8 +604,6 @@ public partial class ClientGame : Node
 
     private void Connect(string address)
     {
-        _autoCreated = false;
-        _autoPlayed = false;
         _address = address;
         _settings.Address = address;
         _settings.Save();
@@ -644,12 +634,6 @@ public partial class ClientGame : Node
         ENetPacketPeer? server = (Multiplayer.MultiplayerPeer as ENetMultiplayerPeer)?.GetPeer(1);
         server?.ThrottleConfigure(5000, 2, 0);
 
-        // Before the hello, so it is set when the player is loaded.
-        if (_options.Scenario != null)
-        {
-            _network.SendScenario(_options.Scenario);
-        }
-
         _network.SendHello(GameVersion.Protocol, _profile.LicenseKey().ToString());
     }
 
@@ -666,28 +650,27 @@ public partial class ClientGame : Node
         ShowMainMenu("The connection to the server was lost.");
     }
 
-    // The account's characters: the screen to choose one, or, for bots, a choice made.
+    // The account's characters: the screen to choose one, or, with --autoconnect, a choice
+    // made.
     private void OnCharactersReceived(string[] ids, string[] names, string[] looks, int[] levels, string[] titles, string message)
     {
         GD.Print("Characters: " + string.Join(", ", names) + (message.Length > 0 ? " (" + message + ")" : ""));
 
-        // A bot switching characters chooses on the screen, as a player does.
-        Dev.BotKeeper? keeper = GetNodeOrNull<Dev.BotKeeper>("BotKeeper");
-
-        if (_options.AutoConnect && !_options.ShowCharacters && (keeper == null || !keeper.Switching))
+        if (_options.AutoConnect && !_options.ShowCharacters && !_autoPlayed)
         {
             if (ids.Length == 0 && !_autoCreated)
             {
                 _autoCreated = true;
                 _network.SendCreateCharacter(DefaultName(), _options.Look);
+                return;
             }
-            else if (ids.Length > 0 && !_autoPlayed)
+
+            if (ids.Length > 0)
             {
                 _autoPlayed = true;
                 _network.SendLogin(ids[0]);
+                return;
             }
-
-            return;
         }
 
         // A problem with a character being made is shown on the creator, which stays.
@@ -779,14 +762,15 @@ public partial class ClientGame : Node
         _creator.DonePressed += (name, look) =>
         {
             _network.SendSetLook(look);
-            _creator?.QueueFree();
-            _creator = null;
+            CloseWardrobe();
         };
-        _creator.CancelPressed += () =>
-        {
-            _creator?.QueueFree();
-            _creator = null;
-        };
+        _creator.CancelPressed += CloseWardrobe;
+    }
+
+    private void CloseWardrobe()
+    {
+        _creator?.QueueFree();
+        _creator = null;
     }
 
     private void CloseCharacterScreens()
@@ -833,6 +817,7 @@ public partial class ClientGame : Node
         _main.AddChild(_world);
         _world.LoadZone(zoneId);
         _zoneId = zoneId;
+        _timeline.AddZone(TimelineKind.ZoneEntered, zoneId);
         _displayName = displayName;
 
         _hud = HudScene.Instantiate<Hud>();
@@ -845,11 +830,15 @@ public partial class ClientGame : Node
         _chat = ChatScene.Instantiate<ChatBox>();
         _ui.AddChild(_chat);
         _chat.Submitted += OnChatSubmitted;
-        _chat.DirectSubmitted += _network.SendDirect;
+        _chat.DirectSubmitted += (partnerId, text) =>
+        {
+            _network.SendDirect(partnerId, text);
+            _timeline.AddChat(TimelineKind.ChatSent, ChatKind.Direct, partnerId, text);
+        };
 
         _party = new ClientParty { Name = "Party" };
         AddChild(_party);
-        _party.Start(_partyNetwork, _ui, _world);
+        _party.Start(_partyNetwork, _ui, _world, _timeline);
         _party.GiveRequested += OpenGive;
         _party.FriendRequested += player => _socialNetwork.SendBefriend(player.OwnerPeerId);
         _party.IgnoreRequested += player => _socialNetwork.SendIgnore(player.OwnerPeerId);
@@ -873,6 +862,7 @@ public partial class ClientGame : Node
         {
             _network.SendInteract(name);
             Greet(name);
+            RecordInteraction(name);
         };
 
         _network.SendWorldReady();
@@ -882,29 +872,6 @@ public partial class ClientGame : Node
             Screenshot shot = new Screenshot { Name = "Screenshot" };
             AddChild(shot);
             shot.Start(_options.ScreenshotPath, _options.Overview, _options.ScreenshotAfterSeconds);
-        }
-
-        if (_options.WalkTest)
-        {
-            AddChild(new WalkTest { Name = "WalkTest", Watch = _options.WatchTest });
-        }
-
-        if (_options.LoadBot)
-        {
-            LoadBot legs = new LoadBot(Name.GetHashCode() ^ _options.Profile.GetHashCode()) { Name = "LoadBot", Say = _network.SendChat, Scenario = _options.Scenario, Networks = _networks };
-            AddChild(legs);
-        }
-
-        if (_options.Bot)
-        {
-            _bot = new BotDriver { Name = "Bot", Profile = _options.Profile, PersonaName = _options.Persona, Only = _options.BotOnly, Everything = _options.BotEverything, CutConnection = OnServerDisconnected };
-            AddChild(_bot);
-        }
-
-        // A load bot asks for its scenario too, but keeps doing it rather than testing it.
-        if (_options.Scenario != null && !_options.LoadBot && GetNodeOrNull("Scenario") == null)
-        {
-            AddChild(new ScenarioDriver(_options.Scenario, _networks) { Name = "Scenario" });
         }
     }
 
@@ -916,9 +883,19 @@ public partial class ClientGame : Node
             _audio?.Play("ui.coin");
         }
 
-        _stacks = InventoryWire.Unpack(packed);
+        List<ItemStack> stacks = InventoryWire.Unpack(packed);
+        List<ItemInstance> instances = InstanceWire.Unpack(ids, meta, charges);
+
+        // The first bag after login is what the player had, not what changed.
+        if (_bagSeen)
+        {
+            RecordBagChanges(dollars, stacks, instances);
+        }
+
+        _bagSeen = true;
+        _stacks = stacks;
         _dollars = dollars;
-        _instances = InstanceWire.Unpack(ids, meta, charges);
+        _instances = instances;
         _inventoryPanel?.ShowBag(_stacks, _dollars, _instances);
         _workbench?.ShowBench(_stacks, _instances);
 
@@ -930,6 +907,66 @@ public partial class ClientGame : Node
         _shop?.ShowDollars(dollars);
         _recycler?.ShowBag(_stacks, _instances, _dollars);
         ShowBattery();
+    }
+
+    // Money and items that came or went since the last bag, into the timeline.
+    private void RecordBagChanges(int dollars, List<ItemStack> stacks, List<ItemInstance> instances)
+    {
+        if (dollars != _dollars)
+        {
+            _timeline.AddMoney(dollars - _dollars);
+        }
+
+        Dictionary<(ItemType Type, ItemTier Tier), int> before = CountItems(_stacks, _instances);
+        Dictionary<(ItemType Type, ItemTier Tier), int> after = CountItems(stacks, instances);
+
+        foreach (KeyValuePair<(ItemType Type, ItemTier Tier), int> held in after)
+        {
+            int had;
+            before.TryGetValue(held.Key, out had);
+
+            if (held.Value > had)
+            {
+                _timeline.AddItems(TimelineKind.ItemGained, held.Key.Type, held.Key.Tier, held.Value - had);
+            }
+        }
+
+        foreach (KeyValuePair<(ItemType Type, ItemTier Tier), int> held in before)
+        {
+            int has;
+            after.TryGetValue(held.Key, out has);
+
+            if (has < held.Value)
+            {
+                _timeline.AddItems(TimelineKind.ItemLost, held.Key.Type, held.Key.Tier, held.Value - has);
+            }
+        }
+    }
+
+    // How many of each item and tier: the stacks' quantities, and one
+    // for each instance, worn or in the bag, so a battery moved into the phone neither
+    // comes nor goes.
+    private static Dictionary<(ItemType Type, ItemTier Tier), int> CountItems(List<ItemStack> stacks, List<ItemInstance> instances)
+    {
+        Dictionary<(ItemType Type, ItemTier Tier), int> counts = new Dictionary<(ItemType Type, ItemTier Tier), int>();
+
+        foreach (ItemStack stack in stacks)
+        {
+            (ItemType Type, ItemTier Tier) key = (stack.Type, stack.Tier);
+            int count;
+            counts.TryGetValue(key, out count);
+            counts[key] = count + stack.Quantity;
+        }
+
+        foreach (ItemInstance item in instances)
+        {
+            (ItemType Type, ItemTier Tier) key = (item.Type, item.Tier);
+            int count;
+            counts.TryGetValue(key, out count);
+            counts[key] = count + 1;
+        }
+
+        return counts;
     }
 
     private void OpenGarden()
@@ -1003,6 +1040,118 @@ public partial class ClientGame : Node
         {
             _recycler.QueueFree();
             _recycler = null;
+        }
+    }
+
+    // What happened so far, in order (docs/features/timeline.md).
+    public Timeline Timeline
+    {
+        get { return _timeline; }
+    }
+
+    // A snapshot of the player's state as this client knows it. Copies, so a reader
+    // cannot change what the client holds.
+    public ClientView View
+    {
+        get
+        {
+            Inventory stacks = new Inventory();
+
+            foreach (ItemStack stack in _stacks)
+            {
+                stacks.Add(stack.Type, stack.Tier, stack.Quantity);
+            }
+
+            List<ItemInstance> instances = new List<ItemInstance>();
+
+            foreach (ItemInstance item in _instances)
+            {
+                instances.Add(new ItemInstance(item.Id, item.Type, item.Tier) { ParentId = item.ParentId, Slot = item.Slot, Charge = item.Charge });
+            }
+
+            byte[]? cells;
+            _maps.TryGetValue(_zoneId, out cells);
+            byte[] mapCells = cells == null ? new byte[0] : (byte[])cells.Clone();
+
+            return new ClientView(_zoneId, _dollars, new Belongings(stacks, instances), mapCells, OpenScreens(), new List<string>(_notices), _noticeCount);
+        }
+    }
+
+    // The screens open now, by name, for ClientView.
+    private List<string> OpenScreens()
+    {
+        List<string> names = new List<string>();
+        CollectOpenScreens(names, new List<System.Type>());
+        return names;
+    }
+
+    // Screens opened and closed since the last frame, into the timeline: one place, whatever
+    // opened or closed them.
+    private void RecordScreens()
+    {
+        List<System.Type> open = new List<System.Type>();
+        CollectOpenScreens(new List<string>(), open);
+
+        foreach (System.Type screen in _screensShown)
+        {
+            if (!open.Contains(screen))
+            {
+                _timeline.AddScreen(TimelineKind.ScreenClosed, screen);
+            }
+        }
+
+        foreach (System.Type screen in open)
+        {
+            if (!_screensShown.Contains(screen))
+            {
+                _timeline.AddScreen(TimelineKind.ScreenOpened, screen);
+            }
+        }
+
+        _screensShown.Clear();
+        _screensShown.AddRange(open);
+    }
+
+    // Every screen open now: its name for ClientView, its class for the timeline.
+    private void CollectOpenScreens(List<string> names, List<System.Type> classes)
+    {
+        AddIfOpen(names, classes, _menu, "main-menu");
+        AddIfOpen(names, classes, _select, "character-select");
+        AddIfOpen(names, classes, _creator, "character-creator");
+        AddIfOpen(names, classes, _inGameMenu, "game-menu");
+        AddIfOpen(names, classes, _inventoryPanel, "inventory");
+        AddIfOpen(names, classes, _terminal, "terminal");
+        AddIfOpen(names, classes, _shop, "shop");
+        AddIfOpen(names, classes, _workbench, "workbench");
+        AddIfOpen(names, classes, _give, "give");
+        AddIfOpen(names, classes, _map, "map");
+        AddIfOpen(names, classes, _recycler, "recycler");
+        AddIfOpen(names, classes, _social, "social");
+        AddIfOpen(names, classes, _skills, "skills");
+        AddIfOpen(names, classes, _college, "college");
+        AddIfOpen(names, classes, _garden, "garden");
+        AddIfOpen(names, classes, _plantCard, "plant-card");
+        AddIfOpen(names, classes, _book, "visitor-book");
+
+        // The settings panel is not kept in a field: it closes itself.
+        foreach (Node child in _ui.GetChildren())
+        {
+            SettingsPanel? settings = child as SettingsPanel;
+
+            if (settings != null)
+            {
+                names.Add("settings");
+                classes.Add(settings.GetType());
+            }
+        }
+    }
+
+    private static void AddIfOpen(List<string> names, List<System.Type> classes, Node? screen, string name)
+    {
+        if (screen != null && IsInstanceValid(screen))
+        {
+            names.Add(name);
+            classes.Add(screen.GetType());
         }
     }
 
@@ -1163,9 +1312,11 @@ public partial class ClientGame : Node
                 return;
             }
 
+            _timeline.AddZone(TimelineKind.ZoneExited, _zoneId);
             _world.UnloadZone(_zoneId);
             _world.LoadZone(zoneId);
             _zoneId = zoneId;
+            _timeline.AddZone(TimelineKind.ZoneEntered, zoneId);
             _hud?.ShowIdentity(_displayName, ZoneIds.DisplayName(zoneId));
             _network.SendWorldReady();
             GD.Print("Now in " + zoneId);
@@ -1191,10 +1342,12 @@ public partial class ClientGame : Node
         else if (text.StartsWith("/p ", System.StringComparison.OrdinalIgnoreCase) && _party != null)
         {
             _party.SendChat(text.Substring(3));
+            _timeline.AddChat(TimelineKind.ChatSent, ChatKind.Party, "", text.Substring(3));
         }
         else
         {
             _network.SendChat(text);
+            _timeline.AddChat(TimelineKind.ChatSent, ChatKind.Say, "", text);
         }
     }
 
@@ -1271,6 +1424,7 @@ public partial class ClientGame : Node
         if (incoming)
         {
             _audio?.Play("ui.message");
+            _timeline.AddChat(TimelineKind.ChatReceived, ChatKind.Direct, partnerName, text);
         }
 
         _chat?.AddDirect(partnerId, partnerName, text, incoming);
@@ -1288,6 +1442,7 @@ public partial class ClientGame : Node
     private void OnChatReceived(string sender, string text, int kind)
     {
         GD.Print("Chat: " + (sender.Length > 0 ? sender + ": " : "") + text);
+        _timeline.AddChat(TimelineKind.ChatReceived, (ChatKind)kind, sender, text);
         _chat?.AddLine(sender, text, (ChatKind)kind);
 
         ChatLine line = new ChatLine(sender, text, (ChatKind)kind);
@@ -1402,7 +1557,16 @@ public partial class ClientGame : Node
 
     private void OnNoticeReceived(string text)
     {
+        _timeline.AddNotice(text);
         GD.Print("Notice: " + text);
+        _notices.Add(text);
+        _noticeCount++;
+
+        if (_notices.Count > KeptNotices)
+        {
+            _notices.RemoveAt(0);
+        }
+
         _hud?.ShowNotice(text);
         _audio?.Play(NoticeSound(text));
         _terminal?.ShowNotice(text);
@@ -1686,12 +1850,6 @@ public partial class ClientGame : Node
         // The wheel zoom is kept for next time.
         _settings.Save();
 
-        if (_bot != null)
-        {
-            _bot.QueueFree();
-            _bot = null;
-        }
-
         if (_hud != null)
         {
             _hud.QueueFree();
@@ -1755,6 +1913,7 @@ public partial class ClientGame : Node
         // another frame against a connection that is already gone.
         if (_world != null)
         {
+            _timeline.AddZone(TimelineKind.ZoneExited, _zoneId);
             _main.RemoveChild(_world);
             _world.QueueFree();
             _world = null;

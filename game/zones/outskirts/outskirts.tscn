@@ -322,6 +322,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 39)
 TargetZone = "town"
 TargetArrival = "FromOutskirts"
 
+[node name="Sign" type="Label3D" parent="Doors/ToTown"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+pixel_size = 0.01
+billboard = 1
+modulate = Color(1, 0.85, 0.5, 1)
+text = "OLD TOWN"
+font_size = 64
+outline_size = 10
+
 [node name="Arrivals" type="Node3D" parent="."]
 
 [node name="FromGreenhouse" type="Marker3D" parent="Arrivals"]

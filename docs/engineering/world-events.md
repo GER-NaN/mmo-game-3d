@@ -48,13 +48,4 @@ The rows, the points and the app need no change.
 
 ## Testing it
 
-- `dotnet test`: the rules, the store, and the bots' judge (`WorldEventCheck`).
-- Dev scenario `swarm` (`.\scripts\scenario-test.ps1 -Scenarios swarm`). The player
-  stands at the spot with an EMP worn. A swarm of two starts at once. The player brings
-  it down, then reads "completed" and "you took part" in Notifications.
-- Bot activity "check world events"
-  (`game/dev/bots/activities/CheckWorldEventsActivity.cs`). The bot takes the phone out and reads
-  Notifications. With the swarm on, a coin flip decides if it goes. If it goes, it
-  hunts with an EMP (if worn) while drones fly, then reads the past row. The `eventer`
-  persona checks often. Try it alone with `.\scripts\bot-try.ps1 "check world events"`;
-  the first swarm is 5 minutes after the server starts.
+- `dotnet test`: the rules and the store.

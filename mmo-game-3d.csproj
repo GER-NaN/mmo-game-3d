@@ -5,16 +5,17 @@
     <RootNamespace>MmoGame3d</RootNamespace>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-  <!-- The Godot project globs every .cs file under the root. The libraries and tests
-       are projects of their own, so they are taken out of the glob and referenced. -->
+  <!-- The Godot project globs every .cs file under the root. The libraries, the tests
+       and the bots' Overseer are projects of their own, so they are taken out of the
+       glob; the libraries are referenced. -->
   <ItemGroup>
     <Compile Remove="src/**" />
     <Compile Remove="tests/**" />
+    <Compile Remove="game/bots/overseer/**" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="src\Rules\Rules.csproj" />
     <ProjectReference Include="src\Data\Data.csproj" />
     <ProjectReference Include="src\Diagnostics\Diagnostics.csproj" />
-    <ProjectReference Include="src\BotJudging\BotJudging.csproj" />
   </ItemGroup>
 </Project>

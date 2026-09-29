@@ -4,12 +4,13 @@ using System.Collections.Generic;
 using Godot;
 
 /// <summary>
-/// What the player set in the menus, kept between launches in user://settings.cfg.
-/// Shared by every profile on the machine, except the name, which is per profile.
+/// What the player set in the menus, kept between launches in user://settings.cfg (or
+/// the file --settings-file names). Shared by every profile on the machine, except the
+/// name, which is per profile.
 /// </summary>
 public class ClientSettings
 {
-    private const string Path = "user://settings.cfg";
+    public const string DefaultPath = "user://settings.cfg";
 
     public const float MinSensitivity = 0.25f;
     public const float MaxSensitivity = 3f;
@@ -23,6 +24,7 @@ public class ClientSettings
     };
 
     private readonly ConfigFile _file = new ConfigFile();
+    private string _path = DefaultPath;
 
     public bool Fullscreen { get; set; }
     public string Address { get; set; } = "127.0.0.1";
@@ -43,13 +45,13 @@ public class ClientSettings
     // Only the keys the player moved; the rest are the defaults in project.godot.
     private readonly Dictionary<string, Key> _keys = new Dictionary<string, Key>();
 
-    public static ClientSettings Load(bool tool)
+    public static ClientSettings Load(string path)
     {
         ClientSettings settings = new ClientSettings();
-        settings.ReadOnly = tool;
+        settings._path = path;
 
         // A missing file is a first launch, not an error.
-        if (!tool && settings._file.Load(Path) == Error.Ok)
+        if (settings._file.Load(path) == Error.Ok)
         {
             settings.Fullscreen = (bool)settings._file.GetValue("display", "fullscreen", false);
             settings.Address = (string)settings._file.GetValue("network", "address", "127.0.0.1");
@@ -103,7 +105,7 @@ public class ClientSettings
             return "-";
         }
 
-        // A headless client (a bot) has no keyboard layout to ask; the physical key's own
+        // A headless client has no keyboard layout to ask; the physical key's own
         // name is the US one.
         if (DisplayServer.GetName() == "headless")
         {
@@ -161,18 +163,8 @@ public class ClientSettings
         _file.SetValue("names", profile, name);
     }
 
-    // A client run by a tool (load bots, --bot, --scenario) neither reads nor writes the
-    // file: it is the machine's, shared with the person who plays. A hundred load bots
-    // writing it at once left it broken, and the player's zoom and keys reached tests.
-    public bool ReadOnly { get; private set; }
-
     public void Save()
     {
-        if (ReadOnly)
-        {
-            return;
-        }
-
         _file.SetValue("display", "fullscreen", Fullscreen);
         _file.SetValue("network", "address", Address);
         _file.SetValue("controls", "mouse_sensitivity", MouseSensitivity);
@@ -193,7 +185,7 @@ public class ClientSettings
             _file.SetValue("keys", binding.Key, (long)binding.Value);
         }
 
-        _file.Save(Path);
+        _file.Save(_path);
     }
 
     // Each bus at its volume; all the way down mutes it.

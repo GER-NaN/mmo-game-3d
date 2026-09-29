@@ -1,0 +1,206 @@
+namespace MmoGame3d.Bots;
+
+using System;
+using System.Collections.Generic;
+using Godot;
+using MmoGame3d.Interact;
+
+/// <summary>
+/// Writes a bot's steps as they read:
+/// plan.InWorld().Press("inventory").WaitFor&lt;InventoryPanel&gt;().Click(...).
+/// Each call adds one step.
+/// </summary>
+public class BotPlan
+{
+    public List<BotStep> Steps { get; } = new List<BotStep>();
+
+    public BotPlan Step(BotStep step)
+    {
+        Steps.Add(step);
+        return this;
+    }
+
+    public BotPlan InWorld()
+    {
+        return Step(new InWorldStep());
+    }
+
+    public BotPlan WaitFor<T>()
+        where T : Control
+    {
+        return Step(new WaitForScreenStep<T>());
+    }
+
+    // A control on a visible screen of this type, by its path there ("%Quit").
+    public BotPlan Click<T>(string path)
+        where T : Control
+    {
+        return Step(new ClickStep(path.TrimStart('%') + " on " + typeof(T).Name, body => body.Find<T>()?.GetNodeOrNull<Control>(path)));
+    }
+
+    // A control found some other way: a row built from data.
+    public BotPlan Click(string what, Func<BotBody, Control?> find)
+    {
+        return Step(new ClickStep(what, find));
+    }
+
+    // A click at a spot inside a control, as fractions of its size (a slider at 80%).
+    public BotPlan ClickAt<T>(string path, float across, float down)
+        where T : Control
+    {
+        return Step(new ClickStep(path.TrimStart('%') + " at " + (across * 100) + "% on " + typeof(T).Name, body => body.Find<T>()?.GetNodeOrNull<Control>(path), new Vector2(across, down)));
+    }
+
+    // Until a screen is open, or closed, by its name in ClientView.OpenScreens.
+    public BotPlan UntilOpen(string screen)
+    {
+        return Until(screen + " open", body => BotScreens.IsOpen(body, screen));
+    }
+
+    public BotPlan UntilClosed(string screen)
+    {
+        return Until(screen + " closed", body => !BotScreens.IsOpen(body, screen));
+    }
+
+    // Types into the field that has the keys, then Enter.
+    public BotPlan Type(string text)
+    {
+        return Step(new TypeStep(text));
+    }
+
+    // Clicks a control if it shows within a moment; goes on either way.
+    public BotPlan ClickIfThere(string what, Func<BotBody, Control?> find)
+    {
+        return Step(new ClickIfThereStep(what, find));
+    }
+
+    public BotPlan Press(string action)
+    {
+        return Step(new KeyStep(action));
+    }
+
+    // A key on the keyboard, not an action: a key being bound.
+    public BotPlan Press(Godot.Key key)
+    {
+        return Step(new KeyStep(key));
+    }
+
+    public BotPlan Hold(string action, double seconds)
+    {
+        return Step(new HoldStep(action, seconds));
+    }
+
+    public BotPlan Wait(double seconds)
+    {
+        return Step(new WaitStep(seconds));
+    }
+
+    public BotPlan Until(string what, Func<BotBody, bool> check, double timeLimit = BotStep.DefaultTimeLimit)
+    {
+        return Step(new UntilStep(what, check, timeLimit));
+    }
+
+    public BotPlan Until(BotFact fact, double timeLimit = BotStep.DefaultTimeLimit)
+    {
+        return Step(new UntilStep(fact.Name, fact.Holds, timeLimit));
+    }
+
+    public BotPlan Do(string what, Action<BotBody> action)
+    {
+        return Step(new DoStep(what, action));
+    }
+
+    // Walks in through the zone's door, even when already inside (out and back).
+    public BotPlan Enter(string zoneId)
+    {
+        return Step(new EnterZoneStep(zoneId, true));
+    }
+
+    // Walks to the zone if not already in it.
+    public BotPlan GoTo(string zoneId)
+    {
+        return Step(new EnterZoneStep(zoneId, false));
+    }
+
+    // Walks until the zone's map is all discovered.
+    public BotPlan Survey()
+    {
+        return Step(new SurveyStep());
+    }
+
+    // Clicks each button in a list, with a pause between, leaving out those the check
+    // turns down.
+    public BotPlan ClickEach(string what, Func<BotBody, Node?> list, Func<Button, bool> check)
+    {
+        return Step(new ClickEachStep(what, list, check));
+    }
+
+    // Another activity's steps, here (a chain: buy, recycle, buy). Built as the plan is,
+    // so its steps are new.
+    public BotPlan Then(string activity)
+    {
+        BotActivity? other = BotActivities.Named(activity);
+
+        if (other == null)
+        {
+            return Step(new FailStep("no activity named \"" + activity + "\""));
+        }
+
+        Steps.AddRange(other.StepsAsPart());
+        return this;
+    }
+
+    // Wanders to a few random spots in the zone.
+    public BotPlan Wander(int spots)
+    {
+        return Step(new WanderStep(spots));
+    }
+
+    // Walks over the nearest thing on the ground, which picks it up.
+    public BotPlan PickUp()
+    {
+        return Step(new PickUpStep());
+    }
+
+    // Walks up to the nearest thing of this type and presses the interact key.
+    public BotPlan Use<T>()
+        where T : Interactable
+    {
+        return Step(new ApproachStep<T>("", thing => true)).Press("interact");
+    }
+
+    // The same, among the things of the type that pass a check ("broken", thing =>
+    // thing.Broken).
+    public BotPlan Use<T>(string which, Func<T, bool> check)
+        where T : Interactable
+    {
+        return Step(new ApproachStep<T>(which, check)).Press("interact");
+    }
+
+    // Until the server says something containing these words, after this point.
+    public BotPlan UntilNotice(string words, double timeLimit = BotStep.DefaultTimeLimit)
+    {
+        return Step(new NoticeStep(words, timeLimit));
+    }
+
+    // Ends the activity here, as completed, if there is nothing for it to do.
+    public BotPlan StopIf(string why, Func<BotBody, bool> check)
+    {
+        return Step(new StopIfStep(why, check));
+    }
+
+    public BotPlan WatchForDrones(int wanted, double timeLimit)
+    {
+        return Step(new WatchForDronesStep(wanted, timeLimit));
+    }
+
+    public BotPlan Need(BotFact fact)
+    {
+        return Step(new NeedStep(fact));
+    }
+
+    public BotPlan ExpectQuit()
+    {
+        return Step(new ExpectQuitStep());
+    }
+}

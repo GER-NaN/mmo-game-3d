@@ -2,8 +2,8 @@
 
 Finds narrow gaps between the box colliders in a zone scene: gaps a player can walk
 into and get wedged in for good. A player's capsule is 1 m wide, so a gap about that
-wide holds them; the bots found eight such gaps in Old Town (see
-`docs/engineering/bot-testing-findings.md`, "Players wedge into the gaps").
+wide holds them; bot runs found eight such gaps in Old Town, since filled (`GapFills` in
+`town.tscn`).
 
 ```
 python tools/map-gaps/map_gaps.py game/zones/town/town.tscn

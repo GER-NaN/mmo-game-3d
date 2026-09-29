@@ -19,7 +19,6 @@ When a new mechanic looks like an existing one, open that one next to this.
 | The hook-up | `ServerInteractions.Use`, `ServerGame.Start`, `ServerGame`'s tick | routes a use to the part, builds it, ticks it |
 | Placement | the zone scene, in the editor | where the things stand |
 | Sound | `game/audio/sounds.json` | the catalog entry the client plays |
-| Proof | a dev scenario | the feature, tested in seconds |
 
 The server decides everything; a client only asks ("use Pine0") and draws what the
 synced state says.
@@ -54,8 +53,7 @@ already loads; `false` means it is not a chat emote.
 **The protocol.** `src/Rules/GameVersion.cs`: raise `Protocol` by one. A new synced
 property, item and skill all change what the wire carries.
 
-**A test**, if a rule has logic worth proving (here the rules are only entries; the
-scenario in step 7 proves the feature).
+**A test**, if a rule has logic worth proving (here the rules are only entries).
 
 ## 2. The thing in the world (code)
 
@@ -254,15 +252,6 @@ In `game/audio/sounds.json`, next to `fx.chest`:
 
 Then `python tools/audio-subset/copy.py`, and open the editor once to import the new
 file. Missing files are skipped with a log line, so the game runs without it.
-
-## 8. Prove it (dev scenario)
-
-- `game/dev/scenarios/ServerScenarios.cs`, in `Apply`'s switch: set the player up beside a tree:
-  `case "chop": StandBy(record, ZoneIds.Outskirts, "Pine0", new Vector3(0f, 0f, 1.3f)); break;`
-- `game/dev/scenarios/ScenarioDriver.cs`, in its switch: use it and expect the notice:
-  `case "chop": Use("Chop the pine"); Expect("it chopped", () => Noticed("You chopped the pine and got a log.")); break;`
-- `scripts/scenario-test.ps1`: add `"chop"` to the `$Scenarios` list.
-- Run `.\scripts\scenario-test.ps1 -Scenarios chop`.
 
 ## Variations
 

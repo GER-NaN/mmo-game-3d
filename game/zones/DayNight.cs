@@ -12,10 +12,12 @@ using MmoGame3d.Town;
 /// </summary>
 public partial class DayNight : Node
 {
+    public const string Group = "day_night";
+
     private const float MaxSunEnergy = 1.2f;
     private const float MoonEnergy = 0.18f;
     private const float NightSky = 0.08f;
-    private const float LampsOnBelow = 0.2f;
+    private const float LightsOnBelow = 0.2f;
 
     // The highest the sun climbs, from the horizon; 75 degrees.
     private const float MaxElevation = 1.31f;
@@ -36,7 +38,7 @@ public partial class DayNight : Node
     private DirectionalLight3D _moon = null!;
     private Environment _environment = null!;
     private double _secondsOfDay = 12 * 3600;
-    private bool _lampsOn;
+    private bool _lightsOn;
     private bool _known;
 
     public override void _Ready()
@@ -44,12 +46,22 @@ public partial class DayNight : Node
         _sun = Sun!;
         _moon = Moon!;
         _environment = WorldEnvironment!.Environment;
+        AddToGroup(Group);
+    }
+
+    // The lights are on: dark, and the town has power. What lights up at night reads this
+    // and follows LightsChanged (NightLight); nothing is pushed into it.
+    public event System.Action<bool>? LightsChanged;
+
+    public bool LightsOn
+    {
+        get { return _known && _lightsOn; }
     }
 
     // Dark enough that the street lamps are on: night music and night sounds.
     public bool IsNight
     {
-        get { return _known && _lampsOn; }
+        get { return LightsOn; }
     }
 
     // "14:05", or empty until the server has said the time.
@@ -101,35 +113,14 @@ public partial class DayNight : Node
         _moon.LightColor = MoonLight;
         _moon.LightEnergy = MoonEnergy * (1f - strength);
 
-        // Street lamps come on at dusk, if the town's lights work: the repair job decides.
+        // The lights come on at dusk, if the town's lights work: the repair job decides.
         TownState? town = GetTree().GetFirstNodeInGroup(TownState.Group) as TownState;
-        bool lit = strength < LampsOnBelow && (town == null || town.LightsWorking);
+        bool lit = strength < LightsOnBelow && (town == null || town.LightsWorking);
 
-        if (lit != _lampsOn)
+        if (lit != _lightsOn)
         {
-            _lampsOn = lit;
-
-            foreach (Node lamp in GetTree().GetNodesInGroup("street_lamps"))
-            {
-                ((Node3D)lamp).Visible = lit;
-
-                // A lit lamp buzzes, close up.
-                AudioStreamPlayer3D? buzz = lamp.GetNodeOrNull<AudioStreamPlayer3D>("Buzz");
-
-                if (lit && buzz == null)
-                {
-                    AudioStreamPlayer3D? player = Audio.AudioDirector.Current?.Attach("fx.lamp", (Node3D)lamp);
-
-                    if (player != null)
-                    {
-                        player.Name = "Buzz";
-                    }
-                }
-                else if (!lit && buzz != null)
-                {
-                    buzz.QueueFree();
-                }
-            }
+            _lightsOn = lit;
+            LightsChanged?.Invoke(lit);
         }
 
         float sky = Mathf.Lerp(NightSky, 1f, strength);

@@ -309,6 +309,10 @@ Tests:
   walk to the spot, hunt its drones if an EMP is worn, stay while it runs); its judge
   checks from the player's side that the past row says "you took part" after it ends.
 
+  Note (2026-09-28): the "swarm" scenario and the bot activity were taken out with all
+  client-driving code. Bots are redesigned in `docs/features/bots.md`; this activity
+  comes back as a `BotActivity` there.
+
 Frame:
 
 - The outcome list, open for the swarm's own win. [M2]

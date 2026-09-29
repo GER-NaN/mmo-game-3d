@@ -87,7 +87,6 @@ public partial class ServerGame : Node
     private ServerGarden _garden = null!;
     private ServerAchievements _achievements = null!;
     private ServerDefense? _defense;
-    private ServerScenarios _scenarios = null!;
     private readonly TickProfile _profile = new TickProfile();
     private readonly Queue<long> _saveTurns = new Queue<long>();
     private double _saveBudget;
@@ -305,8 +304,6 @@ public partial class ServerGame : Node
         defense.Achieved = _achievements.Grant;
         defense.SendBoard = _hacking.SendBoard;
         _defense = defense;
-        _scenarios = new ServerScenarios(options.DevScenarios, world) { Town = _town, Defense = defense, Drones = _drones, Rides = _rides, Events = _events };
-        network.ScenarioRequested += _scenarios.Ask;
         networks.Terminal.DefenseStartRequested += peer => WithSession(peer, session => defense.Start(session));
         networks.Terminal.DefenseFinishRequested += (peer, presses) => WithSession(peer, session => defense.Finish(session, presses));
         networks.Terminal.CrackGuessRequested += (peer, guess) => WithSession(peer, session => _hacking.Guess(session, guess));
@@ -574,7 +571,6 @@ public partial class ServerGame : Node
 
         _sessions.Remove(peer);
         _chat.Forget(peer);
-        _scenarios.Forget(peer);
         _diagnostics?.Forget(peer);
 
         if (session.HasEnteredWorld)
@@ -824,7 +820,6 @@ public partial class ServerGame : Node
         }
 
         session.Instances = record.Instances;
-        _scenarios.Apply(session, record);
 
         // A ride's cabin is made for one ride and gone after it, and its number comes round
         // again after a restart: a player saved in one comes back at the drop-off, not in a
@@ -1008,8 +1003,9 @@ public partial class ServerGame : Node
     }
 
     // Moves players to another zone: doors, and taxi rides in and out. The first traveller
-    // lands on the arrival; the rest around it, so a party does not land in one heap, and
-    // they are told why they came along.
+    // lands on the arrival; the rest on the arrival's own markers, where a scene places
+    // them (a cabin too narrow for a ring), then around it, so a party does not land in
+    // one heap; and they are told why they came along.
     private void Travel(List<Session> travellers, Zone target, Node3D arrival, string followerNotice)
     {
         using (Activity? span = ServerDiagnostics.Source.StartActivity("Travel"))
@@ -1018,20 +1014,37 @@ public partial class ServerGame : Node
             span?.SetTag("travellers", travellers.Count);
 
             List<KeyValuePair<string, long>> leaving = new List<KeyValuePair<string, long>>();
+            List<Vector3> spots = new List<Vector3>();
+
+            foreach (Node child in arrival.GetChildren())
+            {
+                Marker3D? spot = child as Marker3D;
+
+                if (spot != null)
+                {
+                    spots.Add(arrival.Transform.Basis * spot.Position);
+                }
+            }
+
+            int ringCount = travellers.Count - 1 - spots.Count;
 
             for (int i = 0; i < travellers.Count; i++)
             {
                 Vector3 offset = Vector3.Zero;
 
-                if (i > 0)
+                if (i > 0 && i - 1 < spots.Count)
                 {
-                    float angle = Mathf.Tau * (i - 1) / (travellers.Count - 1);
+                    offset = spots[i - 1];
+                }
+                else if (i > 0)
+                {
+                    float angle = Mathf.Tau * (i - 1 - spots.Count) / ringCount;
                     offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.2f;
+                }
 
-                    if (followerNotice.Length > 0)
-                    {
-                        _network.SendNotice(travellers[i].PeerId, followerNotice);
-                    }
+                if (i > 0 && followerNotice.Length > 0)
+                {
+                    _network.SendNotice(travellers[i].PeerId, followerNotice);
                 }
 
                 string from = travellers[i].Record!.Zone;
@@ -1115,7 +1128,7 @@ public partial class ServerGame : Node
         _network.SendNotice(session.PeerId, "Picked up " + item.Quantity + " " + ItemCatalog.Describe(item.Type, item.Tier));
     }
 
-    // One line for load tests: who is here, how long a frame takes, and the traffic.
+    // One line for --stats-every: who is here, how long a frame takes, and the traffic.
     // ENet counts bytes since the last time it was asked, so each line is its own span.
     private void PrintStats(double seconds)
     {
