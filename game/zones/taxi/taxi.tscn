@@ -32,7 +32,7 @@ material = SubResource("Material_Glass")
 size = Vector3(0.05, 1.35, 4.8)
 
 [sub_resource type="BoxShape3D" id="Shape_Side"]
-size = Vector3(0.1, 2.5, 4.8)
+size = Vector3(0.4, 2.5, 5.4)
 
 [sub_resource type="BoxMesh" id="Mesh_EndLow"]
 material = SubResource("Material_Body")
@@ -43,7 +43,7 @@ material = SubResource("Material_Glass")
 size = Vector3(2.8, 1.35, 0.05)
 
 [sub_resource type="BoxShape3D" id="Shape_End"]
-size = Vector3(2.8, 2.5, 0.1)
+size = Vector3(3.4, 2.5, 0.4)
 
 [sub_resource type="BoxMesh" id="Mesh_Roof"]
 material = SubResource("Material_Body")
@@ -102,6 +102,7 @@ collision_layer = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.4, 1.25, 0)
 
 [node name="Collision" type="CollisionShape3D" parent="Cabin/Left"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0, 0)
 shape = SubResource("Shape_Side")
 
 [node name="Low" type="MeshInstance3D" parent="Cabin/Left"]
@@ -117,6 +118,7 @@ collision_layer = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 1.25, 0)
 
 [node name="Collision" type="CollisionShape3D" parent="Cabin/Right"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0, 0)
 shape = SubResource("Shape_Side")
 
 [node name="Low" type="MeshInstance3D" parent="Cabin/Right"]
@@ -132,6 +134,7 @@ collision_layer = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -2.4)
 
 [node name="Collision" type="CollisionShape3D" parent="Cabin/Front"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.15)
 shape = SubResource("Shape_End")
 
 [node name="Low" type="MeshInstance3D" parent="Cabin/Front"]
@@ -147,6 +150,7 @@ collision_layer = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 2.4)
 
 [node name="Collision" type="CollisionShape3D" parent="Cabin/Back"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.15)
 shape = SubResource("Shape_End")
 
 [node name="Low" type="MeshInstance3D" parent="Cabin/Back"]
@@ -219,6 +223,18 @@ visibility_update_mode = 2
 
 [node name="Seat" type="Marker3D" parent="Arrivals"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.3)
+
+[node name="Party1" type="Marker3D" parent="Arrivals/Seat"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, -1.05)
+
+[node name="Party2" type="Marker3D" parent="Arrivals/Seat"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0, -1.05)
+
+[node name="Party3" type="Marker3D" parent="Arrivals/Seat"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, -2.1)
+
+[node name="Party4" type="Marker3D" parent="Arrivals/Seat"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0, -2.1)
 
 [node name="Spawn" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.3)

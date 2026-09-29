@@ -1003,8 +1003,9 @@ public partial class ServerGame : Node
     }
 
     // Moves players to another zone: doors, and taxi rides in and out. The first traveller
-    // lands on the arrival; the rest around it, so a party does not land in one heap, and
-    // they are told why they came along.
+    // lands on the arrival; the rest on the arrival's own markers, where a scene places
+    // them (a cabin too narrow for a ring), then around it, so a party does not land in
+    // one heap; and they are told why they came along.
     private void Travel(List<Session> travellers, Zone target, Node3D arrival, string followerNotice)
     {
         using (Activity? span = ServerDiagnostics.Source.StartActivity("Travel"))
@@ -1013,20 +1014,37 @@ public partial class ServerGame : Node
             span?.SetTag("travellers", travellers.Count);
 
             List<KeyValuePair<string, long>> leaving = new List<KeyValuePair<string, long>>();
+            List<Vector3> spots = new List<Vector3>();
+
+            foreach (Node child in arrival.GetChildren())
+            {
+                Marker3D? spot = child as Marker3D;
+
+                if (spot != null)
+                {
+                    spots.Add(arrival.Transform.Basis * spot.Position);
+                }
+            }
+
+            int ringCount = travellers.Count - 1 - spots.Count;
 
             for (int i = 0; i < travellers.Count; i++)
             {
                 Vector3 offset = Vector3.Zero;
 
-                if (i > 0)
+                if (i > 0 && i - 1 < spots.Count)
                 {
-                    float angle = Mathf.Tau * (i - 1) / (travellers.Count - 1);
+                    offset = spots[i - 1];
+                }
+                else if (i > 0)
+                {
+                    float angle = Mathf.Tau * (i - 1 - spots.Count) / ringCount;
                     offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.2f;
+                }
 
-                    if (followerNotice.Length > 0)
-                    {
-                        _network.SendNotice(travellers[i].PeerId, followerNotice);
-                    }
+                if (i > 0 && followerNotice.Length > 0)
+                {
+                    _network.SendNotice(travellers[i].PeerId, followerNotice);
                 }
 
                 string from = travellers[i].Record!.Zone;
