@@ -115,12 +115,15 @@ public partial class InventoryPanel : PanelContainer
         {
             // Rows are named for what they hold, so they can be found by it (bots.md T2).
             HBoxContainer row = new HBoxContainer { Name = "Stack_" + stack.Type + "_" + stack.Tier };
-            Label name = new Label
+            ItemLabel name = new ItemLabel
             {
                 Text = stack.Quantity + " x " + ItemCatalog.Describe(stack.Type, stack.Tier),
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                TooltipText = ItemCatalog.Get(stack.Type).Description,
                 MouseFilter = MouseFilterEnum.Pass,
+                CardTitle = ItemCatalog.Describe(stack.Type, stack.Tier),
+                CardColor = TierColors[(int)stack.Tier],
+                CardDetail = "Count: " + stack.Quantity,
+                CardDescription = ItemCatalog.Get(stack.Type).Description,
             };
             name.AddThemeColorOverride("font_color", TierColors[(int)stack.Tier]);
             row.AddChild(name);
@@ -143,19 +146,24 @@ public partial class InventoryPanel : PanelContainer
     // "Phone  battery 43%", "Battery  60%", "EMP Emitter".
     private static string Describe(Belongings mine, ItemInstance item)
     {
-        string text = ItemCatalog.Describe(item.Type, item.Tier);
+        string detail = Detail(mine, item);
+        return ItemCatalog.Describe(item.Type, item.Tier) + (detail == "" ? "" : "  " + detail);
+    }
 
+    private static string Detail(Belongings mine, ItemInstance item)
+    {
         if (item.Type == ItemType.Phone)
         {
             ItemInstance? battery = mine.Inside(item, SlotType.Battery);
-            text += battery == null ? "  (no battery)" : "  battery " + Power.Percent(battery.Charge) + "%";
-        }
-        else if (item.Charge != null)
-        {
-            text += "  " + Power.Percent(item.Charge) + "%";
+            return battery == null ? "(no battery)" : "battery " + Power.Percent(battery.Charge) + "%";
         }
 
-        return text;
+        if (item.Charge != null)
+        {
+            return Power.Percent(item.Charge) + "%";
+        }
+
+        return "";
     }
 
     // Until items have icons, a full slot shows the item's name on its button.
@@ -212,7 +220,16 @@ public partial class InventoryPanel : PanelContainer
             HBoxContainer row = new HBoxContainer { Name = item.Type + "_" + item.Id };
             string text = Describe(mine, item);
 
-            row.AddChild(new Label { Text = text, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = ItemCatalog.Get(item.Type).Description, MouseFilter = MouseFilterEnum.Pass });
+            row.AddChild(new ItemLabel
+            {
+                Text = text,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Pass,
+                CardTitle = ItemCatalog.Describe(item.Type, item.Tier),
+                CardColor = TierColors[(int)item.Tier],
+                CardDetail = Detail(mine, item),
+                CardDescription = ItemCatalog.Get(item.Type).Description,
+            });
 
             if (Belongings.SlotFor(item.Type) != null)
             {
