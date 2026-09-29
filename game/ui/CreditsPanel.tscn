@@ -79,6 +79,19 @@ modulate = Color(1, 1, 1, 0.75)
 layout_mode = 2
 text = "Isa Lousberg, www.isalousberg.com (CC0)"
 
+[node name="Ozea" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+
+[node name="What" type="Label" parent="Center/Panel/Margin/Rows/Ozea"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Ultimate Sci-Fi Asset Library"
+
+[node name="Who" type="Label" parent="Center/Panel/Margin/Rows/Ozea"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+text = "Ozea Studio"
+
 [node name="Lucide" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
 layout_mode = 2
 

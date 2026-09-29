@@ -1,5 +1,6 @@
 namespace MmoGame3d.Drones;
 
+using System.Collections.Generic;
 using Godot;
 
 /// <summary>
@@ -7,8 +8,8 @@ using Godot;
 /// server flies it in a slow circle around its pair's centre; an EMP pulse knocks it
 /// down, it falls, lies a moment, and is gone. A client flies the same circle from the
 /// synced centre, phase and flight time, leaning its own clock toward the server's, so
-/// it moves every frame rather than in steps. The look is a placeholder built from boxes
-/// and cylinders.
+/// it moves every frame rather than in steps. The model (Ozea Studio's sci-fi pack K) is
+/// one line in the scene to swap; any part named for a rotor or propeller spins.
 /// </summary>
 public partial class Drone : Node3D
 {
@@ -59,6 +60,7 @@ public partial class Drone : Node3D
     }
 
     private AudioStreamPlayer3D? _hum;
+    private readonly List<Node3D> _rotors = new List<Node3D>();
 
     public override void _Ready()
     {
@@ -67,6 +69,16 @@ public partial class Drone : Node3D
         if (!Multiplayer.IsServer())
         {
             _hum = Audio.AudioDirector.Current?.Attach("fx.drone_hum", this);
+
+            foreach (Node node in GetNode("Model").FindChildren("*", "Node3D", true, false))
+            {
+                string name = node.Name.ToString();
+
+                if (name.Contains("Rotor") || name.Contains("Propeller"))
+                {
+                    _rotors.Add((Node3D)node);
+                }
+            }
         }
     }
 
@@ -92,14 +104,13 @@ public partial class Drone : Node3D
 
         if (!Down)
         {
-            foreach (string rotor in new[] { "Rotors/A", "Rotors/B", "Rotors/C", "Rotors/D" })
+            foreach (Node3D rotor in _rotors)
             {
-                GetNode<Node3D>(rotor).RotateY(RotorSpin * step);
+                rotor.RotateY(RotorSpin * step);
             }
         }
 
         GetNode<OmniLight3D>("%Light").Visible = !Down;
-        GetNode<Node3D>("Eye").Visible = !Down;
 
         // A downed drone goes quiet.
         if (Down && _hum != null)

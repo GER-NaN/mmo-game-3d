@@ -28,6 +28,15 @@ From Tiny Treats Collection 1 (CC0, Isa Lousberg, www.isalousberg.com), at
 | `tinytreats/License.txt` | `License.txt` |
 | `tinytreats/house_plants/` | `House Plants/Assets/gltf/` (every file) |
 
+From Ozea Studio's Ultimate Sci-Fi Asset Library (use in games is allowed; the
+files may not be shared or resold, so they stay out of git), at
+`C:\game-art\3d\Ozea_Studio_Ultimate_SciFi_Asset_Library`:
+
+| Here | From the library |
+| --- | --- |
+| `ozea/License.txt` | `Pack_SciFi_K_001_V1.0/04_DOCS/LICENSE.txt` |
+| `ozea/drones/` | `Pack_SciFi_K_001_V1.0/02_EXPORT/FBX/` (every file: six drones; the town's drone is `SM_Drone_Basic`) |
+
 Ground textures for Terrain3D, from ambientCG (CC0), copied from the Terrain3D v1.0.2
 demo (`demo/assets/textures/`):
 
