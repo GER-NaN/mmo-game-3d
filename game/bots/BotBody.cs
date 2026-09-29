@@ -219,14 +219,20 @@ public class BotBody
     }
 
     // A key held down or let go, for walking and turning.
+    // The engine lets every key go when the window loses focus (another client's window
+    // opening), so a key meant to be down is pressed again whenever it is up.
     public void Hold(string action, bool down)
     {
-        if (down && !_held.Contains(action))
+        if (down)
         {
-            Input.ActionPress(action);
+            if (!Input.IsActionPressed(action))
+            {
+                Input.ActionPress(action);
+            }
+
             _held.Add(action);
         }
-        else if (!down && _held.Contains(action))
+        else if (_held.Contains(action))
         {
             Input.ActionRelease(action);
             _held.Remove(action);
