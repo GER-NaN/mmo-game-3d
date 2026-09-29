@@ -7,8 +7,8 @@ using System.Text.Json;
 
 /// <summary>
 /// The bot's events file: one JSON line per event, in the bot's execution folder. The
-/// Overseer reads it while the bot runs. Each line is flushed at once, so a crash keeps
-/// everything written before it.
+/// Overseer reads it while the bot runs. Each line carries the activity and step it
+/// happened in, and is flushed at once, so a crash keeps everything written before it.
 /// </summary>
 public class BotEventLog
 {
@@ -23,6 +23,11 @@ public class BotEventLog
         _writer.AutoFlush = true;
     }
 
+    // What the bot is doing now; the runner keeps these current.
+    public string Activity { get; set; } = "";
+
+    public string Step { get; set; } = "";
+
     public void Write(string kind, string detail)
     {
         Dictionary<string, string> line = new Dictionary<string, string>
@@ -31,6 +36,16 @@ public class BotEventLog
             { "kind", kind },
             { "detail", detail },
         };
+
+        if (Activity.Length > 0)
+        {
+            line["activity"] = Activity;
+        }
+
+        if (Step.Length > 0)
+        {
+            line["step"] = Step;
+        }
 
         _writer.WriteLine(JsonSerializer.Serialize(line));
     }

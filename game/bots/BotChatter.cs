@@ -1,15 +1,13 @@
 namespace MmoGame3d.Bots;
 
-using System;
 using Godot;
-using MmoGame3d.Players;
 
 /// <summary>
-/// Now and then, a line in chat from the activity's phrases, typed as a player types it:
-/// the chat key, each character as a key, then Enter. Only in the world, and only when
-/// nothing else has the keys (no text field, no full screen), so it never types into a
-/// screen the plan is working. Typing takes the keys for a few frames, as it does for a
-/// player: a walk pauses while the line is written.
+/// Now and then, a line in chat from the current activity's phrases, typed as a player
+/// types it: the chat key, the line, Enter. Only in the world, while the step leaves the
+/// keys free (waiting or walking), and when nothing else has them, so it never types into
+/// a screen the plan is working. A walk pauses while the line is written, as it does for
+/// a player.
 /// </summary>
 public class BotChatter
 {
@@ -19,23 +17,17 @@ public class BotChatter
     private const double BetweenMin = 45;
     private const double BetweenMax = 90;
 
-    private readonly string[] _phrases;
-    private readonly Random _random = new Random();
-    private double _untilNext;
+    private double _untilNext = -1;
     private string _line = "";
     private int _stage;
 
-    public BotChatter(string[] phrases)
+    public void Tick(BotBody body, BotActivityRun run, double delta)
     {
-        _phrases = phrases;
-        _untilNext = Between(FirstMin, FirstMax);
-    }
+        string[] phrases = run.Activity.Phrases;
 
-    public void Tick(BotBody body, Node node, double delta)
-    {
-        if (_phrases.Length == 0)
+        if (_untilNext < 0)
         {
-            return;
+            _untilNext = Between(body, FirstMin, FirstMax);
         }
 
         switch (_stage)
@@ -43,12 +35,12 @@ public class BotChatter
             case 0:
                 _untilNext -= delta;
 
-                if (_untilNext > 0 || body.Player == null || !KeysFree(node))
+                if (_untilNext > 0 || phrases.Length == 0 || body.Player == null || !StepAllows(run.Step) || !body.KeysFree())
                 {
                     return;
                 }
 
-                _line = _phrases[_random.Next(_phrases.Length)];
+                _line = phrases[body.Random.Next(phrases.Length)];
                 body.Key("chat", true);
                 _stage = 1;
                 break;
@@ -58,60 +50,27 @@ public class BotChatter
                 break;
             case 2:
                 // The chat line takes the keys once it opens; if it did not, try later.
-                LineEdit? field = node.GetViewport().GuiGetFocusOwner() as LineEdit;
+                LineEdit? field = body.Player?.GetViewport().GuiGetFocusOwner() as LineEdit;
 
-                if (field == null)
+                if (field != null)
                 {
-                    Rest();
-                    return;
+                    body.Type(_line);
+                    body.Events.Write("said", _line);
                 }
 
-                foreach (char letter in _line)
-                {
-                    Type(letter);
-                }
-
-                Enter();
-                body.Events.Write("said", _line);
-                Rest();
+                _stage = 0;
+                _untilNext = Between(body, BetweenMin, BetweenMax);
                 break;
         }
     }
 
-    private static bool KeysFree(Node node)
+    private static bool StepAllows(BotStep? step)
     {
-        return node.GetViewport().GuiGetFocusOwner() == null && node.GetTree().GetNodeCountInGroup(ChaseCamera.ScreenGroup) == 0;
+        return step == null || step.Intent == BotIntent.Idle || step.Intent == BotIntent.Walking;
     }
 
-    private static void Type(char letter)
+    private static double Between(BotBody body, double min, double max)
     {
-        InputEventKey key = new InputEventKey();
-        key.Unicode = letter;
-        key.Pressed = true;
-        Input.ParseInputEvent(key);
-    }
-
-    private static void Enter()
-    {
-        InputEventKey key = new InputEventKey();
-        key.Keycode = Key.Enter;
-        key.PhysicalKeycode = Key.Enter;
-        key.Pressed = true;
-        Input.ParseInputEvent(key);
-
-        InputEventKey up = (InputEventKey)key.Duplicate();
-        up.Pressed = false;
-        Input.ParseInputEvent(up);
-    }
-
-    private void Rest()
-    {
-        _stage = 0;
-        _untilNext = Between(BetweenMin, BetweenMax);
-    }
-
-    private double Between(double min, double max)
-    {
-        return min + (_random.NextDouble() * (max - min));
+        return min + (body.Random.NextDouble() * (max - min));
     }
 }

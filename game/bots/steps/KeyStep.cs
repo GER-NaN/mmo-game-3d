@@ -17,6 +17,11 @@ public class KeyStep : BotStep
         _action = action;
     }
 
+    public override BotIntent Intent
+    {
+        get { return BotIntent.Screen; }
+    }
+
     public override void Start(BotBody body)
     {
         body.Key(_action, true);

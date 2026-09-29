@@ -24,6 +24,11 @@ public class ClickStep : BotStep
         _find = find;
     }
 
+    public override BotIntent Intent
+    {
+        get { return BotIntent.Screen; }
+    }
+
     public override BotStepState Tick(BotBody body, double delta)
     {
         if (_seen != null && Engine.GetProcessFrames() > _seenOnFrame)

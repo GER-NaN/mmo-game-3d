@@ -26,6 +26,11 @@ public class EnterZoneStep : BotStep
         _walkIn = walkIn;
     }
 
+    public override BotIntent Intent
+    {
+        get { return BotIntent.Walking; }
+    }
+
     public override void Start(BotBody body)
     {
         _zoneId = body.Zone?.ZoneId ?? "";

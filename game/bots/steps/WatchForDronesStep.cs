@@ -29,6 +29,11 @@ public class WatchForDronesStep : BotStep
         _wanted = wanted;
     }
 
+    public override BotIntent Intent
+    {
+        get { return BotIntent.Screen; }
+    }
+
     public override BotStepState Tick(BotBody body, double delta)
     {
         _sinceLook += delta;

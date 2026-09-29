@@ -9,12 +9,16 @@ using System.Collections.Generic;
 /// </summary>
 public static class Program
 {
+    private const string Usage = "Usage: Overseer --godot <Godot exe> --project <project folder> [--bot <activity>|@<persona>[:connect|:fresh]]... [--timeout seconds] [--duration seconds] [--seed n]";
+
     public static int Main(string[] args)
     {
         string godot = "";
         string project = "";
         List<BotSpec> bots = new List<BotSpec>();
         double timeoutSeconds = 120;
+        double durationSeconds = 0;
+        int seed = Environment.TickCount & 0xFFFFF;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -38,24 +42,35 @@ public static class Program
                     timeoutSeconds = double.Parse(next);
                     i++;
                     break;
+                case "--duration":
+                    durationSeconds = double.Parse(next);
+                    i++;
+                    break;
+                case "--seed":
+                    seed = int.Parse(next);
+                    i++;
+                    break;
                 default:
                     Console.Error.WriteLine("Unknown option: " + args[i]);
+                    Console.Error.WriteLine(Usage);
                     return 2;
             }
         }
 
         if (godot.Length == 0 || project.Length == 0)
         {
-            Console.Error.WriteLine("Usage: Overseer --godot <Godot exe> --project <project folder> [--bot <activity>[:connect|:fresh]]... [--timeout seconds]");
+            Console.Error.WriteLine(Usage);
             return 2;
         }
 
         if (bots.Count == 0)
         {
-            bots.Add(new BotSpec("main-menu", BotPlayer.None));
+            bots.Add(BotSpec.Parse("main-menu"));
         }
 
-        BotRun run = new BotRun(godot, project, bots, TimeSpan.FromSeconds(timeoutSeconds));
+        // A persona plays until stopped: without a duration, the timeout is its duration.
+        double duration = durationSeconds > 0 ? durationSeconds : timeoutSeconds;
+        BotRun run = new BotRun(godot, project, bots, TimeSpan.FromSeconds(timeoutSeconds), TimeSpan.FromSeconds(duration), seed);
         return run.Run();
     }
 }

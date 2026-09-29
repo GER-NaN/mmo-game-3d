@@ -36,6 +36,11 @@ public class ApproachStep<T> : BotStep
     {
     }
 
+    public override BotIntent Intent
+    {
+        get { return BotIntent.Walking; }
+    }
+
     public override BotStepState Tick(BotBody body, double delta)
     {
         Zone? zone = body.Zone;

@@ -9,12 +9,18 @@
 #   .\scripts\bots-run.ps1 -Bots quit,jump:connect           several at once
 #   .\scripts\bots-run.ps1 -All                              every activity below, at once
 #
-# A bot is "activity", "activity:connect" (a kept player of its own, "bot-<activity>")
-# or "activity:fresh" (a new player). Connected bots start the server if none runs.
+#   .\scripts\bots-run.ps1 -Bots "@wanderer:connect" -Duration 600   a persona, ten minutes
+#
+# A bot is an activity, or "@" and a persona (game/bots/BotPersonas.cs), then
+# ":connect" (a kept player of its own, "bot-<name>") or ":fresh" (a new player).
+# Connected bots start the server if none runs. -Seed replays a run's random choices.
+# scripts/bots-stop.ps1 stops a run early, each bot cleanly.
 param(
     [string[]]$Bots = @("main-menu"),
     [switch]$All,
     [double]$Timeout = 120,
+    [double]$Duration = 0,
+    [int]$Seed = -1,
     [string]$Godot = "C:\Users\geral\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64.exe"
 )
 
@@ -47,6 +53,14 @@ if ($All) {
 }
 
 $overseerArgs = @("--godot", $Godot, "--project", $root, "--timeout", $Timeout)
+
+if ($Duration -gt 0) {
+    $overseerArgs += @("--duration", $Duration)
+}
+
+if ($Seed -ge 0) {
+    $overseerArgs += @("--seed", $Seed)
+}
 
 foreach ($bot in $Bots) {
     $overseerArgs += @("--bot", $bot)

@@ -9,13 +9,17 @@ using System.Text.Json;
 
 /// <summary>
 /// One bot in one game client, from start to exit. Everything about it is in its own
-/// folder: the events file the bot writes, the client's log, and the stop file this
-/// leaves to ask the bot to quit.
+/// folder: bot.json (what it plays, its seed), the events file it writes, the client's
+/// log, and the stop file this leaves to ask it to quit. It counts the bot's events by
+/// kind as they are read, for the run's summary.
 /// </summary>
 public class BotExecution
 {
+    public const string Scene = "res://game/bots/BotMain.tscn";
+
     private const string EventsFile = "events.jsonl";
     private const string StopFile = "stop";
+
     // DisplayName.MaxLength in src/Rules/Players.
     private const int MaxNameLength = 16;
 
@@ -24,17 +28,23 @@ public class BotExecution
     private long _readTo;
     private string _partialLine = "";
 
-    private BotExecution(string name, string folder, Process process)
+    private BotExecution(BotSpec spec, string name, string folder, int seed, Process process)
     {
+        Spec = spec;
         Name = name;
         Folder = folder;
+        Seed = seed;
         _process = process;
         _eventsPath = Path.Combine(folder, EventsFile);
     }
 
+    public BotSpec Spec { get; }
+
     public string Name { get; }
 
     public string Folder { get; }
+
+    public int Seed { get; }
 
     public bool HasExited
     {
@@ -46,6 +56,9 @@ public class BotExecution
         get { return _process.ExitCode; }
     }
 
+    // The bot's events so far, counted by kind ("completed", "finding").
+    public Dictionary<string, int> Tally { get; } = new Dictionary<string, int>();
+
     // What the run has seen of it so far.
     public bool Done { get; set; }
 
@@ -55,20 +68,29 @@ public class BotExecution
 
     public TimeSpan? StopAskedAt { get; set; }
 
+    // A one-activity bot passes when it said "done" and quit cleanly; a persona bot when
+    // it quit cleanly once asked, whatever its activities made of it.
     public bool Passed
     {
-        get { return Done && !Failed && !Killed && HasExited && ExitCode == 0; }
+        get
+        {
+            bool clean = !Killed && HasExited && ExitCode == 0;
+            return Spec.IsPersona ? clean && StopAskedAt != null : clean && Done && !Failed;
+        }
     }
 
-    public const string Scene = "res://game/bots/BotMain.tscn";
+    public int Count(string kind)
+    {
+        int count;
+        return Tally.TryGetValue(kind, out count) ? count : 0;
+    }
 
-    // activity: the name the bot looks up in game/bots/BotActivities.cs. profile: the
-    // player the client connects as at once, or null to stay at the main menu ("fresh"
-    // is a new player every launch).
-    public static BotExecution Start(string godot, string project, string activity, string name, string folder, string? profile)
+    // profile: the player the client connects as at once, or null to stay at the main
+    // menu ("fresh" is a new player every launch).
+    public static BotExecution Start(string godot, string project, BotSpec spec, string name, string folder, string? profile, int seed)
     {
         Directory.CreateDirectory(folder);
-        WriteBotFile(folder, name, activity);
+        WriteBotFile(folder, name, spec, seed);
 
         ProcessStartInfo start = new ProcessStartInfo(godot);
         start.UseShellExecute = false;
@@ -111,11 +133,11 @@ public class BotExecution
         Process process = Process.Start(start)!;
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-        return new BotExecution(name, folder, process);
+        return new BotExecution(spec, name, folder, seed, process);
     }
 
-    // The lines written since the last call. A line still being written waits for the
-    // next call.
+    // The lines written since the last call, each counted in the tally. A line still being
+    // written waits for the next call.
     public List<BotEvent> ReadNewEvents()
     {
         List<BotEvent> events = new List<BotEvent>();
@@ -149,7 +171,9 @@ public class BotExecution
 
             if (line.Length > 0)
             {
-                events.Add(Parse(line));
+                BotEvent botEvent = Parse(line);
+                Tally[botEvent.Kind] = Count(botEvent.Kind) + 1;
+                events.Add(botEvent);
             }
         }
 
@@ -170,14 +194,23 @@ public class BotExecution
         }
     }
 
-    // bot.json: what this execution is. The bot reads the activity it runs from here.
-    private static void WriteBotFile(string folder, string name, string activity)
+    // bot.json: what this execution is, read by the bot (game/bots/BotSetup.cs).
+    private static void WriteBotFile(string folder, string name, BotSpec spec, int seed)
     {
-        Dictionary<string, string> bot = new Dictionary<string, string>
+        Dictionary<string, object> bot = new Dictionary<string, object>
         {
             { "name", name },
-            { "activity", activity },
+            { "seed", seed },
         };
+
+        if (spec.IsPersona)
+        {
+            bot["persona"] = spec.Persona;
+        }
+        else
+        {
+            bot["activity"] = spec.Activity;
+        }
 
         JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = true };
         File.WriteAllText(Path.Combine(folder, "bot.json"), JsonSerializer.Serialize(bot, options));
@@ -188,7 +221,7 @@ public class BotExecution
         using (JsonDocument json = JsonDocument.Parse(line))
         {
             JsonElement root = json.RootElement;
-            return new BotEvent(Field(root, "time"), Field(root, "kind"), Field(root, "detail"));
+            return new BotEvent(Field(root, "time"), Field(root, "kind"), Field(root, "detail"), Field(root, "activity"));
         }
     }
 

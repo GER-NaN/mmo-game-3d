@@ -11,6 +11,63 @@ using MmoGame3d.Ui;
 /// </summary>
 public static class BotScreens
 {
+    // The key that closes a screen, by its name in ClientView.OpenScreens; null for those
+    // before the world (menus, character screens), which are not closed but played through.
+    public static string? CloseKey(string screen)
+    {
+        switch (screen)
+        {
+            case "inventory":
+            case "map":
+            case "social":
+            case "skills":
+                return screen;
+            case "game-menu":
+            case "terminal":
+            case "shop":
+            case "workbench":
+            case "give":
+            case "recycler":
+            case "college":
+            case "garden":
+            case "plant-card":
+            case "visitor-book":
+                return "ui_cancel";
+            default:
+                return null;
+        }
+    }
+
+    // The Play button on the character screen's first character card. The cards are
+    // built in code and their buttons have no names, so it goes by the button's text.
+    public static Button? FirstPlay(CharacterSelect select)
+    {
+        return FirstButton(select, "Play");
+    }
+
+    // The first button with this text under a screen, in tree order.
+    public static Button? FirstButton(Node under, string text)
+    {
+        foreach (Node child in under.GetChildren())
+        {
+            Button? button = child as Button;
+
+            if (button != null && button.Text == text && button.IsVisibleInTree())
+            {
+                return button;
+            }
+
+            Button? inside = FirstButton(child, text);
+
+            if (inside != null)
+            {
+                return inside;
+            }
+        }
+
+        return null;
+    }
+
     // An app's button in a terminal's list, by the app's name ("Town cameras"). A locked
     // app's button reads "[locked] ..."; its tooltip is always the plain name.
     public static Button? TerminalApp(TerminalScreen? terminal, string appName)

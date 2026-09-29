@@ -1,16 +1,18 @@
 namespace MmoGame3d.Bots;
 
-using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 using Godot;
 
 /// <summary>
 /// The bot: the one node the bot scene adds under Main, so the game itself never knows
-/// it is there (bots.md T6). It reads its execution folder's bot.json for the activity
-/// to run, runs the activity's steps one after another, and reports each step, then
-/// "done" or "failed", in the events file. A step past its time limit fails. The stop
-/// file ends the run: exit code 0 if the plan finished, 1 if not.
+/// it is there (bots.md T6). From its execution folder's bot.json it takes a persona, or
+/// one activity to play once. It plays one activity at a time, picking the next when
+/// free, while its watchers look on and its chatter talks now and then.
+///
+/// Events: "activity" as one starts; "completed" or "failed" as it ends ("walked-away"
+/// if the persona leaves it); "finding" from a watcher; "done" when a one-activity bot has
+/// played its activity well. The stop file ends the run: exit code 1 for a one-activity
+/// bot that did not finish well, 0 otherwise.
 /// </summary>
 public partial class BotRunner : Node
 {
@@ -18,17 +20,18 @@ public partial class BotRunner : Node
 
     private const double StopLookInterval = 0.25;
 
-    private readonly List<BotStep> _steps = new List<BotStep>();
+    private readonly BotWatch _watch = new BotWatch();
+    private readonly BotChatter _chatter = new BotChatter();
     private string _folder = "";
     private BotEventLog? _events;
     private BotBody? _body;
-    private BotChatter _chatter = new BotChatter(new string[0]);
-    private int _current;
-    private bool _started;
-    private double _stepTime;
+    private BotPersona? _persona;
+    private BotActivityRun? _run;
     private double _sinceStopLook;
     private bool _finished;
-    private bool _failed;
+    private bool _onceOnly;
+    private bool _allWell = true;
+    private int _failures;
 
     public override void _Ready()
     {
@@ -41,22 +44,17 @@ public partial class BotRunner : Node
             return;
         }
 
+        BotSetup setup = BotSetup.Read(_folder);
         _events = new BotEventLog(_folder);
-        _body = new BotBody(this, _events, InsertNext);
-        string name = ActivityName();
-        BotActivity? activity = BotActivities.Named(name);
-        _events.Write("started", name);
+        _body = new BotBody(this, _folder, _events, setup.Seed);
+        _onceOnly = setup.Persona.Length == 0;
+        _persona = _onceOnly ? BotPersona.Only(setup.Activity) : BotPersonas.Named(setup.Persona);
+        _events.Write("started", (_onceOnly ? setup.Activity : "persona " + setup.Persona) + ", seed " + setup.Seed);
 
-        if (activity == null)
+        if (_persona == null)
         {
-            _events.Write("failed", "no activity named \"" + name + "\"");
-            _finished = true;
-            _failed = true;
-            return;
+            Finish("no persona named \"" + setup.Persona + "\"");
         }
-
-        _steps.AddRange(activity.Steps());
-        _chatter = new BotChatter(activity.Phrases);
     }
 
     public override void _Process(double delta)
@@ -74,126 +72,115 @@ public partial class BotRunner : Node
             }
         }
 
-        if (!_finished)
+        if (_finished)
         {
-            _chatter.Tick(_body!, this, delta);
+            return;
         }
 
-        // A step that finishes hands over to the next in the same frame, so nothing the
-        // game does at the frame's end (quitting) comes between them.
-        double stepDelta = delta;
+        BotBody body = _body!;
+        _watch.Tick(body, _run?.Step, delta);
 
-        while (!_finished)
+        if (_run == null && !StartNext())
         {
-            if (_current == _steps.Count)
-            {
-                _events!.Write("done", "");
-                _finished = true;
-                return;
-            }
-
-            BotStep step = _steps[_current];
-
-            if (!_started)
-            {
-                _events!.Write("step", step.Name);
-                _started = true;
-                _stepTime = 0;
-                step.Start(_body!);
-            }
-
-            _stepTime += stepDelta;
-            BotStepState state = step.Tick(_body!, stepDelta);
-            stepDelta = 0;
-
-            if (state == BotStepState.Running && _stepTime > step.TimeLimit)
-            {
-                state = BotStepState.Failed;
-                _events!.Write("failed", step.Name + ": not done after " + step.TimeLimit + " s");
-            }
-            else if (state == BotStepState.Failed)
-            {
-                _events!.Write("failed", step.Name + ": " + step.FailReason);
-            }
-
-            if (state == BotStepState.Running)
-            {
-                return;
-            }
-
-            step.End(_body!);
-            _started = false;
-
-            if (state == BotStepState.Failed)
-            {
-                _body!.ReleaseAll();
-                RecordFailure();
-                _finished = true;
-                _failed = true;
-                return;
-            }
-
-            _current++;
+            return;
         }
+
+        _chatter.Tick(body, _run!, delta);
+        BotStepState state = _run!.Tick(body, delta);
+
+        if (state == BotStepState.Running)
+        {
+            if (_run.AtBoundary && body.Random.NextDouble() < _persona!.WalkAwayChance)
+            {
+                _run.Cancel(body);
+                _events!.Write("walked-away", "");
+                EndRun();
+            }
+
+            return;
+        }
+
+        if (state == BotStepState.Done)
+        {
+            _events!.Write("completed", "");
+        }
+        else
+        {
+            _failures++;
+            _allWell = false;
+            _events!.Write("failed", _run.FailReason + " at " + body.Where());
+            body.SavePicture("failed-" + _failures + ".png");
+        }
+
+        EndRun();
     }
 
-    // Where it failed, and what the window showed then (bots.md F3). A headless client
-    // draws nothing, so it has no picture.
-    private void RecordFailure()
+    // The persona's next activity; false when there is none, and the bot is finished.
+    private bool StartNext()
     {
-        Players.Player? player = _body!.Player;
-        Zones.Zone? zone = _body.Zone;
+        string? name = _persona!.Next(_body!.Random);
 
-        if (player != null && zone != null)
+        if (name == null)
         {
-            Vector3 at = zone.ToLocal(player.GlobalPosition);
-            _events!.Write("position", zone.ZoneId + " (" + at.X.ToString("0.0") + ", " + at.Y.ToString("0.0") + ", " + at.Z.ToString("0.0") + ")");
+            Finish(_allWell ? "" : "not all went well");
+            return false;
         }
 
-        if (DisplayServer.GetName() != "headless")
+        BotActivity? activity = BotActivities.Named(name);
+
+        if (activity == null)
         {
-            string picture = Path.Combine(_folder, "failed.png");
-            GetViewport().GetTexture().GetImage().SavePng(picture);
-            _events!.Write("screenshot", "failed.png");
+            _allWell = false;
+            Finish("no activity named \"" + name + "\"");
+            return false;
         }
+
+        _run = new BotActivityRun(activity);
+        _body.Run = _run;
+        _events!.Activity = name;
+        _events.Write("activity", name);
+        return true;
     }
 
-    // A need met by another activity: its steps run next.
-    private void InsertNext(List<BotStep> steps)
+    private void EndRun()
     {
-        _steps.InsertRange(_current + 1, steps);
+        _body!.ReleaseAll();
+        _body.Navigator.Stop(_body);
+        _body.Run = null;
+        _body.NeedDepth = 0;
+        _run = null;
+        _events!.Activity = "";
+    }
+
+    // Nothing more to do: "done" when all went well, else why not.
+    private void Finish(string problem)
+    {
+        _finished = true;
+
+        if (problem.Length == 0)
+        {
+            _events!.Write("done", "");
+        }
+        else
+        {
+            _allWell = false;
+            _events!.Write("failed", problem);
+        }
     }
 
     private void Stop()
     {
-        bool planDone = _finished && !_failed;
-
-        if (_started)
+        if (_run != null)
         {
-            _steps[_current].End(_body!);
+            _run.Cancel(_body!);
         }
 
         _body!.ReleaseAll();
-        _events!.Write("stopped", "");
+        _events!.Write("stopped", _watch.Findings + " findings");
         _events.Close();
         SetProcess(false);
-        GetTree().Quit(planDone ? 0 : 1);
-    }
-
-    private string ActivityName()
-    {
-        string path = Path.Combine(_folder, "bot.json");
-
-        if (!File.Exists(path))
-        {
-            return "";
-        }
-
-        using (JsonDocument json = JsonDocument.Parse(File.ReadAllText(path)))
-        {
-            JsonElement activity;
-            return json.RootElement.TryGetProperty("activity", out activity) ? activity.GetString() ?? "" : "";
-        }
+        bool failedOnce = _onceOnly && !(_finished && _allWell);
+        GetTree().Quit(failedOnce ? 1 : 0);
     }
 
     // LaunchOptions ignores options it does not know, so the bot's ride on the same line.

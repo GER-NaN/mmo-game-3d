@@ -18,6 +18,11 @@ public class WaitForScreenStep<T> : BotStep
     {
     }
 
+    public override BotIntent Intent
+    {
+        get { return BotIntent.Screen; }
+    }
+
     public override BotStepState Tick(BotBody body, double delta)
     {
         _sinceLook += delta;

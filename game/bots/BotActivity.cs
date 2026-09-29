@@ -20,13 +20,21 @@ public class BotActivity
     public BotActivity(string name, BotFact[] provides, Func<BotPlan, BotPlan> plan)
     {
         Name = name;
-        Provides = provides;
         _plan = plan;
+        List<string> keys = new List<string>();
+
+        foreach (BotFact fact in provides)
+        {
+            keys.Add(fact.Key);
+        }
+
+        Provides = keys;
     }
 
     public string Name { get; }
 
-    public BotFact[] Provides { get; }
+    // The keys of the facts it makes true ("money", "phone-equipped").
+    public IReadOnlyList<string> Provides { get; }
 
     // What the bot says in chat now and then while it runs this (BotChatter).
     public string[] Phrases { get; private set; } = new string[0];

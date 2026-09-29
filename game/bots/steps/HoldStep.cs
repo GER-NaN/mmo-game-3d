@@ -16,6 +16,12 @@ public class HoldStep : BotStep
         _seconds = seconds;
     }
 
+    // Holding a walking key is walking.
+    public override BotIntent Intent
+    {
+        get { return _action.StartsWith("move_") || _action.StartsWith("strafe_") ? BotIntent.Walking : BotIntent.Idle; }
+    }
+
     public override void Start(BotBody body)
     {
         body.Hold(_action, true);

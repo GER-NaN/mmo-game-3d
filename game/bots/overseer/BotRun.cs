@@ -4,102 +4,166 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
-using System.Net.NetworkInformation;
 using System.Threading;
 
 /// <summary>
-/// One run: starts every bot at once, each in its own client, watches their events
-/// until each is done, and leaves each execution's folder under bot-runs/ as the
-/// report. A bot passes when it reported "done" and its client quit with exit code 0;
-/// "failed" stops it at once. The run passes when every bot passed.
+/// One run: starts every bot at once, each in its own client, watches their events, and
+/// leaves each execution's folder under bot-runs/ as the report.
+///
+/// A one-activity bot is stopped once it says "done" or "failed", or at the timeout; it
+/// passes when it said "done" and quit cleanly. A persona bot plays until the run's
+/// duration is up; if its client dies before, it is started again as the same player.
+/// A "stop" file in the run's folder (scripts/bots-stop.ps1) stops every bot. The run
+/// passes when every bot passed.
 /// </summary>
 public class BotRun
 {
     private const int PollMilliseconds = 250;
-    private const int ServerPort = 7070;
 
     // How long a bot has to quit by itself after its stop file, before it is killed.
     private static readonly TimeSpan StopGrace = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan ServerStartLimit = TimeSpan.FromSeconds(30);
+
+    // What a persona bot's lines show on the console; the rest is in its events file.
+    private static readonly HashSet<string> SoakShows = new HashSet<string> { "activity", "completed", "failed", "walked-away", "finding", "keeper" };
 
     private readonly string _godot;
     private readonly string _project;
     private readonly List<BotSpec> _bots;
     private readonly TimeSpan _timeout;
+    private readonly TimeSpan _duration;
+    private readonly int _seed;
+    private readonly List<BotExecution> _executions = new List<BotExecution>();
+    private readonly Dictionary<BotExecution, TimeSpan> _startedAt = new Dictionary<BotExecution, TimeSpan>();
+    private readonly Stopwatch _clock = new Stopwatch();
+    private string _folder = "";
 
-    public BotRun(string godot, string project, List<BotSpec> bots, TimeSpan timeout)
+    public BotRun(string godot, string project, List<BotSpec> bots, TimeSpan timeout, TimeSpan duration, int seed)
     {
         _godot = godot;
         _project = project;
         _bots = bots;
         _timeout = timeout;
+        _duration = duration;
+        _seed = seed;
     }
 
     public int Run()
     {
-        bool connect = false;
-
-        foreach (BotSpec spec in _bots)
-        {
-            connect = connect || spec.Player != BotPlayer.None;
-        }
-
-        if (connect && !EnsureServer())
+        if (_bots.Exists(spec => spec.Player != BotPlayer.None) && !LocalServer.Ensure(_godot, _project))
         {
             Console.WriteLine("Run failed: no server.");
             return 1;
         }
 
-        string folder = MakeRunFolder();
-        Console.WriteLine("Run folder: " + folder);
-        List<BotExecution> executions = new List<BotExecution>();
+        _folder = MakeRunFolder();
+        Console.WriteLine("Run folder: " + _folder + ", seed " + _seed);
+        _clock.Start();
 
         // Whatever happens here, no client is left running after the run.
         try
         {
-            foreach (BotSpec spec in _bots)
+            for (int i = 0; i < _bots.Count; i++)
             {
-                string name = UniqueName(executions, spec.Activity);
-                executions.Add(BotExecution.Start(_godot, _project, spec.Activity, name, Path.Combine(folder, name), Profile(spec, name)));
+                Start(_bots[i], UniqueName(_bots[i].Name), i, 0);
             }
 
-            return Watch(executions);
+            Watch();
+            return Report();
         }
         finally
         {
-            foreach (BotExecution bot in executions)
+            foreach (BotExecution bot in _executions)
             {
                 bot.Kill();
             }
         }
     }
 
-    private int Watch(List<BotExecution> executions)
+    private void Start(BotSpec spec, string name, int index, int restart)
     {
-        Stopwatch clock = Stopwatch.StartNew();
+        string folderName = restart == 0 ? name : name + "-r" + restart;
+        int seed = _seed + (index * 1000) + restart;
+        BotExecution bot = BotExecution.Start(_godot, _project, spec, name, Path.Combine(_folder, folderName), Profile(spec, name), seed);
+        _executions.Add(bot);
+        _startedAt[bot] = _clock.Elapsed;
+    }
 
-        while (!AllEnded(executions))
+    private void Watch()
+    {
+        while (_executions.Exists(bot => !bot.HasExited))
         {
-            foreach (BotExecution bot in executions)
+            bool stopAll = File.Exists(Path.Combine(_folder, "stop"));
+
+            // Restarts add to the list, so it is walked by index.
+            for (int i = 0; i < _executions.Count; i++)
             {
-                if (!bot.HasExited)
+                BotExecution bot = _executions[i];
+
+                if (bot.HasExited)
                 {
-                    Watch(bot, clock.Elapsed);
+                    continue;
+                }
+
+                ReadEvents(bot);
+                TimeSpan elapsed = _clock.Elapsed;
+                bool due = bot.Spec.IsPersona ? elapsed > _duration : elapsed - _startedAt[bot] > _timeout || bot.Done || bot.Failed;
+
+                if (bot.StopAskedAt == null && (due || stopAll))
+                {
+                    bot.RequestStop();
+                    bot.StopAskedAt = elapsed;
+                }
+
+                if (bot.StopAskedAt != null && elapsed - bot.StopAskedAt.Value > StopGrace)
+                {
+                    Console.WriteLine("[" + bot.Name + "] did not quit after its stop file; killed");
+                    bot.Kill();
+                    bot.Killed = true;
                 }
             }
 
+            RestartTheDead(stopAll);
             Thread.Sleep(PollMilliseconds);
         }
+    }
 
+    // A persona bot whose client died without being asked: once more, as the same player.
+    private void RestartTheDead(bool stopAll)
+    {
+        int count = _executions.Count;
+
+        for (int i = 0; i < count; i++)
+        {
+            BotExecution bot = _executions[i];
+
+            if (!bot.Spec.IsPersona || !bot.HasExited || bot.StopAskedAt != null || stopAll || _clock.Elapsed > _duration)
+            {
+                continue;
+            }
+
+            ReadEvents(bot);
+            int restarts = _executions.FindAll(other => other.Name == bot.Name).Count;
+            Console.WriteLine("[" + bot.Name + "] client ended by itself (exit code " + bot.ExitCode + "); starting it again");
+            bot.StopAskedAt = _clock.Elapsed;
+            bot.Killed = true;
+            Start(bot.Spec, bot.Name, _bots.IndexOf(bot.Spec), restarts);
+        }
+    }
+
+    // One line per bot, and whether the run passed.
+    private int Report()
+    {
         Console.WriteLine();
         int passed = 0;
 
-        foreach (BotExecution bot in executions)
+        foreach (BotExecution bot in _executions)
         {
             ReadEvents(bot);
             string how = bot.Killed ? "killed" : "exit code " + bot.ExitCode;
-            Console.WriteLine((bot.Passed ? "  passed  " : "  FAILED  ") + bot.Name + " (" + how + ")");
+            string counts = bot.Spec.IsPersona
+                ? ", " + bot.Count("activity") + " activities: " + bot.Count("completed") + " completed, " + bot.Count("failed") + " failed, " + bot.Count("walked-away") + " walked away; " + bot.Count("finding") + " findings"
+                : "";
+            Console.WriteLine((bot.Passed ? "  passed  " : "  FAILED  ") + bot.Name + " (" + how + counts + ")");
 
             if (bot.Passed)
             {
@@ -107,67 +171,35 @@ public class BotRun
             }
         }
 
-        Console.WriteLine(passed == executions.Count ? "Run passed." : "Run failed: " + passed + " of " + executions.Count + " passed.");
-        return passed == executions.Count ? 0 : 1;
+        Console.WriteLine(passed == _executions.Count ? "Run passed." : "Run failed: " + passed + " of " + _executions.Count + " passed.");
+        return passed == _executions.Count ? 0 : 1;
     }
 
-    private void Watch(BotExecution bot, TimeSpan elapsed)
-    {
-        ReadEvents(bot);
-
-        if (bot.StopAskedAt == null && (bot.Done || bot.Failed || elapsed > _timeout))
-        {
-            if (!bot.Done && !bot.Failed)
-            {
-                Console.WriteLine("[" + bot.Name + "] not done after " + _timeout.TotalSeconds + " s");
-            }
-
-            bot.RequestStop();
-            bot.StopAskedAt = elapsed;
-        }
-
-        if (bot.StopAskedAt != null && elapsed - bot.StopAskedAt.Value > StopGrace)
-        {
-            Console.WriteLine("[" + bot.Name + "] did not quit after its stop file; killed");
-            bot.Kill();
-            bot.Killed = true;
-        }
-    }
-
-    private static bool AllEnded(List<BotExecution> executions)
-    {
-        foreach (BotExecution bot in executions)
-        {
-            if (!bot.HasExited)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    // Prints the bot's new events, and notes "done" and "failed" among them.
+    // Prints the bot's new events (a persona bot's, only the ones that matter), and notes
+    // "done" and "failed" among them.
     private static void ReadEvents(BotExecution bot)
     {
         foreach (BotEvent botEvent in bot.ReadNewEvents())
         {
-            string detail = botEvent.Detail.Length > 0 ? " " + botEvent.Detail : "";
-            Console.WriteLine("[" + bot.Name + "] " + botEvent.Kind + detail);
+            if (!bot.Spec.IsPersona || SoakShows.Contains(botEvent.Kind))
+            {
+                string detail = botEvent.Detail.Length > 0 ? " " + botEvent.Detail : "";
+                Console.WriteLine("[" + bot.Name + "] " + botEvent.Kind + detail);
+            }
 
             if (botEvent.Kind == "done")
             {
                 bot.Done = true;
             }
-            else if (botEvent.Kind == "failed")
+            else if (botEvent.Kind == "failed" && !bot.Spec.IsPersona)
             {
                 bot.Failed = true;
             }
         }
     }
 
-    // A kept player is named after its execution, so each bot in a run is its own player
-    // and the same one on every run.
+    // A kept player is named after its bot, so each bot is its own player, the same one
+    // on every run.
     private static string? Profile(BotSpec spec, string name)
     {
         switch (spec.Player)
@@ -181,70 +213,19 @@ public class BotRun
         }
     }
 
-    // The activity's name, with a number after it when the run has it more than once.
-    private static string UniqueName(List<BotExecution> executions, string activity)
+    // The bot's name, with a number after it when the run has it more than once.
+    private string UniqueName(string name)
     {
-        string name = activity;
+        string unique = name;
         int number = 2;
 
-        while (executions.Exists(bot => bot.Name == name))
+        while (_executions.Exists(bot => bot.Name == unique))
         {
-            name = activity + "-" + number;
+            unique = name + "-" + number;
             number++;
         }
 
-        return name;
-    }
-
-    // The main server, as scripts/server-up.ps1 starts it, if nothing listens on its port.
-    // It is left running after the run; scripts/server-stop.ps1 stops it so it saves.
-    private bool EnsureServer()
-    {
-        if (ServerListening())
-        {
-            Console.WriteLine("Server: already running");
-            return true;
-        }
-
-        Console.WriteLine("Server: starting");
-        ProcessStartInfo start = new ProcessStartInfo(_godot);
-        start.UseShellExecute = true;
-        start.ArgumentList.Add("--headless");
-        start.ArgumentList.Add("--path");
-        start.ArgumentList.Add(_project);
-        start.ArgumentList.Add("--");
-        start.ArgumentList.Add("--server");
-        Process.Start(start);
-
-        Stopwatch clock = Stopwatch.StartNew();
-
-        while (clock.Elapsed < ServerStartLimit)
-        {
-            if (ServerListening())
-            {
-                Console.WriteLine("Server: up after " + (int)clock.Elapsed.TotalSeconds + " s");
-                return true;
-            }
-
-            Thread.Sleep(PollMilliseconds);
-        }
-
-        Console.WriteLine("Server: not listening after " + ServerStartLimit.TotalSeconds + " s");
-        return false;
-    }
-
-    // ENet is UDP, so a server is up when something holds its UDP port.
-    private static bool ServerListening()
-    {
-        foreach (IPEndPoint endPoint in IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners())
-        {
-            if (endPoint.Port == ServerPort)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return unique;
     }
 
     // bot-runs/<time>/, with a .gdignore beside the runs so Godot never imports their

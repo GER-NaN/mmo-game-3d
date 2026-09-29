@@ -41,6 +41,11 @@ public class SurveyStep : BotStep
     {
     }
 
+    public override BotIntent Intent
+    {
+        get { return BotIntent.Walking; }
+    }
+
     public override void Start(BotBody body)
     {
         _zoneId = body.Zone?.ZoneId ?? "";
@@ -74,7 +79,7 @@ public class SurveyStep : BotStep
         if (zone.ZoneId != _zoneId)
         {
             body.Events.Write("survey", "a door took it to " + zone.ZoneId + "; going back");
-            body.InsertNext(new List<BotStep> { new EnterZoneStep(_zoneId, false), new SurveyStep() });
+            body.Run!.InsertNext(new List<BotStep> { new EnterZoneStep(_zoneId, false), new SurveyStep() });
             return BotStepState.Done;
         }
 
