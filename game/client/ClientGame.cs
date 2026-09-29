@@ -960,7 +960,39 @@ public partial class ClientGame : Node
             _maps.TryGetValue(_zoneId, out cells);
             byte[] mapCells = cells == null ? new byte[0] : (byte[])cells.Clone();
 
-            return new ClientView(_zoneId, _dollars, new Belongings(stacks, instances), mapCells);
+            return new ClientView(_zoneId, _dollars, new Belongings(stacks, instances), mapCells, OpenScreens());
+        }
+    }
+
+    // The screens open now, by name, for ClientView.
+    private List<string> OpenScreens()
+    {
+        List<string> open = new List<string>();
+        AddIfOpen(open, _menu, "main-menu");
+        AddIfOpen(open, _select, "character-select");
+        AddIfOpen(open, _creator, "character-creator");
+        AddIfOpen(open, _inGameMenu, "game-menu");
+        AddIfOpen(open, _inventoryPanel, "inventory");
+        AddIfOpen(open, _terminal, "terminal");
+        AddIfOpen(open, _shop, "shop");
+        AddIfOpen(open, _workbench, "workbench");
+        AddIfOpen(open, _give, "give");
+        AddIfOpen(open, _map, "map");
+        AddIfOpen(open, _recycler, "recycler");
+        AddIfOpen(open, _social, "social");
+        AddIfOpen(open, _skills, "skills");
+        AddIfOpen(open, _college, "college");
+        AddIfOpen(open, _garden, "garden");
+        AddIfOpen(open, _plantCard, "plant-card");
+        AddIfOpen(open, _book, "visitor-book");
+        return open;
+    }
+
+    private static void AddIfOpen(List<string> open, Node? screen, string name)
+    {
+        if (screen != null && IsInstanceValid(screen))
+        {
+            open.Add(name);
         }
     }
 
