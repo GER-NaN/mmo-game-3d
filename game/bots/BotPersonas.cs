@@ -24,6 +24,9 @@ public static class BotPersonas
             .Likes("recycle", 1)
             .Likes("fix-something", 1)
             .Likes("ride-taxi", 1)
+            .Likes("befriend-someone", 1)
+            .Likes("invite-someone", 1)
+            .Likes("message-someone", 1)
             .WalksAway(0.02),
 
         // Opens every screen and clicks what it finds.
@@ -41,6 +44,8 @@ public static class BotPersonas
             .Likes("read-visitor-book", 1)
             .Likes("talk-to-registrar", 1)
             .Likes("talk-to-professor", 1)
+            .Likes("give-someone-something", 1)
+            .Likes("leave-party", 1)
             .WalksAway(0.05),
 
         // The minigames, over and over.

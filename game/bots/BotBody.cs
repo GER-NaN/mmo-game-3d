@@ -102,6 +102,30 @@ public class BotBody
         }
     }
 
+    // The other players in this zone, as this client sees them.
+    public List<Player> OthersHere()
+    {
+        List<Player> others = new List<Player>();
+        Zone? zone = Zone;
+
+        if (zone == null)
+        {
+            return others;
+        }
+
+        foreach (Node child in zone.Players.GetChildren())
+        {
+            Player? other = child as Player;
+
+            if (other != null && other.IsInsideTree() && !other.IsInGroup(Players.Player.LocalGroup))
+            {
+                others.Add(other);
+            }
+        }
+
+        return others;
+    }
+
     // The first node in a group, as this type, or null: Old Town's TownState, say.
     public T? InGroup<T>(string group)
         where T : Node
@@ -127,9 +151,12 @@ public class BotBody
     // A click at a point inside a control, in its own coordinates: a spot on a picture.
     public void ClickAt(Control control, Vector2 local)
     {
-        Vector2 point = control.GetGlobalTransformWithCanvas() * local;
-        Viewport viewport = control.GetViewport();
+        ClickScreen(control.GetViewport(), control.GetGlobalTransformWithCanvas() * local);
+    }
 
+    // A click at a point in the window, on whatever is there: a player in the world, say.
+    public void ClickScreen(Viewport viewport, Vector2 point)
+    {
         InputEventMouseButton press = new InputEventMouseButton();
         press.ButtonIndex = MouseButton.Left;
         press.Position = point;

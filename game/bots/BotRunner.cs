@@ -23,6 +23,7 @@ public partial class BotRunner : Node
 
     private readonly BotWatch _watch = new BotWatch();
     private readonly BotChatter _chatter = new BotChatter();
+    private readonly BotInviteAnswers _invites = new BotInviteAnswers();
     private string _folder = "";
     private BotEventLog? _events;
     private BotBody? _body;
@@ -83,6 +84,7 @@ public partial class BotRunner : Node
 
         BotBody body = _body!;
         _watch.Tick(body, _run?.Step, delta);
+        _invites.Tick(body, delta);
 
         if (_run == null && !StartNext())
         {
