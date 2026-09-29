@@ -175,6 +175,15 @@ public static class BotScreens
         }
     }
 
+    // A node by its name anywhere under a screen, as this type (a control named for what
+    // it holds, as "Take_street-lights"); null if none is visible.
+    public static T? Named<T>(Node? under, string name)
+        where T : Control
+    {
+        T? found = under?.FindChild(name, true, false) as T;
+        return found != null && found.IsVisibleInTree() && !found.IsQueuedForDeletion() ? found : null;
+    }
+
     // The first button with this text under a screen, in tree order.
     public static Button? FirstButton(Node under, string text)
     {

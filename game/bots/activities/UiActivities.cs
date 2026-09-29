@@ -45,11 +45,13 @@ public static class UiActivities
         };
     }
 
-    // A panel on its own key: opened, looked at, closed with the same key.
+    // A panel on its own key: opened, looked at, closed with the same key. The map is only
+    // where there is one (not indoors).
     private static BotActivity Panel(string name, string key)
     {
         return new BotActivity(name, plan => plan
             .InWorld()
+            .StopIf("there is no map here", body => key == "map" && body.Zone != null && body.Zone.MapSize == Godot.Vector2.Zero)
             .Press(key)
             .UntilOpen(key)
             .Wait(1.5)

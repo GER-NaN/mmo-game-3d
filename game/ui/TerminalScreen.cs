@@ -435,7 +435,8 @@ public partial class TerminalScreen : Control
             return;
         }
 
-        Button take = new Button { Text = "Take the job", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        // Named for its job, so it can be found by the job it takes (bots.md T2).
+        Button take = new Button { Name = "Take_" + id, Text = "Take the job", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
         take.Pressed += () => TakeJobPressed?.Invoke(id);
         content.AddChild(take);
     }

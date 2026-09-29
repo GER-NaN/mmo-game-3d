@@ -3,10 +3,10 @@ namespace MmoGame3d.Bots;
 using System.Collections.Generic;
 using MmoGame3d.College;
 using MmoGame3d.Rules.Items;
+using MmoGame3d.Rules.Town;
 using MmoGame3d.Rules.World;
 using MmoGame3d.Subway;
 using MmoGame3d.Taxis;
-using MmoGame3d.Terminals;
 using MmoGame3d.Town;
 using MmoGame3d.Ui;
 
@@ -28,7 +28,7 @@ public static class TownActivities
                 .GoTo(ZoneIds.Town)
                 .StopIf("nothing is broken", body => !AnythingBroken(body))
                 .Use<Fixable>("broken", fixable => fixable.Broken)
-                .UntilNotice("You fixed the"))
+                .Until("fixed, by it or by another", body => !((body.LastApproached as Fixable)?.Broken ?? false), 10))
                 .Says("I can fix that.", "Good as new."),
 
             RepairLights(),
@@ -78,6 +78,8 @@ public static class TownActivities
 
             new BotActivity("hunt-drone", plan => plan
                 .InWorld()
+                .GoTo(ZoneIds.Town)
+                .StopIf("no drone is flying", body => !AnyDroneFlying(body))
                 .Need(BotFacts.EmpEquipped)
                 .GoTo(ZoneIds.Town)
                 .Step(new HuntStep()))
@@ -108,6 +110,7 @@ public static class TownActivities
                 .UntilClosed("college"))
                 .Says("Time for a career.", "Signing up."),
 
+            CleanTaxis(),
             TalkTo("Registrar"),
             TalkTo("Professor"),
         };
@@ -124,16 +127,36 @@ public static class TownActivities
             .StopIf("the lights work", body => Town(body)?.LightsWorking ?? true)
             .Need(BotFacts.Carrying(ItemType.RamStick))
             .GoTo(ZoneIds.Town)
-            .Use<Terminal>()
-            .WaitFor<TerminalScreen>()
+            .Step(new UseTerminalStep())
             .Click("the Town repairs app", body => BotScreens.TerminalApp(body.Find<TerminalScreen>(), "Town repairs"))
-            .Click("Take the job", body => BotScreens.FirstButton(body.Find<TerminalScreen>()!, "Take the job"))
+            .ClickIfThere("Take the job (the lights)", body => BotScreens.Named<Godot.Button>(body.Find<TerminalScreen>(), "Take_" + StreetLights.JobId))
             .Wait(1)
             .Press("ui_cancel")
             .UntilClosed("terminal")
             .Use<JunctionBox>()
             .Until("the lights work", body => Town(body)?.LightsWorking ?? false, 10))
             .Says("Let there be light.", "Fixing the street lights.");
+    }
+
+    // The robo taxis' rootkit job, end to end: the job taken in Town repairs, a code
+    // cracked in the code cracker (which is the cleaning), and the taxis seen clean.
+    private static BotActivity CleanTaxis()
+    {
+        return new BotActivity("clean-taxis", plan => plan
+            .InWorld()
+            .GoTo(ZoneIds.Town)
+            .StopIf("the taxis are clean", body => Town(body)?.TaxisClean ?? true)
+            .Step(new UseTerminalStep())
+            .Click("the Town repairs app", body => BotScreens.TerminalApp(body.Find<TerminalScreen>(), "Town repairs"))
+            .ClickIfThere("Take the job (the taxis)", body => BotScreens.Named<Godot.Button>(body.Find<TerminalScreen>(), "Take_" + TaxiRootkit.JobId))
+            .Click("the Code cracker app", body => BotScreens.TerminalApp(body.Find<TerminalScreen>(), "Code cracker"))
+            .Click("New code", body => BotScreens.FirstButton(body.Find<TerminalScreen>()!, "New code"))
+            .Step(new CrackStep())
+            .Wait(0.5)
+            .Press("ui_cancel")
+            .UntilClosed("terminal")
+            .Until("the taxis are clean", body => Town(body)?.TaxisClean ?? false, 10))
+            .Says("Cleaning the rootkit out of the taxis.", "No more AI in the cabs.");
     }
 
     // Talks to someone at the college: their panel opens, and closes again.
@@ -158,6 +181,28 @@ public static class TownActivities
         Godot.Button? change = BotScreens.FirstButtonStarting(panel, "Change to");
         Godot.Button? pick = enroll ?? change;
         return pick != null && !pick.Disabled ? pick : null;
+    }
+
+    private static bool AnyDroneFlying(BotBody body)
+    {
+        Godot.Node? drones = body.Zone?.GetNodeOrNull("Drones");
+
+        if (drones == null)
+        {
+            return false;
+        }
+
+        foreach (Godot.Node child in drones.GetChildren())
+        {
+            Drones.Drone? drone = child as Drones.Drone;
+
+            if (drone != null && !drone.Down)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static TownState? Town(BotBody body)

@@ -59,8 +59,9 @@ public static class ItemActivities
             return plan
                 .InWorld()
                 .GoTo(ZoneIds.Outskirts)
+                .StopIf("the chest is empty", body => !AnyFullChest(body))
                 .Do("count the bag", body => before = BotFacts.BagCount(body))
-                .Use<Chest>()
+                .Use<Chest>("full", chest => chest.HasItem)
                 .Until("the bag holds more", body => BotFacts.BagCount(body) > before, 5);
         }).Says("Let's see what's in the chest.");
     }
@@ -177,6 +178,28 @@ public static class ItemActivities
                 .Press("inventory")
                 .UntilClosed("inventory");
         }).Says("Don't need this anymore.");
+    }
+
+    private static bool AnyFullChest(BotBody body)
+    {
+        Godot.Node? things = body.Zone?.GetNodeOrNull(Interact.Interactable.ParentName);
+
+        if (things == null)
+        {
+            return false;
+        }
+
+        foreach (Godot.Node child in things.GetChildren())
+        {
+            Chest? chest = child as Chest;
+
+            if (chest != null && chest.HasItem)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static int Count(BotBody body, ItemType type)

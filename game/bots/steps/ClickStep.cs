@@ -7,11 +7,13 @@ using Godot;
 /// Clicks a control once it can be found: a real click at its centre, so a covered or
 /// disabled control does not press, as for a player. The click comes a frame after the
 /// control is first seen, since a screen opened this frame has no layout yet and its
-/// controls sit at the corner with no size.
+/// controls sit at the corner with no size. Nested containers can take a few frames more
+/// to settle, so a control off the window fails only when it stays there.
 /// </summary>
 public class ClickStep : BotStep
 {
     private const double LookInterval = 0.2;
+    private const double SettleTime = 0.5;
 
     private readonly Func<BotBody, Control?> _find;
 
@@ -20,6 +22,7 @@ public class ClickStep : BotStep
     private double _sinceLook = LookInterval;
     private Control? _seen;
     private ulong _seenOnFrame;
+    private double _offScreenFor;
 
     public ClickStep(string what, Func<BotBody, Control?> find)
         : this(what, find, new Vector2(0.5f, 0.5f))
@@ -54,6 +57,13 @@ public class ClickStep : BotStep
 
             if (!window.HasPoint(point))
             {
+                _offScreenFor += delta;
+
+                if (_offScreenFor < SettleTime)
+                {
+                    return BotStepState.Running;
+                }
+
                 return Fail(_seen.Name + " is off the screen, at (" + (int)point.X + ", " + (int)point.Y + ") in a window of " + (int)window.Size.X + " by " + (int)window.Size.Y);
             }
 

@@ -45,7 +45,7 @@ public class ClickEachStep : BotStep
 
         if (list == null)
         {
-            return BotStepState.Running;
+            return _gathered ? Fail("the screen closed before every button was tried") : BotStepState.Running;
         }
 
         if (!_gathered)

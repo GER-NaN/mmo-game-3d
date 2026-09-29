@@ -68,6 +68,12 @@ public class BotPlan
         return Step(new TypeStep(text));
     }
 
+    // Clicks a control if it shows within a moment; goes on either way.
+    public BotPlan ClickIfThere(string what, Func<BotBody, Control?> find)
+    {
+        return Step(new ClickIfThereStep(what, find));
+    }
+
     public BotPlan Press(string action)
     {
         return Step(new KeyStep(action));

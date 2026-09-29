@@ -10,8 +10,9 @@ using MmoGame3d.Zones;
 /// </summary>
 public class ZoneChurnWatcher : BotWatcher
 {
-    // No player means to be in a zone for less than this.
-    private const double ShortStay = 3;
+    // No player means to be in a zone for less than this: a door throwing one back is near
+    // instant, while going in and straight out again (a tour of rooms) takes seconds.
+    private const double ShortStay = 1.5;
     private const int ShortStaysInAMinute = 3;
 
     private readonly List<double> _shortStays = new List<double>();
