@@ -29,6 +29,7 @@ public static class UiActivities
                 .UntilClosed("game-menu")),
 
             GameSettings(),
+            RemapAKey(),
             Wardrobe(),
             WardrobeByHand(),
             WardrobeCancelled(),
@@ -75,6 +76,9 @@ public static class UiActivities
                 .UntilOpen("game-menu")
                 .Click<InGameMenu>("%Settings")
                 .UntilOpen("settings")
+                // Low, then high: a kept player's slider may already sit at either spot.
+                .ClickAt<SettingsPanel>("%Sensitivity", 0.2f, 0.5f)
+                .Wait(0.3)
                 .Do("note the sensitivity", body => before = SensitivityText(body))
                 .ClickAt<SettingsPanel>("%Sensitivity", 0.8f, 0.5f)
                 .Until("the sensitivity changed", body => SensitivityText(body) != before)
@@ -83,6 +87,57 @@ public static class UiActivities
                 .Click<InGameMenu>("%Resume")
                 .UntilClosed("game-menu");
         }).Says("Tweaking my settings.");
+    }
+
+    // Jump bound to J in the settings, a jump by J seen on the server's body, then the keys
+    // reset and Space shown again. The execution's own settings file keeps the change.
+    private static BotActivity RemapAKey()
+    {
+        return new BotActivity("remap-a-key", plan =>
+        {
+            float ground = 0;
+            float highest = 0;
+
+            return plan
+                .InWorld()
+                .Press("jump")
+                .Wait(1)
+                .Press("ui_cancel")
+                .UntilOpen("game-menu")
+                .Click<InGameMenu>("%Settings")
+                .UntilOpen("settings")
+                .Click("the Jump key", body => KeyButton(body, "jump"))
+                .Until("the Jump key waits for a key", body => KeyButton(body, "jump")?.Text == "Press a key", 3)
+                .Press(Godot.Key.J)
+                .Until("Jump shows J", body => KeyButton(body, "jump")?.Text == "J", 3)
+                .Click<SettingsPanel>("%Back")
+                .UntilClosed("settings")
+                .Click<InGameMenu>("%Resume")
+                .UntilClosed("game-menu")
+                .Wait(1)
+                .Do("note the ground", body => { ground = body.Player!.NetPosition.Y; highest = ground; })
+                .Press(Godot.Key.J)
+                .Until("the server's body rose 0.5 m by J", body =>
+                {
+                    highest = Godot.Mathf.Max(highest, body.Player?.NetPosition.Y ?? highest);
+                    return highest - ground >= 0.5f;
+                }, 3)
+                .Press("ui_cancel")
+                .UntilOpen("game-menu")
+                .Click<InGameMenu>("%Settings")
+                .UntilOpen("settings")
+                .Click<SettingsPanel>("%ResetKeys")
+                .Until("Jump shows Space again", body => KeyButton(body, "jump")?.Text == "Space", 3)
+                .Click<SettingsPanel>("%Back")
+                .UntilClosed("settings")
+                .Click<InGameMenu>("%Resume")
+                .UntilClosed("game-menu");
+        }).Says("Let me rebind that.");
+    }
+
+    private static Godot.Button? KeyButton(BotBody body, string action)
+    {
+        return BotScreens.Named<Godot.Button>(body.Find<SettingsPanel>(), "Key_" + action);
     }
 
     // The wardrobe (the game menu's Wardrobe): a random new look, saved, and seen on the

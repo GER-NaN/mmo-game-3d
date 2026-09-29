@@ -79,6 +79,12 @@ public class BotPlan
         return Step(new KeyStep(action));
     }
 
+    // A key on the keyboard, not an action: a key being bound.
+    public BotPlan Press(Godot.Key key)
+    {
+        return Step(new KeyStep(key));
+    }
+
     public BotPlan Hold(string action, double seconds)
     {
         return Step(new HoldStep(action, seconds));
@@ -140,7 +146,7 @@ public class BotPlan
             return Step(new FailStep("no activity named \"" + activity + "\""));
         }
 
-        Steps.AddRange(other.Steps());
+        Steps.AddRange(other.StepsAsPart());
         return this;
     }
 

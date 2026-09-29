@@ -8,12 +8,14 @@ using Godot;
 /// disabled control does not press, as for a player. The click comes a frame after the
 /// control is first seen, since a screen opened this frame has no layout yet and its
 /// controls sit at the corner with no size. Nested containers can take a few frames more
-/// to settle, so a control off the window fails only when it stays there.
+/// to settle, so a control off the window fails only when it stays there. A control in a
+/// scroll area is scrolled to with the mouse wheel first, as a player scrolls to it.
 /// </summary>
 public class ClickStep : BotStep
 {
     private const double LookInterval = 0.2;
     private const double SettleTime = 0.5;
+    private const int MaxWheels = 40;
 
     private readonly Func<BotBody, Control?> _find;
 
@@ -23,6 +25,7 @@ public class ClickStep : BotStep
     private Control? _seen;
     private ulong _seenOnFrame;
     private double _offScreenFor;
+    private int _wheels;
 
     public ClickStep(string what, Func<BotBody, Control?> find)
         : this(what, find, new Vector2(0.5f, 0.5f))
@@ -54,9 +57,23 @@ public class ClickStep : BotStep
             // A player cannot click what the window does not show (bots.md R7, off screen).
             Vector2 point = _seen.GetGlobalTransformWithCanvas() * (_seen.Size * _spot);
             Rect2 window = _seen.GetViewport().GetVisibleRect();
+            ScrollContainer? scroll = ScrollerOf(_seen);
+            Rect2 shown = window;
 
-            if (!window.HasPoint(point))
+            if (scroll != null)
             {
+                shown = shown.Intersection(new Rect2(scroll.GetGlobalTransformWithCanvas().Origin, scroll.Size));
+            }
+
+            if (!shown.HasPoint(point))
+            {
+                if (scroll != null && _wheels < MaxWheels)
+                {
+                    _wheels++;
+                    body.Wheel(scroll, point.Y > shown.End.Y);
+                    return BotStepState.Running;
+                }
+
                 _offScreenFor += delta;
 
                 if (_offScreenFor < SettleTime)
@@ -88,5 +105,20 @@ public class ClickStep : BotStep
         }
 
         return BotStepState.Running;
+    }
+
+    private static ScrollContainer? ScrollerOf(Control control)
+    {
+        for (Node? node = control.GetParent(); node != null; node = node.GetParent())
+        {
+            ScrollContainer? scroll = node as ScrollContainer;
+
+            if (scroll != null)
+            {
+                return scroll;
+            }
+        }
+
+        return null;
     }
 }
