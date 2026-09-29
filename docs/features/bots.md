@@ -1386,9 +1386,23 @@ run and tested, and a soak run. Their words:
   that is empty, a job already taken, a map indoors: the plan stops as completed
   (`StopIf`) or the click is optional (`ClickIfThere`), since each is a normal state of
   a shared world, not a failure.
+- **Chains and needs [R4, R5].** A StopIf ends only the activity it is in: an activity
+  run inside another (a chain's `Then`, a need's provider) ends in a `PartEndStep`, and
+  the stop skips to it. A chain whose first part has nothing to do goes on to the next.
+- **Being moved by others.** A party member is taken through doors and into taxis by
+  the leader (the game's own rule). A step that was walking somewhere fails ("a door took
+  it") and the next activity's `GoTo` starts from where the bot is. In a zone with no
+  doors (a taxi) `GoTo` waits for the drop-off.
+- **Pace.** A persona bot rests 3 s after a failed activity, so a bot whose plans cannot
+  start where it is does not spin through them.
+- **Navigation.** The navmesh agent is 0.75 m, a cell wider than the body: the steering
+  turns before it walks and cuts corners, and paths at the body's own radius wedged bots
+  against trees, benches and lamp posts.
 - **Findings [R7, R8].** Stuck, out of bounds, floating, zone churn (three stays under
   1.5 s in a minute) and client errors, each at most once a minute per kind and detail.
-  The network state and the server's log lines of [R8] are not built.
+  A stuck finding and a failure say what holds the keys (a focused control, a full
+  screen) and which walking keys are down. The network state and the server's log lines
+  of [R8] are not built.
 - **Not built:** window layout by the Overseer [R9], the authoring loop [R10], seeding
   [F2c], helpers [F6].
 - **Game changes, none about bots [F7]:**
@@ -1402,6 +1416,12 @@ run and tested, and a soak run. Their words:
   - The settings panel scrolls: it ran off a 648-pixel window (found by a bot).
   - The `fresh` profile is one player per launch, not per connect: leaving and playing
     again made another player (found by a bot).
+  - A party's followers in a taxi land on seat markers in the cabin scene, and the
+    cabin's wall colliders are thicker: followers landed inside a wall and fell out
+    (found by the soak).
+  - Esc in the wardrobe cancels it; it opened the game menu over the wardrobe.
+  - The server's held-walk report names the contact that holds the body, not the floor.
+  - The settings' key buttons are named for their action (`Key_<action>`) [T2].
 
 ## Consequences
 
