@@ -125,7 +125,11 @@ All four are in docs/engineering/performance.md, with the numbers.
       college. To ship something you can only ship something that is in your inventory
       for now. You must pay a shipping fee (based on the item being sent) for now its
       just a flat fee of $10."
-- [ ] Character bases from the whole KayKit collection (the author, 2026-09-29: "update
+- [x] Character bases from the whole KayKit collection. Built 2026-09-29: a player
+      picks any of the 64 as a base in the character creator and the wardrobe (a list,
+      and < > to step through them on the preview); colours, backpack and glasses are
+      hidden (`CharacterCreator.Customizing`), their code kept. Left: customizing the
+      other bases, and how the large ones look against the body. Was: (the author, 2026-09-29: "update
       the character select to choose from any of those ... select the character base and
       then customize it. Some of them look like test dummies and that is ok actually to
       include them."). Likely a feature session first. Facts: 62 character models in

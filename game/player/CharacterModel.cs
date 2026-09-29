@@ -33,6 +33,15 @@ public partial class CharacterModel : Node3D
         "res://assets/kaykit/character_animations/rig_medium/Rig_Medium_Tools.glb",
     };
 
+    // The big characters (a golem, the Black Knight) have a rig of their own, with the same
+    // animation names; it has no tool animations.
+    private static readonly string[] LargeRigFiles =
+    {
+        "res://assets/kaykit/character_animations/rig_large/Rig_Large_General.glb",
+        "res://assets/kaykit/character_animations/rig_large/Rig_Large_MovementBasic.glb",
+        "res://assets/kaykit/character_animations/rig_large/Rig_Large_Simulation.glb",
+    };
+
     // Animations that repeat until something else plays. glTF has no loop flag, so the
     // import leaves every animation playing once.
     private static readonly string[] Looping =
@@ -64,6 +73,7 @@ public partial class CharacterModel : Node3D
     private static readonly Dictionary<string, float[]> CellLightness = new Dictionary<string, float[]>();
 
     private static AnimationLibrary? _library;
+    private static AnimationLibrary? _largeLibrary;
 
     // The phone the character holds while online on it; made on first use.
     private Node3D? _phone;
@@ -82,16 +92,22 @@ public partial class CharacterModel : Node3D
     // it, and ModelPath is ignored. Set before the node enters the tree.
     public string Appearance { get; set; } = "";
 
-    // The model for a player's look. Placeholders until character creation is designed.
+    // The model for a player's look: the base's model file, by its id (Looks).
     public static string PathFor(string look)
     {
-        switch (Rules.Players.Appearance.Parse(look).Base)
+        string baseId = Rules.Players.Appearance.Parse(look).Base;
+
+        if (baseId == "a")
         {
-            case "b":
-                return "res://assets/kaykit/characters/Protagonist_B.glb";
-            default:
-                return PlayerModel;
+            return PlayerModel;
         }
+
+        if (baseId == "b")
+        {
+            return "res://assets/kaykit/characters/Protagonist_B.glb";
+        }
+
+        return "res://assets/kaykit/characters/" + baseId + ".glb";
     }
 
     public override void _Ready()
@@ -126,7 +142,8 @@ public partial class CharacterModel : Node3D
 
         _animations = new AnimationPlayer { Name = "Animations" };
         model.AddChild(_animations);
-        _animations.AddAnimationLibrary("", SharedLibrary());
+        bool large = model.FindChild("Rig_Large*", true, false) != null;
+        _animations.AddAnimationLibrary("", large ? LargeLibrary() : SharedLibrary());
         Play(Idle);
     }
 
@@ -368,14 +385,30 @@ public partial class CharacterModel : Node3D
 
     private static AnimationLibrary SharedLibrary()
     {
-        if (_library != null)
+        if (_library == null)
         {
-            return _library;
+            _library = LoadLibrary(RigFiles);
         }
 
-        _library = new AnimationLibrary();
+        return _library;
+    }
 
-        foreach (string file in RigFiles)
+    private static AnimationLibrary LargeLibrary()
+    {
+        if (_largeLibrary == null)
+        {
+            _largeLibrary = LoadLibrary(LargeRigFiles);
+        }
+
+        return _largeLibrary;
+    }
+
+    // Every animation in the rig's files, once, the looping ones set to loop.
+    private static AnimationLibrary LoadLibrary(string[] rigFiles)
+    {
+        AnimationLibrary library = new AnimationLibrary();
+
+        foreach (string file in rigFiles)
         {
             if (!ResourceLoader.Exists(file))
             {
@@ -396,9 +429,9 @@ public partial class CharacterModel : Node3D
                         animation.LoopMode = Animation.LoopModeEnum.Linear;
                     }
 
-                    if (!_library.HasAnimation(name))
+                    if (!library.HasAnimation(name))
                     {
-                        _library.AddAnimation(name, animation);
+                        library.AddAnimation(name, animation);
                     }
                 }
             }
@@ -406,6 +439,6 @@ public partial class CharacterModel : Node3D
             rig.Free();
         }
 
-        return _library;
+        return library;
     }
 }

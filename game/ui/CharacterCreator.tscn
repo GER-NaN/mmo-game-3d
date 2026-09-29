@@ -92,13 +92,30 @@ max_length = 16
 
 [node name="BaseLabel" type="Label" parent="Center/Columns/Choices"]
 layout_mode = 2
-text = "Look"
+text = "Character"
 
-[node name="Base" type="OptionButton" parent="Center/Columns/Choices"]
-unique_name_in_owner = true
+[node name="BaseRow" type="HBoxContainer" parent="Center/Columns/Choices"]
 layout_mode = 2
 
+[node name="BaseBack" type="Button" parent="Center/Columns/Choices/BaseRow"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "<"
+
+[node name="Base" type="OptionButton" parent="Center/Columns/Choices/BaseRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BaseNext" type="Button" parent="Center/Columns/Choices/BaseRow"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = ">"
+
 [node name="Grid" type="GridContainer" parent="Center/Columns/Choices"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/h_separation = 14
 theme_override_constants/v_separation = 8
