@@ -730,11 +730,19 @@ public partial class GardenScreen : Control
         return button;
     }
 
-    // The pots along the top, a picture each, the chosen one in the middle.
+    // The pots along the top, a picture each, the chosen one in the middle; no panel
+    // behind, so the row floats over the table.
     private void BuildPotBanner()
     {
         PanelContainer banner = new PanelContainer { Name = "Pots" };
-        banner.Position = new Vector2(16, 12);
+        banner.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+        banner.SetAnchorsPreset(LayoutPreset.CenterTop);
+        banner.GrowHorizontal = GrowDirection.Both;
+        banner.OffsetTop = 12;
+
+        // Centred over the table, not the whole screen: the tray takes the right side.
+        banner.OffsetLeft = -180;
+        banner.OffsetRight = -180;
         AddChild(banner);
         _banner = banner;
         _pots = CarouselScene.Instantiate<Carousel>();
