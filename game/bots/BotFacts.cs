@@ -22,6 +22,45 @@ public static class BotFacts
         return mode == DisplayServer.WindowMode.Fullscreen || mode == DisplayServer.WindowMode.ExclusiveFullscreen;
     });
 
+    // Something in the bag the recycler takes: a stack, or a thing not worn.
+    public static readonly BotFact Recyclable = new BotFact("recyclable", "something to recycle", body => BagCount(body) > 0);
+
+    // A stack in the bag, which is what can be dropped.
+    public static readonly BotFact Stack = new BotFact("stack", "a stack in the bag", body =>
+    {
+        ClientView? view = body.View;
+        return view != null && view.Belongings.Stacks.Stacks.Count > 0;
+    });
+
+    // How many things are in the bag, worn things left out: each of a stack, each loose
+    // thing.
+    public static int BagCount(BotBody body)
+    {
+        ClientView? view = body.View;
+
+        if (view == null)
+        {
+            return 0;
+        }
+
+        int count = 0;
+
+        foreach (ItemStack stack in view.Belongings.Stacks.Stacks)
+        {
+            count += stack.Quantity;
+        }
+
+        foreach (ItemInstance item in view.Belongings.Instances)
+        {
+            if (item.IsLoose)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     // Money in the pocket, at least this much.
     public static BotFact DollarsAtLeast(int dollars)
     {
@@ -32,7 +71,8 @@ public static class BotFacts
         });
     }
 
-    // At least one of this item, loose in the bag or worn.
+    // At least one of this item in the bag: in a stack, or a thing loose there (not worn,
+    // not inside another thing, as a phone's battery is).
     public static BotFact Carrying(ItemType type)
     {
         return new BotFact("carry-" + type, "carrying a " + ItemCatalog.Get(type).Name, body =>
@@ -54,7 +94,7 @@ public static class BotFacts
 
             foreach (ItemInstance item in view.Belongings.Instances)
             {
-                if (item.Type == type)
+                if (item.Type == type && item.IsLoose)
                 {
                     return true;
                 }

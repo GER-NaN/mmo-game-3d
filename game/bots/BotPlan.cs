@@ -116,6 +116,12 @@ public class BotPlan
         return Step(new SurveyStep());
     }
 
+    // Walks over the nearest thing on the ground, which picks it up.
+    public BotPlan PickUp()
+    {
+        return Step(new PickUpStep());
+    }
+
     // Walks up to the nearest thing of this type and presses the interact key.
     public BotPlan Use<T>()
         where T : Interactable

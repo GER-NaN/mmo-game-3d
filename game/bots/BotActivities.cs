@@ -51,6 +51,7 @@ public static class BotActivities
         all.AddRange(WorldActivities.All());
         all.AddRange(PhoneActivities.All());
         all.AddRange(UiActivities.All());
+        all.AddRange(ItemActivities.All());
         return all;
     }
 }

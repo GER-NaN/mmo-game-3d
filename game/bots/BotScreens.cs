@@ -2,7 +2,6 @@ namespace MmoGame3d.Bots;
 
 using Godot;
 using MmoGame3d.Client;
-using MmoGame3d.Rules.Items;
 using MmoGame3d.Ui;
 
 /// <summary>
@@ -68,6 +67,35 @@ public static class BotScreens
         return FirstButton(select, "Play");
     }
 
+    // The first visible button whose text starts so, under a screen, in tree order: for
+    // buttons whose text carries a value ("Put in the loose battery at 43%").
+    public static Button? FirstButtonStarting(Node? under, string start)
+    {
+        if (under == null)
+        {
+            return null;
+        }
+
+        foreach (Node child in under.GetChildren())
+        {
+            Button? button = child as Button;
+
+            if (button != null && button.Text.StartsWith(start) && button.IsVisibleInTree() && !button.IsQueuedForDeletion())
+            {
+                return button;
+            }
+
+            Button? inside = FirstButtonStarting(child, start);
+
+            if (inside != null)
+            {
+                return inside;
+            }
+        }
+
+        return null;
+    }
+
     // The first button with this text under a screen, in tree order.
     public static Button? FirstButton(Node under, string text)
     {
@@ -113,32 +141,28 @@ public static class BotScreens
         return null;
     }
 
-    // The Equip button on the bag's row for an item of this type, found by the start of
-    // the row's label ("Phone  battery 43%").
-    public static Button? EquipButton(InventoryPanel? inventory, ItemType type)
+    // A button on a row of a list, by the start of the row's name and the button's name.
+    // Rows are named for what they hold (bots.md T2): "Battery_Standard" in the shop,
+    // "Phone_<id>" and "Stack_Battery_Standard" in the bag and the recycler.
+    public static Button? RowButton(Node? list, string rowStart, string button)
     {
-        if (inventory == null)
+        if (list == null)
         {
             return null;
         }
 
-        string name = ItemCatalog.Get(type).Name;
-
-        foreach (Node row in inventory.GetNode("%Things").GetChildren())
+        foreach (Node row in list.GetChildren())
         {
-            HBoxContainer? box = row as HBoxContainer;
-
-            if (box == null || box.IsQueuedForDeletion() || box.GetChildCount() < 2)
+            if (row.IsQueuedForDeletion() || !row.Name.ToString().StartsWith(rowStart))
             {
                 continue;
             }
 
-            Label? label = box.GetChild(0) as Label;
-            Button? button = box.GetChild(box.GetChildCount() - 1) as Button;
+            Button? found = row.GetNodeOrNull<Button>(button);
 
-            if (label != null && button != null && label.Text.StartsWith(name) && button.Text == "Equip")
+            if (found != null && found.IsVisibleInTree())
             {
-                return button;
+                return found;
             }
         }
 

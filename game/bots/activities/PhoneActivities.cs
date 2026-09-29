@@ -18,7 +18,7 @@ public static class PhoneActivities
                 .Wait(1)
                 .Press("inventory")
                 .WaitFor<InventoryPanel>()
-                .Click("Equip on the phone", body => BotScreens.EquipButton(body.Find<InventoryPanel>(), ItemType.Phone))
+                .Click("Equip on the phone", body => BotScreens.RowButton(body.Find<InventoryPanel>()?.GetNode("%Things"), ItemType.Phone + "_", "Equip"))
                 .Until(BotFacts.PhoneEquipped)
                 .Press("inventory"))
                 .Says("Where did I put my phone?", "Phone's on."),
