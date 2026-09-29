@@ -169,7 +169,7 @@ public class BotRun
         foreach (BotExecution bot in _executions)
         {
             ReadEvents(bot);
-            string how = bot.Dropped ? "dropped on purpose" : bot.Killed ? "killed" : "exit code " + bot.ExitCode;
+            string how = bot.Dropped || bot.Count("dropping") > 0 ? "dropped on purpose" : bot.Killed ? "killed" : "exit code " + bot.ExitCode;
             string counts = bot.Spec.IsPersona
                 ? ", " + bot.Count("activity") + " activities: " + bot.Count("completed") + " completed, " + bot.Count("failed") + " failed, " + bot.Count("walked-away") + " walked away; " + bot.Count("finding") + " findings"
                 : "";

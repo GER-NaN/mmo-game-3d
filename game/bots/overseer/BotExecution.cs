@@ -72,13 +72,15 @@ public class BotExecution
     public bool Dropped { get; set; }
 
     // A one-activity bot passes when it said "done" and quit cleanly; a persona bot when
-    // it quit cleanly once asked, whatever its activities made of it.
+    // it quit cleanly once asked, whatever its activities made of it. Either passes when it
+    // ended its own client on purpose ("dropping").
     public bool Passed
     {
         get
         {
             bool clean = !Killed && HasExited && ExitCode == 0;
-            return Spec.IsPersona ? (clean && StopAskedAt != null) || Dropped : clean && Done && !Failed;
+            bool dropped = Dropped || Count("dropping") > 0;
+            return Spec.IsPersona ? (clean && StopAskedAt != null) || dropped : (clean && Done && !Failed) || dropped;
         }
     }
 
