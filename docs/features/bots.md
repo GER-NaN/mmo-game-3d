@@ -1425,6 +1425,10 @@ run and tested, and a soak run. Their words:
 
 ## Consequences
 
+- The judge's evidence (2026-09-29): the client's own record of what happened,
+  `docs/features/timeline.md`. The judge checks an activity's slice of it, after the
+  activity says done. The first cut records zones only; the judge is not built yet.
+
 - `CLAUDE.local.md`: "No bots or dev scenarios for now" replaced (2026-09-28) by a
   pointer to this file, with the two exceptions for bot code only: no unit tests [T4],
   and reflection allowed where it helps [Outcome]. Agents still write no bot code unless
