@@ -11,12 +11,18 @@ using MmoGame3d.Rules.Social;
 /// conversation gets a tab of its own, and typing in that tab writes to that player.
 /// Lines are added as plain text, never as markup, so no player can inject formatting
 /// into another player's screen. While the input has focus, the keys type instead of
-/// walking.
+/// walking. The lines show while typing; once the line closes they stay a moment and fade
+/// out, so they do not cover the world, and a new line shows them again for that moment.
 /// </summary>
 public partial class ChatBox : VBoxContainer
 {
     private const int MaxLines = 100;
     private const string AllTab = "";
+
+    // Placeholders until seen: how long the lines stay after the chat closes or a line
+    // arrives, and how long they take to fade.
+    private const double ShowSeconds = 4;
+    private const double FadeSeconds = 1;
 
     private static readonly Color NameColor = new Color(0.55f, 0.8f, 1f);
     private static readonly Color PartyColor = new Color(0.5f, 1f, 0.6f);
@@ -33,6 +39,9 @@ public partial class ChatBox : VBoxContainer
 
     // "" for All, or the player id of the conversation shown.
     private string _shown = AllTab;
+
+    // Since the chat closed or the last line came, while not typing.
+    private double _sinceShown = ShowSeconds + FadeSeconds;
 
     // To everyone (commands included).
     public event Action<string>? Submitted;
@@ -54,6 +63,17 @@ public partial class ChatBox : VBoxContainer
         _input.GuiInput += OnInputGui;
         AddTab(AllTab, "All");
         ShowTab(AllTab);
+    }
+
+    public override void _Process(double delta)
+    {
+        _sinceShown = _input.Visible ? 0 : _sinceShown + delta;
+        float shown = 1f - (float)Mathf.Clamp((_sinceShown - ShowSeconds) / FadeSeconds, 0, 1);
+        _history.Modulate = new Color(1f, 1f, 1f, shown);
+        _tabRow.Modulate = new Color(1f, 1f, 1f, shown);
+
+        // Faded out, the tabs are not there to click.
+        _tabRow.Visible = shown > 0f;
     }
 
     public void Open()
@@ -104,6 +124,7 @@ public partial class ChatBox : VBoxContainer
         if (_shown == AllTab || _shown == entry.PartnerId)
         {
             Write(entry);
+            _sinceShown = 0;
         }
     }
 
