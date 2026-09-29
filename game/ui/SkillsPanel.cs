@@ -50,13 +50,16 @@ public partial class SkillsPanel : PanelContainer
 
             HBoxContainer row = new HBoxContainer();
             row.AddThemeConstantOverride("separation", 10);
-            Button name = new Button
+            CardButton name = new CardButton
             {
                 Text = SkillCatalog.Name(skill),
                 Flat = true,
                 Alignment = HorizontalAlignment.Left,
                 FocusMode = FocusModeEnum.None,
                 CustomMinimumSize = new Vector2(150, 0),
+                CardTitle = SkillCatalog.Name(skill),
+                CardDetail = "Level " + skillLevel + ", " + xp[i] + " of " + to + " xp",
+                CardDescription = SkillCatalog.About(skill) + "\nEarn it: " + SkillCatalog.HowEarned(skill),
             };
             name.Pressed += () => Select(skill);
             row.AddChild(name);
