@@ -6,10 +6,17 @@ namespace MmoGame3d.Bots;
 /// </summary>
 public class TypeStep : BotStep
 {
-    private readonly string _text;
+    private readonly System.Func<BotBody, string> _text;
 
     public TypeStep(string text)
         : base("type \"" + text + "\"", DefaultTimeLimit)
+    {
+        _text = body => text;
+    }
+
+    // Text chosen as it is typed (a random name, from the bot's seed).
+    public TypeStep(string what, System.Func<BotBody, string> text)
+        : base("type " + what, DefaultTimeLimit)
     {
         _text = text;
     }
@@ -26,7 +33,9 @@ public class TypeStep : BotStep
             return BotStepState.Running;
         }
 
-        body.Type(_text);
+        string text = _text(body);
+        body.Events.Write("typed", text);
+        body.Type(text);
         return BotStepState.Done;
     }
 }
