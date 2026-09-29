@@ -46,7 +46,7 @@ public partial class InventoryPanel : PanelContainer
     private readonly Dictionary<SlotType, Guid> _worn = new Dictionary<SlotType, Guid>();
 
     // The equipment slots are laid out in the scene, each named for its slot (Device,
-    // Tool, Drone); a click on a full one unequips it.
+    // Tool, Drone); a double-click on a full one unequips it.
     public override void _Ready()
     {
         GetNode<Button>("%Close").Pressed += () => Closed?.Invoke();
@@ -62,16 +62,32 @@ public partial class InventoryPanel : PanelContainer
 
             SlotType pressed = slot;
             frame.FocusMode = FocusModeEnum.None;
-            frame.Pressed += () =>
+            frame.GuiInput += input =>
             {
+                InputEventMouseButton? click = input as InputEventMouseButton;
                 Guid id;
 
-                if (_worn.TryGetValue(pressed, out id))
+                if (click != null && click.DoubleClick && click.ButtonIndex == MouseButton.Left && _worn.TryGetValue(pressed, out id))
                 {
                     UnequipPressed?.Invoke(id);
                 }
             };
         }
+    }
+
+    // Equipping into a full slot swaps: what the slot holds goes back to the bag first,
+    // then the new thing goes on (the rule is one per slot, so the order matters).
+    private void EquipSwapping(Guid id, ItemType type)
+    {
+        SlotType? slot = Belongings.SlotFor(type);
+        Guid worn;
+
+        if (slot != null && _worn.TryGetValue(slot.Value, out worn))
+        {
+            UnequipPressed?.Invoke(worn);
+        }
+
+        EquipPressed?.Invoke(id);
     }
 
     private static string SlotPath(SlotType slot)
@@ -160,7 +176,7 @@ public partial class InventoryPanel : PanelContainer
             Button frame = card.GetNode<Button>("Frame");
             frame.Text = worn == null ? "" : ItemCatalog.Get(worn.Type).Name;
             frame.Disabled = worn == null;
-            frame.TooltipText = worn == null ? "" : "Click to unequip";
+            frame.TooltipText = worn == null ? "" : "Double-click to unequip";
             card.GetNode<Label>("SlotName").Text = slot.ToString();
             Label item = card.GetNode<Label>("ItemName");
             item.Text = worn == null ? "empty" : Describe(mine, worn);
@@ -185,10 +201,6 @@ public partial class InventoryPanel : PanelContainer
 
         ShowEquipment(mine);
 
-        Label bagTitle = new Label { Text = "In the bag" };
-        bagTitle.AddThemeFontSizeOverride("font_size", 16);
-        things.AddChild(bagTitle);
-
         foreach (ItemInstance item in mine.Instances)
         {
             // Inside something, or worn: shown above.
@@ -205,11 +217,12 @@ public partial class InventoryPanel : PanelContainer
             if (Belongings.SlotFor(item.Type) != null)
             {
                 Guid id = item.Id;
+                ItemType type = item.Type;
                 Button button = new Button { Name = item.Slot == null ? "Equip" : "Unequip", Text = item.Slot == null ? "Equip" : "Unequip", FocusMode = FocusModeEnum.None };
 
                 if (item.Slot == null)
                 {
-                    button.Pressed += () => EquipPressed?.Invoke(id);
+                    button.Pressed += () => EquipSwapping(id, type);
                 }
                 else
                 {
@@ -217,6 +230,18 @@ public partial class InventoryPanel : PanelContainer
                 }
 
                 row.AddChild(button);
+
+                // A double-click on the row equips it, as the button does.
+                row.MouseFilter = MouseFilterEnum.Stop;
+                row.GuiInput += input =>
+                {
+                    InputEventMouseButton? click = input as InputEventMouseButton;
+
+                    if (click != null && click.DoubleClick && click.ButtonIndex == MouseButton.Left)
+                    {
+                        EquipSwapping(id, type);
+                    }
+                };
             }
 
             things.AddChild(row);
