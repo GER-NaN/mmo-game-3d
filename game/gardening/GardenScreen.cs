@@ -26,8 +26,19 @@ public partial class GardenScreen : Control
     private const float ScaleStep = 0.05f;
 
     // A placed piece is picked up by clicking within this much of its spot, as a fraction
-    // of the soil's radius.
+    // of the soil's radius, when the mouse is on no piece's box.
     private const float PickReach = 0.3f;
+
+    // Far past the table, for the mouse's ray.
+    private const float RayLength = 50f;
+
+    // Laid over the piece the mouse is on, so it is plain which one a click takes.
+    private static readonly StandardMaterial3D HoverTint = new StandardMaterial3D
+    {
+        AlbedoColor = new Color(1f, 1f, 0.7f, 0.35f),
+        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+    };
 
     private readonly PlantDesign _design = new PlantDesign();
     private readonly List<Node3D> _models = new List<Node3D>();
@@ -56,6 +67,9 @@ public partial class GardenScreen : Control
     private PlantPiece? _held;
     private Node3D? _heldModel;
     private bool _heldOnSoil;
+
+    // The placed piece the mouse is on, tinted; -1 for none.
+    private int _hovered = -1;
 
     private float _orbit;
     private float _distance = 2.6f;
@@ -134,6 +148,10 @@ public partial class GardenScreen : Control
             {
                 _orbit -= motion.Relative.X * 0.008f;
                 PlaceCamera();
+            }
+            else
+            {
+                Hover(OverPicture(motion.Position) ? PieceAt(motion.Position) : -1);
             }
 
             return;
@@ -263,38 +281,123 @@ public partial class GardenScreen : Control
 
     private void PickUpPlaced(Vector2 mouse)
     {
-        Vector2? spot = SoilSpot(mouse);
-
-        if (!spot.HasValue)
-        {
-            return;
-        }
-
-        int nearest = -1;
-        float best = PickReach;
-
-        for (int i = 0; i < _design.Pieces.Count; i++)
-        {
-            float distance = new Vector2(_design.Pieces[i].X, _design.Pieces[i].Z).DistanceTo(spot.Value);
-
-            if (distance < best)
-            {
-                best = distance;
-                nearest = i;
-            }
-        }
+        int nearest = PieceAt(mouse);
 
         if (nearest < 0)
         {
             return;
         }
 
+        Hover(-1);
         GetViewport().SetInputAsHandled();
         _held = _design.Pieces[nearest];
         _heldModel = _models[nearest];
         _design.Pieces.RemoveAt(nearest);
         _models.RemoveAt(nearest);
         Refresh();
+    }
+
+    // The placed piece under the mouse: of the pieces whose box the mouse's ray crosses,
+    // the one whose middle is nearest the ray, so a leaf is taken by its tip as well as its
+    // base. With none, a piece whose spot on the soil is near. -1 for none.
+    private int PieceAt(Vector2 mouse)
+    {
+        Vector2 local = mouse - _picture.GlobalPosition;
+        Vector3 from = _camera.ProjectRayOrigin(local);
+        Vector3 along = _camera.ProjectRayNormal(local);
+        int nearest = -1;
+        float best = float.MaxValue;
+
+        for (int i = 0; i < _models.Count; i++)
+        {
+            Aabb? box = Box(_models[i]);
+
+            if (box == null || !box.Value.IntersectsSegment(from, from + (along * RayLength)))
+            {
+                continue;
+            }
+
+            Vector3 middle = box.Value.GetCenter();
+            float off = (middle - from).Cross(along).Length();
+
+            if (off < best)
+            {
+                best = off;
+                nearest = i;
+            }
+        }
+
+        if (nearest >= 0)
+        {
+            return nearest;
+        }
+
+        Vector2? spot = SoilSpot(mouse);
+
+        if (!spot.HasValue)
+        {
+            return -1;
+        }
+
+        float reach = PickReach;
+
+        for (int i = 0; i < _design.Pieces.Count; i++)
+        {
+            float distance = new Vector2(_design.Pieces[i].X, _design.Pieces[i].Z).DistanceTo(spot.Value);
+
+            if (distance < reach)
+            {
+                reach = distance;
+                nearest = i;
+            }
+        }
+
+        return nearest;
+    }
+
+    // The box round every mesh of a model, in the table's world.
+    private static Aabb? Box(Node3D model)
+    {
+        Aabb? box = null;
+
+        foreach (Node node in model.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            MeshInstance3D mesh = (MeshInstance3D)node;
+            Aabb part = mesh.GlobalTransform * mesh.GetAabb();
+            box = box == null ? part : box.Value.Merge(part);
+        }
+
+        return box;
+    }
+
+    private void Hover(int piece)
+    {
+        if (piece == _hovered)
+        {
+            return;
+        }
+
+        if (_hovered >= 0 && _hovered < _models.Count)
+        {
+            Tint(_models[_hovered], null);
+        }
+
+        _hovered = piece;
+
+        if (piece >= 0)
+        {
+            Tint(_models[piece], HoverTint);
+        }
+
+        MouseDefaultCursorShape = piece >= 0 ? CursorShape.PointingHand : CursorShape.Arrow;
+    }
+
+    private static void Tint(Node3D model, Material? tint)
+    {
+        foreach (Node node in model.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            ((MeshInstance3D)node).MaterialOverlay = tint;
+        }
     }
 
     private void FollowMouse(Vector2 mouse)
@@ -403,6 +506,8 @@ public partial class GardenScreen : Control
 
     private void Clear()
     {
+        Hover(-1);
+
         foreach (Node3D model in _models)
         {
             model.QueueFree();
