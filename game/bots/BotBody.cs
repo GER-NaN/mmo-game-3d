@@ -39,6 +39,10 @@ public class BotBody
     // The activity being played, for steps that add to it (a need met by another).
     public BotActivityRun? Run { get; set; }
 
+    // The thing the last approach walked up to, for a check of what became of it (fixed,
+    // by this bot or another).
+    public Interact.Interactable? LastApproached { get; set; }
+
     // How many needs are being met inside each other; a need that needs itself would
     // otherwise never end.
     public int NeedDepth { get; set; }

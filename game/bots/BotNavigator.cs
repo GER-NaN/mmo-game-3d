@@ -35,6 +35,9 @@ public class BotNavigator
     private const float Progress = 0.3f;
     private const double BackOffSeconds = 0.6;
 
+    // Added to a door's trigger in the bake: across it, and before and behind it.
+    private static readonly Vector3 DoorClearance = new Vector3(1f, 0f, 3f);
+
     private Rid _map;
     private Rid _region;
 
@@ -300,8 +303,10 @@ public class BotNavigator
     }
 
     // Doors are triggers, not walls, so the bake would path straight through one and the
-    // door would take the bot elsewhere. Each goes in as a solid block; a walk that means to
-    // go through one (EnterZone) walks on past the path's end into it.
+    // door would take the bot elsewhere. Each goes in as a solid block, deeper than the
+    // trigger (a path along a row of shop fronts keeps clear of their doors, which the
+    // steering's cut corners would brush); a walk that means to go through one (EnterZone)
+    // walks on past the path's end into it.
     private static void AddDoors(Zone zone, NavigationMeshSourceGeometryData3D source)
     {
         Node? doors = zone.GetNodeOrNull("Doors");
@@ -318,7 +323,7 @@ public class BotNavigator
 
             if (shape != null && box != null)
             {
-                source.AddMesh(new BoxMesh { Size = box.Size }, shape.GlobalTransform);
+                source.AddMesh(new BoxMesh { Size = box.Size + DoorClearance }, shape.GlobalTransform);
             }
         }
     }

@@ -15,7 +15,7 @@ public class EnterZoneStep : BotStep
     private const double SettleSeconds = 1;
 
     // How far before a door the path ends, clear of its trigger.
-    private const float FrontDistance = 2f;
+    private const float FrontDistance = 2.5f;
 
     private readonly string _target;
     private readonly bool _walkIn;

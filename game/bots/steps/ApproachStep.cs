@@ -36,7 +36,7 @@ public class ApproachStep<T> : BotStep
     private const float Moved = 1.5f;
 
     // Spots are kept this far out of a door's trigger, which would take the bot elsewhere.
-    private const float DoorMargin = 0.8f;
+    private const float DoorMargin = 1.5f;
 
     private readonly List<Vector3> _spots = new List<Vector3>();
     private string _zoneId = "";
@@ -100,6 +100,7 @@ public class ApproachStep<T> : BotStep
             }
 
             body.Events.Write("approaching", _target.Name);
+            body.LastApproached = _target;
             LaySpots(body, zone, player.GlobalPosition);
         }
 
@@ -114,11 +115,11 @@ public class ApproachStep<T> : BotStep
 
         _inReachFor = 0;
 
+        // Closer by the path, not straight: a straight line can cross a door's trigger.
         if (_target.IsInReach(feet) && !_closingIn)
         {
             _closingIn = true;
             body.Navigator.Go(zone, _target.GlobalPosition, true);
-            body.Navigator.StraightOn();
         }
 
         if (Flat(_target.GlobalPosition, _laidAround) > Moved)
