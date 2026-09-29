@@ -39,11 +39,26 @@ link points.
 - [ ] Which voice is whose (Wren, Old Tomas, Ines, Dee, Mara, Professor Okafor).
 - [ ] The potting table's carousels (pots along the top, pieces with up and down for
       the kind), the tint on the piece under the mouse, and the mouse key.
-- [ ] The UI playtest changes of 2026-09-29, listed as built in
-      `docs/planning/ui-playtest-2026-09-29.md`: the bag's tooltip card and double-click,
-      Friends, the party panel's fold, the pause menu status, the server picker, the
-      loading screen, the shop, the plant card, the skills' cards, the dropped items'
-      scatter.
+- [ ] The UI playtest changes of 2026-09-29 (`docs/planning/ui-playtest-2026-09-29.md`),
+      seen by bots only in pictures or not at all:
+  - [ ] Bag: the tooltip card on hover; double-click to equip, to swap into a full
+        slot, and on a worn slot to unequip.
+  - [ ] Skills: the tooltip card on each skill.
+  - [ ] Carousels: the wheel, and the stepping when the mouse rests near an end.
+  - [ ] Drones: the pod model and its small hover (town has a pair).
+  - [ ] Subway: a new tag lands near where you stand and overlaps no other.
+  - [ ] Old Tomas walks round the back of the subway entrance.
+  - [ ] Dropped things scatter round you.
+  - [ ] Chat: the lines fade 4 s after the last one and come back with a new one.
+  - [ ] Every screen's close X in its panel's top right-hand corner.
+  - [ ] Friends: the online dot, the mail icon, the "..." friend view, the Ignored
+        button (needs another player: the helper bot).
+  - [ ] Party: the fold button (needs another player).
+  - [ ] Main menu: the "New York" server picker.
+  - [ ] Pause menu: the server, player and zone at the top.
+  - [ ] The loading screen between the character screen and the world.
+  - [ ] Shop: most of the screen, with descriptions.
+  - [ ] The plant card in the middle of the screen.
 - [ ] The taxi ride's longer view and haze.
 - [ ] The meadows (3 km Terrain3D zone east of Main Street): the hills, the textures,
       the size; sculpt and paint it in the editor.
