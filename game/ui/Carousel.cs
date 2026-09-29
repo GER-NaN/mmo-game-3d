@@ -19,7 +19,7 @@ public partial class Carousel : HBoxContainer
     private const float Slide = 12f;
 
     // Room round each thing, in pixels.
-    private const float Spacing = 8f;
+    private const float Spacing = 18f;
 
     // How many things show at once; odd, so one is in the middle.
     [Export]
@@ -28,12 +28,20 @@ public partial class Carousel : HBoxContainer
     // (index) when the chosen thing changes.
     public event Action<int>? ChosenChanged;
 
+    // (index) when the thing already in the middle is pressed.
+    public event Action<int>? ChosenPressed;
+
     private readonly List<Control> _items = new List<Control>();
     private Control _strip = null!;
     private float _shown;
     private double _sinceEdgeStep;
 
     public int Chosen { get; private set; }
+
+    public Control? ChosenItem
+    {
+        get { return Chosen < _items.Count ? _items[Chosen] : null; }
+    }
 
     public override void _Ready()
     {
@@ -66,7 +74,16 @@ public partial class Carousel : HBoxContainer
             {
                 InputEventMouseButton? click = input as InputEventMouseButton;
 
-                if (click != null && click.Pressed && click.ButtonIndex == MouseButton.Left)
+                if (click == null || !click.Pressed || click.ButtonIndex != MouseButton.Left)
+                {
+                    return;
+                }
+
+                if (index == Chosen)
+                {
+                    ChosenPressed?.Invoke(index);
+                }
+                else
                 {
                     Choose(index);
                 }

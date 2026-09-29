@@ -6,11 +6,11 @@
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chosen"]
 bg_color = Color(1, 1, 1, 0.08)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.85, 0.85, 0.85, 0.9)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(1, 1, 1, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -22,7 +22,7 @@ script = ExtResource("1_carousel")
 
 [node name="Prev" type="Button" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(28, 0)
+custom_minimum_size = Vector2(44, 0)
 layout_mode = 2
 focus_mode = 0
 tooltip_text = "Previous"
@@ -44,7 +44,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_chosen")
 
 [node name="Next" type="Button" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(28, 0)
+custom_minimum_size = Vector2(44, 0)
 layout_mode = 2
 focus_mode = 0
 tooltip_text = "Next"

@@ -5,6 +5,7 @@ using Godot;
 using MmoGame3d.Gardening;
 using MmoGame3d.Interact;
 using MmoGame3d.Rules.World;
+using MmoGame3d.Ui;
 
 /// <summary>
 /// Activities at the greenhouse: a house plant made at the potting table, pieces planted,
@@ -69,6 +70,9 @@ public static class GardenActivities
                 .UntilOpen("garden")
                 .Wait(1)
                 .Click("the next pot", body => BotScreens.Named<Button>(body.Find<GardenScreen>()?.GetNodeOrNull("Pots"), "Next"))
+                .Wait(0.5)
+                .Click("the pot in the middle", body => BotScreens.Named<Carousel>(body.Find<GardenScreen>(), "PotCarousel")?.ChosenItem)
+                .Until("the leaves show", body => BotScreens.Named<Control>(body.Find<GardenScreen>(), "Leaves") != null, 3)
                 .Step(new PlantPiecesStep())
                 .Click("Complete", body => BotScreens.FirstButton(body.Find<GardenScreen>()!, "Complete"))
                 .Step(new TypeStep("a name", body => Names[body.Random.Next(Names.Length)]))

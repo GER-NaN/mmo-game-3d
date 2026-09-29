@@ -7,8 +7,9 @@ using MmoGame3d.Rules.Gardening;
 using MmoGame3d.Ui;
 
 /// <summary>
-/// The potting table, first person: a table, a pot on it, the pots to choose from along
-/// the top and the pieces in a tray beside, each as a picture. Press a piece and it is in
+/// The potting table, first person: a table and a pot on it. First a pot is picked from
+/// a carousel along the top (a click on the one in the middle); then that row gives way
+/// to the pieces' carousel, up and down for the kind of plant. Press a piece and it is in
 /// the pot; drag it where it should go. While held, the wheel turns it, Shift+wheel leans
 /// it out and Ctrl+wheel sizes it. Click a placed piece to move it again; drop it off the
 /// soil to put it back. Right-drag walks round the table and the wheel moves in and out
@@ -55,7 +56,13 @@ public partial class GardenScreen : Control
     private Carousel _pots = null!;
     private Label _kindName = null!;
     private int _kind;
-    private Control _banner = null!;
+    private Control _potBanner = null!;
+    private Control _leafBanner = null!;
+    private Control _panel = null!;
+    private Label _hint = null!;
+
+    // The pot is picked: the pieces' carousel shows instead of the pots'.
+    private bool _potPicked;
     private Control _help = null!;
     private Control _naming = null!;
     private Control _done = null!;
@@ -89,7 +96,9 @@ public partial class GardenScreen : Control
         BuildStage();
         BuildPanel();
         BuildPotBanner();
+        BuildLeafBanner();
         BuildHelp();
+        ShowStep();
         ChangePot(PlantParts.Pots[1]);
         CallDeferred(Control.MethodName.GrabFocus);
     }
@@ -479,12 +488,41 @@ public partial class GardenScreen : Control
         return new Vector2(hit.X / radius, hit.Z / radius);
     }
 
-    // Over the table itself, not the tray, the pots along the top or the key.
+    // Over the table itself, not the carousel along the top, the panel or the key.
     private bool OverPicture(Vector2 mouse)
     {
-        return mouse.X < GetNode<Control>("Panel").GlobalPosition.X
-            && !_banner.GetGlobalRect().HasPoint(mouse)
-            && !_help.GetGlobalRect().HasPoint(mouse);
+        foreach (Control over in new[] { _potBanner, _leafBanner, _panel, _help })
+        {
+            if (over.Visible && over.GetGlobalRect().HasPoint(mouse))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void PickPot()
+    {
+        _potPicked = true;
+        ShowStep();
+    }
+
+    // Back to the pots, with the pot empty.
+    private void StartOver()
+    {
+        Clear();
+        _potPicked = false;
+        ShowStep();
+    }
+
+    private void ShowStep()
+    {
+        _potBanner.Visible = !_potPicked;
+        _leafBanner.Visible = _potPicked;
+        _hint.Text = _potPicked
+            ? "Press a piece to put it in the pot, and drag it where it should go. Up to five."
+            : "Pick a pot: step through them, then click the one in the middle.";
     }
 
     private void ChangePot(string pot)
@@ -575,51 +613,43 @@ public partial class GardenScreen : Control
         viewport.AddChild(_plant);
     }
 
+    // What the table says and its buttons, floating in the bottom right.
     private void BuildPanel()
     {
-        PanelContainer panel = new PanelContainer { Name = "Panel", CustomMinimumSize = new Vector2(360, 0) };
-        panel.SetAnchorsPreset(LayoutPreset.RightWide);
-        panel.OffsetLeft = -360;
+        PanelContainer panel = new PanelContainer { Name = "Panel", CustomMinimumSize = new Vector2(300, 0) };
+        panel.SetAnchorsPreset(LayoutPreset.BottomRight);
+        panel.GrowHorizontal = GrowDirection.Begin;
+        panel.GrowVertical = GrowDirection.Begin;
+        panel.OffsetRight = -16;
+        panel.OffsetBottom = -16;
         AddChild(panel);
+        _panel = panel;
         MarginContainer margin = new MarginContainer();
 
         foreach (string side in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
         {
-            margin.AddThemeConstantOverride(side, 14);
+            margin.AddThemeConstantOverride(side, 12);
         }
 
         panel.AddChild(margin);
         VBoxContainer column = new VBoxContainer();
-        column.AddThemeConstantOverride("separation", 8);
+        column.AddThemeConstantOverride("separation", 6);
         margin.AddChild(column);
 
         Label title = new Label { Text = "Potting table" };
-        title.AddThemeFontSizeOverride("font_size", 22);
+        title.AddThemeFontSizeOverride("font_size", 18);
         column.AddChild(title);
-        column.AddChild(new Label { Text = "Choose a pot along the top, then up to five pieces from the tray.", AutowrapMode = TextServer.AutowrapMode.WordSmart, Modulate = new Color(1f, 1f, 1f, 0.7f) });
-
-        // The pieces: up and down for the kind of plant, left and right for its pieces.
-        column.AddChild(new Label { Text = "Pieces" });
-        column.AddChild(KindButton("KindUp", "res://game/ui/icons/chevron-up.svg", "The kind before", -1));
-        _kindName = new Label { HorizontalAlignment = HorizontalAlignment.Center };
-        _kindName.AddThemeFontSizeOverride("font_size", 18);
-        column.AddChild(_kindName);
-        _pieceList = CarouselScene.Instantiate<Carousel>();
-        _pieceList.ShowCount = 3;
-        column.AddChild(_pieceList);
-        column.AddChild(KindButton("KindDown", "res://game/ui/icons/chevron-down.svg", "The next kind", 1));
-        column.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-        ShowFamily(0);
-
+        _hint = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(276, 0), Modulate = new Color(1f, 1f, 1f, 0.7f) };
+        column.AddChild(_hint);
         _count = new Label();
         column.AddChild(_count);
-        _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, Modulate = new Color(1f, 0.9f, 0.6f) };
+        _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(276, 0), Modulate = new Color(1f, 0.9f, 0.6f) };
         column.AddChild(_status);
 
         HBoxContainer buttons = new HBoxContainer();
         buttons.AddThemeConstantOverride("separation", 8);
-        Button clear = new Button { Text = "Clear", FocusMode = FocusModeEnum.None };
-        clear.Pressed += Clear;
+        Button startOver = new Button { Text = "Start over", FocusMode = FocusModeEnum.None };
+        startOver.Pressed += StartOver;
         Button complete = new Button { Text = "Complete", FocusMode = FocusModeEnum.None };
         _complete = complete;
         complete.Pressed += () =>
@@ -629,7 +659,7 @@ public partial class GardenScreen : Control
         };
         Button leave = new Button { Text = "Leave", FocusMode = FocusModeEnum.None };
         leave.Pressed += () => Closed?.Invoke();
-        buttons.AddChild(clear);
+        buttons.AddChild(startOver);
         buttons.AddChild(complete);
         buttons.AddChild(leave);
         column.AddChild(buttons);
@@ -667,8 +697,7 @@ public partial class GardenScreen : Control
             IconAlignment = HorizontalAlignment.Center,
             TooltipText = tooltip,
             FocusMode = FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(64, 28),
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+            CustomMinimumSize = new Vector2(36, 28),
         };
         button.Pressed += () => ShowFamily(_kind + step);
         return button;
@@ -680,13 +709,13 @@ public partial class GardenScreen : Control
         int count = PlantParts.PieceFamilies.Length;
         _kind = ((index % count) + count) % count;
         string[] family = PlantParts.PieceFamilies[_kind];
-        _kindName.Text = family[0];
+        _kindName.Text = "Type: " + family[0];
         List<Control> pieces = new List<Control>();
 
         for (int i = 1; i < family.Length; i++)
         {
             string id = family[i];
-            Button piece = PictureButton(id, new Vector2(74, 74));
+            Button piece = PictureButton(id, new Vector2(112, 112));
             piece.AddToGroup(PieceGroup);
             piece.ButtonDown += () => Take(id);
 
@@ -730,40 +759,74 @@ public partial class GardenScreen : Control
         return button;
     }
 
-    // The pots along the top, a picture each, the chosen one in the middle; no panel
-    // behind, so the row floats over the table.
-    private void BuildPotBanner()
+    // A row along the top, centred, with no panel behind, so it floats over the table.
+    private Control Banner(string name, string heading, out VBoxContainer rows)
     {
-        PanelContainer banner = new PanelContainer { Name = "Pots" };
+        PanelContainer banner = new PanelContainer { Name = name };
         banner.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
         banner.SetAnchorsPreset(LayoutPreset.CenterTop);
         banner.GrowHorizontal = GrowDirection.Both;
         banner.OffsetTop = 12;
-
-        // Centred over the table, not the whole screen: the tray takes the right side.
-        banner.OffsetLeft = -180;
-        banner.OffsetRight = -180;
         AddChild(banner);
-        _banner = banner;
+        rows = new VBoxContainer();
+        rows.AddThemeConstantOverride("separation", 6);
+        banner.AddChild(rows);
+        Label title = new Label { Text = heading, HorizontalAlignment = HorizontalAlignment.Center };
+        title.AddThemeFontSizeOverride("font_size", 24);
+        title.AddThemeConstantOverride("outline_size", 8);
+        title.AddThemeColorOverride("font_outline_color", new Color(0.1f, 0.12f, 0.1f));
+        rows.AddChild(title);
+        return banner;
+    }
+
+    // Step one: the pots, a picture each; a click on the one in the middle picks it.
+    private void BuildPotBanner()
+    {
+        VBoxContainer rows;
+        _potBanner = Banner("Pots", "Pick a pot", out rows);
         _pots = CarouselScene.Instantiate<Carousel>();
-        _pots.ShowCount = 7;
-        banner.AddChild(_pots);
+        _pots.Name = "PotCarousel";
+        _pots.ShowCount = 5;
+        rows.AddChild(_pots);
         List<Control> pots = new List<Control>();
 
         foreach (string pot in PlantParts.Pots)
         {
-            Button button = PictureButton(pot, new Vector2(54, 62));
+            Button button = PictureButton(pot, new Vector2(104, 116));
             Label size = new Label { Text = pot.Substring(pot.LastIndexOf('_') + 1), HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
-            size.AddThemeFontSizeOverride("font_size", 11);
+            size.AddThemeFontSizeOverride("font_size", 13);
             size.AddThemeConstantOverride("outline_size", 4);
             size.SetAnchorsPreset(LayoutPreset.BottomWide);
-            size.OffsetTop = -16;
+            size.OffsetTop = -20;
             button.AddChild(size);
             pots.Add(button);
         }
 
         _pots.SetItems(pots, Array.IndexOf(PlantParts.Pots, _design.Pot));
         _pots.ChosenChanged += index => ChangePot(PlantParts.Pots[index]);
+        _pots.ChosenPressed += index => PickPot();
+    }
+
+    // Step two: the pieces, with the kind of plant stepped up and down in the corner.
+    private void BuildLeafBanner()
+    {
+        VBoxContainer rows;
+        _leafBanner = Banner("Leaves", "Add your leaves", out rows);
+        HBoxContainer kindRow = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        kindRow.AddThemeConstantOverride("separation", 6);
+        kindRow.AddChild(KindButton("KindUp", "res://game/ui/icons/chevron-up.svg", "The kind before", -1));
+        kindRow.AddChild(KindButton("KindDown", "res://game/ui/icons/chevron-down.svg", "The next kind", 1));
+        _kindName = new Label();
+        _kindName.AddThemeFontSizeOverride("font_size", 18);
+        _kindName.AddThemeConstantOverride("outline_size", 6);
+        _kindName.AddThemeColorOverride("font_outline_color", new Color(0.1f, 0.12f, 0.1f));
+        kindRow.AddChild(_kindName);
+        rows.AddChild(kindRow);
+        _pieceList = CarouselScene.Instantiate<Carousel>();
+        _pieceList.Name = "PieceCarousel";
+        _pieceList.ShowCount = 5;
+        rows.AddChild(_pieceList);
+        ShowFamily(0);
     }
 
     // What the mouse does, in the bottom left: a drawn mouse and a line per part.
