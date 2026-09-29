@@ -985,6 +985,16 @@ public partial class ClientGame : Node
         AddIfOpen(open, _garden, "garden");
         AddIfOpen(open, _plantCard, "plant-card");
         AddIfOpen(open, _book, "visitor-book");
+
+        // The settings panel is not kept in a field: it closes itself.
+        foreach (Node child in _ui.GetChildren())
+        {
+            if (child is SettingsPanel)
+            {
+                open.Add("settings");
+            }
+        }
+
         return open;
     }
 
