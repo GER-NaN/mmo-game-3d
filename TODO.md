@@ -63,7 +63,9 @@ link points.
       flood it. Post only top-ten runs, or nothing.
 - [ ] One 40 ms server frame in a taxi load test, not explained
       (docs/engineering/performance.md).
-- [ ] A second client on the same machine needs `-Profile`; nothing in the game says so.
+- [x] A second client on the same machine needs `-Profile`; nothing in the game says so.
+      Done 2026-09-29: a client holds its profile while it runs; a second window with
+      the same profile says so on the main menu and names `-Profile`.
 - [ ] settings.cfg was reset to defaults by a load test on the author's machine; any
       custom keys or mouse speed from before 2026-09-26 are gone.
 

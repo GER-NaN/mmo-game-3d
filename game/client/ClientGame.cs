@@ -599,6 +599,13 @@ public partial class ClientGame : Node
 
     private void Connect(string address)
     {
+        if (!_profile.Claim())
+        {
+            GD.Print("Profile " + _profile.Name + " is taken by another client");
+            ShowMainMenu("The profile \"" + _profile.Name + "\" is open in another game window. For a second player on this machine, start the game with another profile: client-up.ps1 -Profile name, or --profile name.");
+            return;
+        }
+
         _address = address;
         _settings.Address = address;
         _settings.Save();
