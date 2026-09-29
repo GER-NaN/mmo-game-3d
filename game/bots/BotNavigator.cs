@@ -85,8 +85,9 @@ public class BotNavigator
         _going = true;
         _pendingFor = 0;
         _straight = false;
-        _stillFor = 0;
-        _backingFor = 0;
+
+        // The stuck timer and a backing off go on: a step that sets a new target often (a
+        // drone, a player on the move) would otherwise never let either run out.
 
         int things = zone.GetNodeOrNull(Interactable.ParentName)?.GetChildCount() ?? 0;
 
