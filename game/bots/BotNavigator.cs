@@ -275,7 +275,8 @@ public class BotNavigator
         // and cuts corners, and a path that grazes a tree trunk wedges it there.
         mesh.AgentRadius = 0.75f;
         mesh.AgentHeight = 2f;
-        mesh.AgentMaxClimb = 0.5f;
+        // A cell: a bench (0.5 m) is not a step, since the body's capsule cannot climb it.
+        mesh.AgentMaxClimb = 0.25f;
         mesh.GeometryParsedGeometryType = NavigationMesh.ParsedGeometryType.StaticColliders;
 
         NavigationMeshSourceGeometryData3D source = new NavigationMeshSourceGeometryData3D();
