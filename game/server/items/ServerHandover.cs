@@ -8,14 +8,19 @@ using MmoGame3d.Zones;
 
 /// <summary>
 /// Dropping things on the ground and giving them to another player. Both take things
-/// away from the player, so both are intents (ServerIntents). A drop lands in front of
-/// the player, past pickup reach, so they do not walk straight back into it; anyone can
-/// pick it up after. Facing a wall, it lands beside or behind them instead.
+/// away from the player, so both are intents (ServerIntents). A drop lands somewhere
+/// round the player, past pickup reach, so they do not walk straight back into it;
+/// anyone can pick it up after. Drops scatter rather than pile up in one spot.
 /// </summary>
 public class ServerHandover
 {
-    // How far in front a drop lands: past the pickup sphere and the body's radius.
+    // How far from the body a drop lands: past the pickup sphere and the body's radius,
+    // plus up to DropSpread more.
     private const float DropDistance = 1.8f;
+    private const float DropSpread = 0.7f;
+
+    // Random ways round the body tried before giving up on a drop.
+    private const int DropTries = 12;
 
     // The line to the spot and the room there are checked this high, clear of the floor
     // and kerbs, and in a ball this big.
@@ -28,6 +33,7 @@ public class ServerHandover
     private readonly World _world;
     private readonly Func<long, Session?> _findSession;
     private readonly Action<Session> _bagChanged;
+    private readonly Random _random = new Random();
 
     public ServerHandover(ServerIntents intents, Network session, GroundItems ground, World world, Func<long, Session?> findSession, Action<Session> bagChanged)
     {
@@ -39,21 +45,21 @@ public class ServerHandover
         _bagChanged = bagChanged;
     }
 
-    // In front of the body, on the floor height of the feet; with a wall there (a drop
-    // inside it is lost for good), to the right, the left or behind. Null with no room.
-    private static Vector3? DropSpot(Zone zone, Node3D body)
+    // A random way round the body, on the floor height of the feet, with a clear line
+    // to it (a drop inside a wall is lost for good). Null with no room.
+    private Vector3? DropSpot(Zone zone, Node3D body)
     {
-        Vector3 forward = -body.Transform.Basis.Z;
-        forward = new Vector3(forward.X, 0f, forward.Z).Normalized();
-        Vector3 right = new Vector3(-forward.Z, 0f, forward.X);
-        Vector3[] ways = { forward, right, -right, -forward };
         Vector3 waist = body.GlobalPosition + new Vector3(0f, DropCheckHeight, 0f);
 
-        foreach (Vector3 way in ways)
+        for (int i = 0; i < DropTries; i++)
         {
-            if (SpaceQueries.IsClearTo(zone, waist, waist + (way * DropDistance), DropRoom))
+            float angle = (float)(_random.NextDouble() * Math.PI * 2);
+            float distance = DropDistance + (float)(_random.NextDouble() * DropSpread);
+            Vector3 way = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+
+            if (SpaceQueries.IsClearTo(zone, waist, waist + (way * distance), DropRoom))
             {
-                return body.Position + (way * DropDistance);
+                return body.Position + (way * distance);
             }
         }
 
