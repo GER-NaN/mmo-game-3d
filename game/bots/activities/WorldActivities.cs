@@ -89,6 +89,12 @@ public static class WorldActivities
             Surveyor(ZoneIds.NewTown),
             Surveyor(ZoneIds.WoodedPath),
             Surveyor(ZoneIds.Outskirts),
+            // Stays in town and does nothing, for a player who wants someone there.
+            new BotActivity("hang-around", plan => plan
+                .InWorld()
+                .GoTo(ZoneIds.Town)
+                .Wait(30)),
+
             Surveillance(ZoneIds.Town),
             Surveillance(ZoneIds.NewTown),
         };

@@ -86,7 +86,7 @@ public partial class BotRunner : Node
 
         BotBody body = _body!;
         _watch.Tick(body, _run?.Step, delta);
-        _invites.Tick(body, delta);
+        _invites.Tick(body, delta, _persona!.JoinChance);
 
         // After a failure, a moment before the next activity, so a bot that fails at once
         // over and over (a place its plans cannot start from) does not spin.

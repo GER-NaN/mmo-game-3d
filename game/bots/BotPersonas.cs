@@ -107,6 +107,12 @@ public static class BotPersonas
             .Likes("phone-day", 1)
             .WalksAway(0.2),
 
+        // Someone for the author to play with: stays in town and joins every party it is
+        // invited to. Not in the soak.
+        new BotPersona("helper")
+            .Likes("hang-around", 1)
+            .JoinsInvites(1),
+
         // Loses its connection in the middle of things, and its characters change.
         new BotPersona("dropper")
             .Likes("drop-mid-walk", 2)

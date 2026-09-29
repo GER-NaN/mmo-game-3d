@@ -31,6 +31,9 @@ public class BotPersona
     // The chance, at each step's end, of leaving the activity there (R1).
     public double WalkAwayChance { get; private set; }
 
+    // The chance of joining a party it is invited to; otherwise it says no.
+    public double JoinChance { get; private set; } = 0.6;
+
     // Plays this activity once.
     public static BotPersona Only(string activity)
     {
@@ -50,6 +53,12 @@ public class BotPersona
     public BotPersona WalksAway(double chance)
     {
         WalkAwayChance = chance;
+        return this;
+    }
+
+    public BotPersona JoinsInvites(double chance)
+    {
+        JoinChance = chance;
         return this;
     }
 
