@@ -124,7 +124,8 @@ public partial class ClientGame : Node
     private CharacterCreator? _creator;
 
     // --autoconnect chooses by itself: make a character if there is none, then play the
-    // first. Once each.
+    // first. Once each, and once per launch: after leaving the world, the character screen
+    // shows as usual.
     private bool _autoCreated;
     private bool _autoPlayed;
     private string _zoneId = "";
@@ -578,8 +579,6 @@ public partial class ClientGame : Node
 
     private void Connect(string address)
     {
-        _autoCreated = false;
-        _autoPlayed = false;
         _address = address;
         _settings.Address = address;
         _settings.Save();
@@ -632,20 +631,21 @@ public partial class ClientGame : Node
     {
         GD.Print("Characters: " + string.Join(", ", names) + (message.Length > 0 ? " (" + message + ")" : ""));
 
-        if (_options.AutoConnect && !_options.ShowCharacters)
+        if (_options.AutoConnect && !_options.ShowCharacters && !_autoPlayed)
         {
             if (ids.Length == 0 && !_autoCreated)
             {
                 _autoCreated = true;
                 _network.SendCreateCharacter(DefaultName(), _options.Look);
+                return;
             }
-            else if (ids.Length > 0 && !_autoPlayed)
+
+            if (ids.Length > 0)
             {
                 _autoPlayed = true;
                 _network.SendLogin(ids[0]);
+                return;
             }
-
-            return;
         }
 
         // A problem with a character being made is shown on the creator, which stays.
