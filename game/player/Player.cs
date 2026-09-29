@@ -675,12 +675,21 @@ public partial class Player : CharacterBody3D
             return;
         }
 
-        string against = "nothing";
+        // The first contact that is not the floor under the feet: that one holds it.
+        string against = "nothing but the floor";
 
-        if (GetSlideCollisionCount() > 0)
+        for (int i = 0; i < GetSlideCollisionCount(); i++)
         {
-            Node? collider = GetSlideCollision(0).GetCollider() as Node;
+            KinematicCollision3D contact = GetSlideCollision(i);
+
+            if (contact.GetNormal().Dot(UpDirection) > 0.7f)
+            {
+                continue;
+            }
+
+            Node? collider = contact.GetCollider() as Node;
             against = collider == null ? "something" : collider.GetPath().ToString();
+            break;
         }
 
         GD.Print(DisplayName + " is asked to walk and has not moved for " + HeldReportAfter + " s: online " + IsOnline + ", gesture \"" + GestureId + "\", on the floor "
