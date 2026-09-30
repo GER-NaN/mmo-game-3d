@@ -530,6 +530,34 @@ text = "WOODED PATH"
 font_size = 64
 outline_size = 10
 
+[node name="ToOutdoorTemplate" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, 48)
+TargetZone = "outdoor_template"
+TargetArrival = "FromTown"
+
+[node name="Sign" type="Label3D" parent="Doors/ToOutdoorTemplate"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+pixel_size = 0.01
+billboard = 1
+modulate = Color(0.75, 1, 0.6, 1)
+text = "OUTDOOR TEMPLATE"
+font_size = 64
+outline_size = 10
+
+[node name="ToIndoorTemplate" parent="Doors" instance=ExtResource("90_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 48)
+TargetZone = "indoor_template"
+TargetArrival = "FromTown"
+
+[node name="Sign" type="Label3D" parent="Doors/ToIndoorTemplate"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+pixel_size = 0.01
+billboard = 1
+modulate = Color(0.75, 1, 0.6, 1)
+text = "INDOOR TEMPLATE"
+font_size = 64
+outline_size = 10
+
 [node name="Arrivals" type="Node3D" parent="." unique_id=216889681]
 
 [node name="FromOutskirts" type="Marker3D" parent="Arrivals" unique_id=608642340]
@@ -552,6 +580,12 @@ transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 44, 0, 0)
 
 [node name="FromWoodedPath" type="Marker3D" parent="Arrivals"]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -44, 0, 0)
+
+[node name="FromOutdoorTemplate" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, 43)
+
+[node name="FromIndoorTemplate" type="Marker3D" parent="Arrivals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 43)
 
 [node name="Spawn" type="Marker3D" parent="." unique_id=1800921968]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 8)

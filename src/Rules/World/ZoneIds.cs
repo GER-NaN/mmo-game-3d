@@ -19,10 +19,14 @@ public static class ZoneIds
     public const string WoodedPath = "wooded_path";
     public const string NewTown = "new_town";
 
+    // Starting points for new zones: copy one (making-changes.md, "A zone").
+    public const string OutdoorTemplate = "outdoor_template";
+    public const string IndoorTemplate = "indoor_template";
+
     public const string Start = Town;
 
     // Loaded at start. Instance scenes (the taxi) are not: they are made per use.
-    public static readonly string[] All = { Town, Outskirts, Shop, College, Greenhouse, Subway, Meadows, WoodedPath, NewTown };
+    public static readonly string[] All = { Town, Outskirts, Shop, College, Greenhouse, Subway, Meadows, WoodedPath, NewTown, OutdoorTemplate, IndoorTemplate };
 
     public static string Instance(string scene, int number)
     {
@@ -54,6 +58,10 @@ public static class ZoneIds
                 return "Wooded path";
             case NewTown:
                 return "New Town";
+            case OutdoorTemplate:
+                return "Outdoor template";
+            case IndoorTemplate:
+                return "Indoor template";
             default:
                 return zoneId;
         }
