@@ -109,6 +109,9 @@ public partial class ServerGame : Node
         _world = world;
         StartDiagnostics(networks);
 
+        // Said first so the warning that follows is not taken for a fault of ours.
+        GD.Print("Loading the zones. A WARNING that instance_reset_physics_interpolation() is deprecated is expected here: the Terrain3D add-on (built for an older Godot) calls it. It is not a fault in the game.");
+
         for (int i = 0; i < ZoneIds.All.Length; i++)
         {
             Zone zone = _world.LoadZone(ZoneIds.All[i]);
