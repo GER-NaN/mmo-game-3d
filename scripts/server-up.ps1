@@ -9,6 +9,15 @@ param(
 
 $root = Split-Path $PSScriptRoot -Parent
 
+# A second server cannot listen on the same port, and its window closes before the
+# reason can be read.
+$running = Get-NetUDPEndpoint -LocalPort 7070 -ErrorAction SilentlyContinue | Select-Object -First 1
+
+if ($running) {
+    Write-Host "A server is already running on port 7070 (process $($running.OwningProcess)). Use it, or stop it first with .\scripts\server-stop.ps1."
+    exit 1
+}
+
 dotnet build (Join-Path $root "mmo-game-3d.sln")
 
 if ($LASTEXITCODE -ne 0) {
