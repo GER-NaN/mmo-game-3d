@@ -140,6 +140,14 @@ public partial class ClientGame : Node
     private string _displayName = "";
     private string _address = "";
 
+    // How long a connection may take before the game gives up on it, counted down on the
+    // main menu so a player sees it is still trying. Placeholder.
+    private const double ConnectSeconds = 10;
+
+    // Seconds spent connecting, while a connection is being made; -1 when none is.
+    private double _connectingFor = -1;
+    private int _connectShown = -1;
+
     public void Start(LaunchOptions options, Networks networks, Node main)
     {
         _options = options;
@@ -303,6 +311,7 @@ public partial class ClientGame : Node
     public override void _Process(double delta)
     {
         RecordScreens();
+        TickConnecting(delta);
 
         if (_world != null && _hud != null)
         {
@@ -633,13 +642,47 @@ public partial class ClientGame : Node
         }
 
         Multiplayer.MultiplayerPeer = peer;
-        _menu?.SetStatus("Connecting to " + ServerList.NameFor(address) + "...");
+        _connectingFor = 0;
+        _connectShown = -1;
+        ShowConnecting();
         _menu?.SetBusy(true);
         GD.Print("Connecting to " + address + ":" + _options.Port + " as profile " + _profile.Name);
     }
 
+    // "Connecting to New York... (7)": the seconds left before the game gives up.
+    private void ShowConnecting()
+    {
+        int left = Mathf.CeilToInt((float)(ConnectSeconds - _connectingFor));
+
+        if (left != _connectShown)
+        {
+            _connectShown = left;
+            _menu?.SetStatus("Connecting to " + ServerList.NameFor(_address) + "... (" + left + ")");
+        }
+    }
+
+    private void TickConnecting(double delta)
+    {
+        if (_connectingFor < 0)
+        {
+            return;
+        }
+
+        _connectingFor += delta;
+
+        if (_connectingFor < ConnectSeconds)
+        {
+            ShowConnecting();
+            return;
+        }
+
+        GD.Print("Gave up connecting to " + _address + " after " + ConnectSeconds + " s");
+        OnConnectionFailed();
+    }
+
     private void OnConnected()
     {
+        _connectingFor = -1;
         GD.Print("Connected as peer " + Multiplayer.GetUniqueId() + "; saying hello");
 
         // ENet's throttle drops unreliable packets while the round trip wavers, as it does
@@ -654,6 +697,7 @@ public partial class ClientGame : Node
 
     private void OnConnectionFailed()
     {
+        _connectingFor = -1;
         Disconnect();
         ShowMainMenu("Could not reach " + ServerList.NameFor(_address) + ".");
     }
@@ -1945,6 +1989,8 @@ public partial class ClientGame : Node
 
     private void Disconnect()
     {
+        _connectingFor = -1;
+
         if (Multiplayer.MultiplayerPeer != null)
         {
             Multiplayer.MultiplayerPeer.Close();
